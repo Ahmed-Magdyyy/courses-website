@@ -22,6 +22,7 @@ const classSchema = new mongoose.Schema(
       required: [true, "meeting password is required"],
     },
     teacher: { type: mongoose.Schema.Types.ObjectId, ref: "teacher" },
+    studentsEnrolled: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
     status: {
       type: String,
       enum: ["scheduled", "started", "cancelled"],

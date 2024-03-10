@@ -4,8 +4,8 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "swagger": "node ./swagger.js"
+    "start:dev": "nodemon app.js",
+    "start:prod": "NODE_ENV=production node app.js"
   },
   "author": "",
   "license": "ISC",
@@ -25,6 +25,5 @@
     "nodemailer": "^6.9.9",
     "uuid": "^9.0.1"
   },
-  "devDependencies": {
-  }
+  "devDependencies": {}
 }

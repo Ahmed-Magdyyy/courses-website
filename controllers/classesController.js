@@ -6,7 +6,7 @@ const classModel = require("../models/classModel");
 
 exports.createClass = async (req, res, next) => {
   try {
-    const { name, duration, start_date, start_time, teacher } = req.body;
+    const { name, duration, start_date, start_time, teacher, students } = req.body;
 
     // Create a Zoom meeting
     const meeting = await createMeeting(name, duration, start_date, start_time);
@@ -20,6 +20,7 @@ exports.createClass = async (req, res, next) => {
       classZoomLink: meeting.meeting_url,
       meetingPassword: meeting.password,
       teacher,
+      studentsEnrolled: students
     });
 
     res
