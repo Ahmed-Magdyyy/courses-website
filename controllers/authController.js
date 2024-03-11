@@ -394,10 +394,10 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
               </tr>
               <tr>
                 <td style="text-align: center">
-                  <a href="http://www.peacockchocolateksa.com" title="logo" target="_blank">
+                  <a href="#" title="logo" target="_blank">
                     <img
                       width="250"
-                      src="http://www.peacockchocolateksa.com/img/Asset%202.png"
+                      src="#"
                       title="logo"
                       alt="logo"
                     />
@@ -459,7 +459,7 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
                           "
                         >
                           Hello ${capitalizeFirlstLetterOfName}, \n
-                          We received a request to reset the password on you Peacock account.
+                          We received a request to reset the password on your Jaweed account.
                         </p>
                         <p
                           
@@ -510,7 +510,7 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
                       margin: 0 0 0;
                     "
                   >
-                    &copy; <strong>www.peacockchocolateksa.com</strong>
+                    &copy; <strong>Jaweed team</strong>
                   </p>
                 </td>
               </tr>
@@ -591,6 +591,6 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   await user.save();
 
   // if everything is good => generate new token
-  const token = createToken(user._id);
+  const token = createToken(user._id, user.role);
   res.status(200).json({ token });
 });
