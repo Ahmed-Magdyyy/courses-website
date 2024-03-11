@@ -72,10 +72,10 @@ exports.signup = asyncHandler(async (req, res, next) => {
               </tr>
               <tr>
                 <td style="text-align: center">
-                  <a href="http://www.peacockchocolateksa.com" title="logo" target="_blank">
+                  <a href="#" title="logo" target="_blank">
                     <img
                       width="250"
-                      src="http://www.peacockchocolateksa.com/img/Asset%202.png"
+                      src="#"
                       title="logo"
                       alt="logo"
                     />
@@ -134,9 +134,9 @@ exports.signup = asyncHandler(async (req, res, next) => {
                             text-align: left;
                           "
                         >
-                          Thank you for registering in Peacock. To start using your account please confirm your email address by clicking on the confirm your email button.
+                          Thank you for registering in Jaweed website. To start using your account please confirm your email address by clicking on the confirm your email button.
                         </p>
-                        <a target="_blank" href="https://peacock-api-ixpn.onrender.com/api/v1/auth/confirm-email/${token}"
+                        <a target="_blank" href="https://courses-website-t4cr.onrender.com/api/v1/auth/confirm-email/${token}"
                         style="background:#20e277;text-decoration:none !important; font-weight:500; margin-top:25px; color:#fff;text-transform:uppercase; font-size:14px;padding:10px 24px;display:inline-block;border-radius:50px;">Confirm Your Email</a>
 
                         <p
@@ -147,7 +147,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
                             text-align: left;
                           "
                         >
-                          Welcome to Peacock,
+                          Welcome to Jaweed website,
                         </p>
                         <p
                           style="
@@ -158,7 +158,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
                             text-align: left;
                           "
                         >
-                          The Peacock Team.
+                          The Jaweed Team.
                         </p>
                       </td>
                     </tr>
