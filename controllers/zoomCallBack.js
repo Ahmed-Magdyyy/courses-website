@@ -15,12 +15,13 @@ exports.getCallBack = asyncHandler(async (req, res, next) => {
   if (req.body.event === "endpoint.url_validation") {
     const hashForValidate = crypto
       .createHmac("sha256", "KZNnqA3tTzq9ZZOLwgFwSw")
-      .update(request.body.payload.plainToken)
+      .update(req.body.payload.plainToken)
       .digest("hex");
 
     res.status(200).json({
-      plainToken: request.body.payload.plainToken,
+      plainToken: req.body.payload.plainToken,
       encryptedToken: hashForValidate,
     });
   }
+  next();
 });
