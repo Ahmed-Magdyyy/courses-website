@@ -50,15 +50,16 @@ Router.delete("/deleteLoggedUserData", deleteLoggedUserData);
 //----- Admin Routes -----
 
 Router.use(allowedTo("superAdmin", "admin"));
+Router.use(enabledControls("users"));
 
-Router.route("/").get(enabledControls("users"), getUsers).post(createUser);
+Router.route("/").get(getUsers).post(createUser);
 
 Router.route("/:id")
-  .get(enabledControls("users"), getUser)
-  .delete(enabledControls("users"), deleteUser)
-  .put(enabledControls("users"), updateuser);
+  .get(getUser)
+  .delete(deleteUser)
+  .put(updateuser);
 
-Router.put("/changePassword/:id", enabledControls("users"), updateUserPassword);
+Router.put("/changePassword/:id", updateUserPassword);
 
 //----- /Admin Routes -----
 

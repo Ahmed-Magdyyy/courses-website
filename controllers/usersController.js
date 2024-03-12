@@ -19,7 +19,13 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   res.status(200).json({ data: user });
 });
 
-exports.createUser = factory.createOne(usersModel);
+exports.createUser = asyncHandler(async (req, res) => {
+  const newDoc = await usersModel.create({
+    ...req.body,
+    account_status: "confirmed",
+  });
+  res.status(201).json({ message: "Success", data: newDoc });
+});
 
 exports.updateuser = asyncHandler(async (req, res, next) => {
   const { name, email, phone, enabledControls } = req.body;
@@ -67,23 +73,34 @@ exports.getLoggedUser = asyncHandler(async (req, res, next) => {
 
 exports.updateLoggedUserPassword = asyncHandler(async (req, res, next) => {
   //1) update user password based on user's payload (req.user._id)
-  const { newPassword } = req.body;
+  const { currentPassword, newPassword } = req.body;
 
-  const user = await usersModel.findByIdAndUpdate(
-    req.user._id,
-    {
-      password: await bcrypt.hash(newPassword, 12),
-      passwordChangedAT: Date.now(),
-    },
-    {
-      new: true,
-    }
-  );
+  const user = await usersModel.findById(req.user._id);
 
-  // 2) generate new token
+  if ((await bcrypt.compare(currentPassword, user.password)) == true) {
+    const Updateduser = await usersModel.findByIdAndUpdate(
+      req.user._id,
+      {
+        password: await bcrypt.hash(newPassword, 12),
+        passwordChangedAT: Date.now(),
+      },
+      {
+        new: true,
+      }
+    );
 
-  const token = createToken(user._id);
-  res.status(200).json({ data: user, token });
+    // 2) generate new token
+
+    const token = createToken(user._id, user.role);
+    res.status(200).json({ data: Updateduser, token });
+  }else {
+    return next(
+      new ApiError(
+        "Current password is incorrect",
+        401
+      )
+    );
+  }
 });
 
 exports.updateLoggedUserData = asyncHandler(async (req, res, next) => {
