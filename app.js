@@ -14,6 +14,7 @@ const authRoute = require("./routes/authRoute");
 const usersRoute = require("./routes/usersRoute");
 const coursesRoute = require("./routes/coursesRoute");
 const classRoute = require("./routes/classRoute");
+const zoomRoute = require("./routes/zoomCallBackRoute");
 
 
 // middlewares
@@ -37,6 +38,7 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/users", usersRoute);
 app.use("/api/v1/courses", coursesRoute);
 app.use("/api/v1/classes", classRoute);
+app.use("/api/v1/zoom", zoomRoute);
 
 
 app.all("*", (req, res, next) => {
