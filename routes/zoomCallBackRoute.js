@@ -11,7 +11,6 @@ const {
 
 Router.route("/")
   .post(
-    allowedTo("superAdmin", "admin"),
     getCallBack
   )
 
