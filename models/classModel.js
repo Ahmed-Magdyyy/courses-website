@@ -25,8 +25,8 @@ const classSchema = new mongoose.Schema(
     studentsEnrolled: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
     status: {
       type: String,
-      enum: ["scheduled", "started", "cancelled"],
-      default: "Scheduled",
+      enum: ["scheduled", "completed", "cancelled"],
+      default: "scheduled",
     },
     cancelledBy: {
       type: String,
@@ -39,15 +39,54 @@ const classSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// // Pre-save hook to format start_date and start_time
-// classSchema.pre("save", function (next) {
-//   const datetimeString = `${this.start_date}T${this.start_time}`;
-//   const formattedDateTime = moment.tz(datetimeString, "DD-MM-YYYYTHH:mm A", "Africa/Cairo");
-//   const formattedCairoDateTime = formattedDateTime.clone().tz("Africa/Cairo");
-//   this.start_date = formattedCairoDateTime.format("DD/MM/YYYY");
-//   this.start_time = formattedCairoDateTime.format("hh:mm A");
-//   next();
-// });
+
+
+classSchema.post("save", async function (doc) {
+  const userModel = mongoose.model("user");
+
+  // Update teacher if exists
+  if (doc.teacher) {
+    await userModel.updateOne(
+      { _id: doc.teacher, classes: { $ne: doc._id } }, // Add condition to check if the class ID is not already present
+      { $addToSet: { classes: doc._id } }
+    );
+  }
+
+  // Update studentsEnrolled
+  await userModel.updateMany(
+    { _id: { $in: doc.studentsEnrolled }, classes: { $ne: doc._id } }, // Add condition to check if the class ID is not already present
+    { $addToSet: { classes: doc._id } }
+  );
+});
+
+
+classSchema.pre("findOneAndDelete", async function (next) {
+  const userModel = mongoose.model("user");
+  
+  try {
+    const classDoc = await this.model.findOne(this.getFilter());
+    
+    // If the class document exists
+    if (classDoc) {
+      const classId = classDoc._id;
+      
+      // Update users who were either teachers or students in the deleted class
+      await userModel.updateMany(
+        {
+          $or: [{ role: "teacher", classes: classId }, { role: "student", classes: classId }],
+        },
+        {
+          $pull: { classes: classId }, // Remove class ID from 'classes' array
+        }
+      );
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 // Pre-save hook to set timestamps
 classSchema.pre("save", function (next) {

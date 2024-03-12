@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
-const factory = require("../controllers/controllersFactory");
 
 const courseSchema = new mongoose.Schema(
   {
@@ -46,20 +45,34 @@ courseSchema.post("save", async function (doc) {
   );
 });
 
-courseSchema.post("deleteOne", async function (doc) {
+courseSchema.pre("findOneAndDelete", async function (next) {
   const userModel = mongoose.model("user");
-console.log("remove triggered");
-  // Remove course ID from the courses array of all users who were either teachers or students in the deleted course
-  const updatedUsers = await userModel.updateMany(
-    {
-      $or: [{ teacher: doc._id }, { studentsEnrolled: doc._id }],
-    },
-    {
-      $pull: { courses: doc._id }, // Remove course ID from 'courses' array
-    }
-  );
 
-  console.log("Updated users:", updatedUsers);
+  try {
+    const courseDoc = await this.model.findOne(this.getFilter());
+
+    // If the course document exists
+    if (courseDoc) {
+      const courseId = courseDoc._id;
+
+      // Update users who were either teachers or students in the deleted course
+      await userModel.updateMany(
+        {
+          $or: [
+            { role: "teacher", courses: courseId },
+            { role: "student", courses: courseId },
+          ],
+        },
+        {
+          $pull: { courses: courseId }, // Remove class ID from 'courses' array
+        }
+      );
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 courseSchema.pre("save", function (next) {

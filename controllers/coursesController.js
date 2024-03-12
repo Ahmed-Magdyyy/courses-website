@@ -139,7 +139,7 @@ exports.updateCourse = factory.updateOne(coursesModel);
 
 exports.deleteCourse = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const Document = await coursesModel.deleteOne({_id:id});
+  const Document = await coursesModel.findOneAndDelete({_id:id});
   if (!Document) {
     return next(new ApiError(`No Document found for this id:${id}`, 404));
   }
