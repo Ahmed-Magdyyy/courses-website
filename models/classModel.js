@@ -16,6 +16,7 @@ const classSchema = new mongoose.Schema(
       type: String,
       required: [true, "class starting time is required"],
     },
+    zoomMeetingId: { type: Number, required: [true, "zoom meeting id is required"] },
     classZoomLink: { type: String, required: [true, "class link is required"] },
     meetingPassword: {
       type: String,
@@ -35,11 +36,22 @@ const classSchema = new mongoose.Schema(
     comment: {
       type: String,
     },
+    attendance: [
+      {
+        _id: false, // Prevent MongoDB from automatically creating _id field
+        student: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "user",
+        },
+        attended: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
-
-
 
 classSchema.post("save", async function (doc) {
   const userModel = mongoose.model("user");
@@ -59,34 +71,35 @@ classSchema.post("save", async function (doc) {
   );
 });
 
-
 classSchema.pre("findOneAndDelete", async function (next) {
   const userModel = mongoose.model("user");
-  
+
   try {
     const classDoc = await this.model.findOne(this.getFilter());
-    
+
     // If the class document exists
     if (classDoc) {
       const classId = classDoc._id;
-      
+
       // Update users who were either teachers or students in the deleted class
       await userModel.updateMany(
         {
-          $or: [{ role: "teacher", classes: classId }, { role: "student", classes: classId }],
+          $or: [
+            { role: "teacher", classes: classId },
+            { role: "student", classes: classId },
+          ],
         },
         {
           $pull: { classes: classId }, // Remove class ID from 'classes' array
         }
       );
     }
-    
+
     next();
   } catch (error) {
     next(error);
   }
 });
-
 
 // Pre-save hook to set timestamps
 classSchema.pre("save", function (next) {

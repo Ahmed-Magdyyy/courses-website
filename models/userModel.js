@@ -69,10 +69,12 @@ const userSchema = new mongoose.Schema(
 userSchema.methods.deductClassCredit = function () {
   if (this.remainingClasses > 0) {
     this.remainingClasses -= 1;
+    return true; // Indicate that deduction was successful
   } else {
-  return new ApiError("No remaining class")
+    return false; // Indicate that deduction failed due to insufficient remaining classes
   }
 };
+
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();

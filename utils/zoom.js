@@ -71,6 +71,10 @@ exports.createMeeting = async function (
       meeting_url: response_data.join_url,
       password: response_data.password,
       meetingTime: response_data.start_time,
+      meeting_uuid: response_data.uuid,
+      meetingId: response_data.id,
+      host_id: response_data.host_id,
+      host_email: response_data.host_email,      
       topic: response_data.topic,
       duration: response_data.duration,
       message: "Success",
@@ -83,3 +87,49 @@ exports.createMeeting = async function (
     return error;
   }
 };
+
+exports.deleteMeeting = async function (meetingId) {
+  try {
+    // Authenticate with Zoom to get access token
+    const authResponse = await axios.post(
+      `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${account_id}`,
+      {},
+      {
+        auth: {
+          username: client_ID,
+          password: client_secret,
+        },
+      }
+    );
+
+    if (authResponse.status !== 200) {
+      console.log("Unable to get access token");
+      return;
+    }
+
+    const access_token = authResponse.data.access_token;
+
+    // Set headers for Zoom API request
+    const headers = {
+      Authorization: `Bearer ${access_token}`,
+    };
+
+    // Delete meeting from Zoom using its ID
+    const response = await axios.delete(
+      `https://api.zoom.us/v2/meetings/${meetingId}`,
+      {
+        headers,
+      }
+    );
+
+    if (response.status !== 204) {
+      console.log("Unable to delete meeting from Zoom");
+      return "Unable to delete meeting from Zoom"
+    } else {
+      console.log("Meeting deleted successfully from Zoom");
+      return "Meeting deleted successfully from Zoom"
+    }
+  } catch (error) {
+    console.error("Error deleting meeting from Zoom:", error);
+  }
+}

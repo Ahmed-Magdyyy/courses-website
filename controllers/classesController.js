@@ -1,6 +1,6 @@
 const factory = require("./controllersFactory");
 const asyncHandler = require("express-async-handler");
-const { createMeeting } = require("../utils/zoom");
+const { createMeeting, deleteMeeting } = require("../utils/zoom");
 const ApiError = require("../utils/ApiError");
 const classModel = require("../models/classModel");
 const userModel = require("../models/userModel");
@@ -9,6 +9,28 @@ exports.createClass = async (req, res, next) => {
   try {
     const { name, duration, start_date, start_time, teacher, students } =
       req.body;
+
+    // Check if all students have remaining classes greater than 0
+    const invalidStudents = [];
+
+    for (const studentId of students) {
+      const student = await userModel.findOne({
+        _id: studentId,
+        remainingClasses: { $gt: 0 },
+      });
+
+      if (!student) {
+        invalidStudents.push(studentId);
+      }
+    }
+
+    if (invalidStudents.length > 0) {
+      // Some students do not have remaining classes greater than 0
+      return res.status(400).json({
+        message: "Some students do not have remaining classes",
+        invalidStudents,
+      });
+    }
 
     // Create a Zoom meeting
     const meeting = await createMeeting(name, duration, start_date, start_time);
@@ -19,10 +41,16 @@ exports.createClass = async (req, res, next) => {
       start_date,
       duration,
       start_time,
+      zoomMeetingId: meeting.meetingId,
       classZoomLink: meeting.meeting_url,
       meetingPassword: meeting.password,
       teacher,
       studentsEnrolled: students,
+      // Automatically generate attendance for enrolled students
+      attendance: students.map((studentId) => ({
+        student: studentId,
+        attended: false,
+      })),
     });
 
     res
@@ -46,9 +74,23 @@ exports.getClass = asyncHandler(async (req, res, next) => {
   res.status(200).json({ data: document });
 });
 
-exports.updateClass = factory.updateOne(classModel);
+exports.updateClass = asyncHandler(async (req, res, next) => {
+  const { name, teacher, status, comment } = req.body;
+  const document = await classModel.findByIdAndUpdate(
+    req.params.id,
+    { name, teacher, status, comment },
+    {
+      new: true,
+    }
+  );
 
-exports.addStudentstoclass = asyncHandler(async (req, res, next) => {
+  if (!document) {
+    return next(new ApiError(`No document for this id:${req.params.id}`, 404));
+  }
+  res.status(200).json({ data: document });
+});
+
+exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
   const classId = req.params.id;
   const { studentId } = req.body;
 
@@ -79,7 +121,7 @@ exports.addStudentstoclass = asyncHandler(async (req, res, next) => {
     classes.studentsEnrolled.push(studentId);
 
     // Save the updated class
-    const updatedClass = await classes.save();
+    var updatedClass = await classes.save();
   } else {
     return next(
       new ApiError(
@@ -115,7 +157,7 @@ exports.addStudentstoclass = asyncHandler(async (req, res, next) => {
   // }
 
   // console.log("Users documents updated successfully:", users);
-  
+
   res.status(200).json({ data: updatedClass });
 });
 
@@ -139,7 +181,10 @@ exports.removeStudentFromClass = asyncHandler(async (req, res, next) => {
   const studentIndex = classes.studentsEnrolled.indexOf(studentId);
   if (studentIndex === -1) {
     return next(
-      new ApiError(`Student with ID ${studentId} is not enrolled in this class`, 404)
+      new ApiError(
+        `Student with ID ${studentId} is not enrolled in this class`,
+        404
+      )
     );
   }
 
@@ -166,5 +211,73 @@ exports.deleteClass = asyncHandler(async (req, res, next) => {
   if (!Document) {
     return next(new ApiError(`No Class found for this id:${id}`, 404));
   }
+
+  // Delete the Zoom meeting associated with the class
+  const { zoomMeetingId } = Document;
+  if (zoomMeetingId) {
+    // Call deleteMeeting function and pass the meetingId
+    await deleteMeeting(zoomMeetingId);
+  }
+
   res.status(204).send("Class deleted successfully");
+});
+
+exports.updateAttendance = asyncHandler(async (req, res, next) => {
+  const classId = req.params.id;
+  const { attendance } = req.body;
+
+  // Find the class by ID
+  const cls = await classModel.findById(classId);
+
+  if (!cls) {
+    return next(new ApiError(`No class found for this id:${classId}`, 404));
+  }
+
+  console.log("Attendance received:", attendance);
+
+  // Update attendance based on the request body
+  for (const attendanceEntry of attendance) {
+    const { studentId, attended } = attendanceEntry;
+    console.log(
+      "Processing attendance for student:",
+      studentId,
+      "Attended:",
+      attended
+    );
+
+    // Find the corresponding attendance entry in the class document
+    const existingAttendanceIndex = cls.attendance.findIndex(
+      (entry) => entry.student.toString() === studentId
+    );
+
+    if (existingAttendanceIndex !== -1) {
+      // If the attendance entry exists, update it
+      cls.attendance[existingAttendanceIndex].attended = attended;
+
+      // If the student attended, deduct 1 from remainingClasses using the middleware
+      if (attended) {
+        const student = await userModel.findById(studentId);
+        if (student.remainingClasses > 0) {
+          const deductionSuccessful = student.deductClassCredit();
+          if (deductionSuccessful) {
+            // If deduction was successful, save the updated user
+            await student.save();
+          } else {
+            return next(new ApiError("No remaining class credits"));
+          }
+        } else {
+          return next(new ApiError("No remaining class credits"));
+        }
+      }
+    } else {
+      return next(
+        new ApiError(`Attendance entry for student ${studentId} not found`)
+      );
+    }
+  }
+
+  // Save the updated class
+  await cls.save();
+
+  res.status(200).json({ message: "Attendance updated successfully" });
 });

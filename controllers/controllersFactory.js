@@ -30,14 +30,15 @@ exports.getOne = (Model) =>
 exports.getAll = (Model) =>
   asyncHandler(async (req, res, next) => {
     let filter = {};
-    if (req.filterObj) {
-      filter = req.filterObj;
+    if (req.query) {
+      filter = req.query;
     }
+
     const documents = await Model.find(filter);
     res.status(200).json({ results: documents.length, data: documents });
   });
 
-exports.updateOne = (Model) => 
+exports.updateOne = (Model) =>
   asyncHandler(async (req, res, next) => {
     const document = await Model.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

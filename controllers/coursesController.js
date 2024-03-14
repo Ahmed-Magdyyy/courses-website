@@ -1,6 +1,5 @@
 const factory = require("./controllersFactory");
 const asyncHandler = require("express-async-handler");
-const bcrypt = require("bcrypt");
 
 const coursesModel = require("../models/coursesModel");
 const userModel = require("../models/userModel");
