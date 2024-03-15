@@ -12,11 +12,25 @@ exports.getUsers = factory.getAll(usersModel);
 
 exports.getUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const user = await usersModel.findById(id);
-  if (!user) {
-    return next(new ApiError(`No user found for this id:${id}`, 404));
+
+  let filter = {};
+  console.log(req.query);
+  if (!req.query == {}) {
+    filter = req.query;
+
+    const user = await usersModel.findById(filter);
+    if (!user) {
+      return next(new ApiError(`No user found for this id:${id}`, 404));
+    }
+    res.status(200).json({ data: user });
+
+  } else {
+    const user = await usersModel.findById(id);
+    if (!user) {
+      return next(new ApiError(`No user found for this id:${id}`, 404));
+    }
+    res.status(200).json({ data: user });
   }
-  res.status(200).json({ data: user });
 });
 
 exports.createUser = asyncHandler(async (req, res) => {
@@ -93,13 +107,8 @@ exports.updateLoggedUserPassword = asyncHandler(async (req, res, next) => {
 
     const token = createToken(user._id, user.role);
     res.status(200).json({ data: Updateduser, token });
-  }else {
-    return next(
-      new ApiError(
-        "Current password is incorrect",
-        401
-      )
-    );
+  } else {
+    return next(new ApiError("Current password is incorrect", 401));
   }
 });
 

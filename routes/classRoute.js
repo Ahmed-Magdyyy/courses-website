@@ -9,7 +9,8 @@ const {
   deleteClass,
   addStudentsToClass,
   removeStudentFromClass,
-  updateAttendance
+  classReport,
+  cancelClass,
 } = require("../controllers/classesController");
 
 const {
@@ -54,9 +55,15 @@ Router.route("/:id/removeStudent").delete(
   removeStudentFromClass
 );
 
-Router.route("/:id/updateAttendance").put(
+Router.route("/:id/classReport").put(
   allowedTo("superAdmin", "admin", "teacher"),
   enabledControls("classes"),
-  updateAttendance
-)
+  classReport
+);
+
+Router.route("/:id/cancelClass").put(
+  allowedTo("superAdmin", "admin", "teacher"),
+  enabledControls("classes"),
+  cancelClass
+);
 module.exports = Router;

@@ -29,10 +29,6 @@ const classSchema = new mongoose.Schema(
       enum: ["scheduled", "completed", "cancelled"],
       default: "scheduled",
     },
-    cancelledBy: {
-      type: String,
-      enum: ["teacher", "student"],
-    },
     comment: {
       type: String,
     },
@@ -47,6 +43,10 @@ const classSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
+        comment:{
+          type: String,
+          default: ""
+        }
       },
     ],
   },

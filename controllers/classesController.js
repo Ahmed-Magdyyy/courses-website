@@ -1,11 +1,12 @@
 const factory = require("./controllersFactory");
 const asyncHandler = require("express-async-handler");
+
 const { createMeeting, deleteMeeting } = require("../utils/zoom");
 const ApiError = require("../utils/ApiError");
 const classModel = require("../models/classModel");
 const userModel = require("../models/userModel");
 
-exports.createClass = async (req, res, next) => {
+exports.createClass = asyncHandler(async (req, res, next) => {
   try {
     const { name, duration, start_date, start_time, teacher, students } =
       req.body;
@@ -60,7 +61,7 @@ exports.createClass = async (req, res, next) => {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });
   }
-};
+});
 
 exports.getAllClasses = factory.getAll(classModel);
 
@@ -75,10 +76,10 @@ exports.getClass = asyncHandler(async (req, res, next) => {
 });
 
 exports.updateClass = asyncHandler(async (req, res, next) => {
-  const { name, teacher, status, comment } = req.body;
+  const { name, teacher, status } = req.body;
   const document = await classModel.findByIdAndUpdate(
     req.params.id,
-    { name, teacher, status, comment },
+    { name, teacher, status },
     {
       new: true,
     }
@@ -222,9 +223,9 @@ exports.deleteClass = asyncHandler(async (req, res, next) => {
   res.status(204).send("Class deleted successfully");
 });
 
-exports.updateAttendance = asyncHandler(async (req, res, next) => {
+exports.classReport = asyncHandler(async (req, res, next) => {
   const classId = req.params.id;
-  const { attendance } = req.body;
+  const { attendance, classComment } = req.body;
 
   // Find the class by ID
   const cls = await classModel.findById(classId);
@@ -233,11 +234,14 @@ exports.updateAttendance = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No class found for this id:${classId}`, 404));
   }
 
+  cls.comment = classComment;
+  cls.status = "completed";
+
   console.log("Attendance received:", attendance);
 
   // Update attendance based on the request body
   for (const attendanceEntry of attendance) {
-    const { studentId, attended } = attendanceEntry;
+    const { studentId, attended, comment } = attendanceEntry;
     console.log(
       "Processing attendance for student:",
       studentId,
@@ -254,6 +258,11 @@ exports.updateAttendance = asyncHandler(async (req, res, next) => {
       // If the attendance entry exists, update it
       cls.attendance[existingAttendanceIndex].attended = attended;
 
+      // Add comment based on attendance
+      if (comment) {
+        cls.attendance[existingAttendanceIndex].comment = comment;
+      }
+
       // If the student attended, deduct 1 from remainingClasses using the middleware
       if (attended) {
         const student = await userModel.findById(studentId);
@@ -263,10 +272,16 @@ exports.updateAttendance = asyncHandler(async (req, res, next) => {
             // If deduction was successful, save the updated user
             await student.save();
           } else {
-            return next(new ApiError("No remaining class credits"));
+            return next(
+              new ApiError(
+                `No remaining class credits for student ${studentId}`
+              )
+            );
           }
         } else {
-          return next(new ApiError("No remaining class credits"));
+          return next(
+            new ApiError(`No remaining class credits for student ${studentId}`)
+          );
         }
       }
     } else {
@@ -279,5 +294,39 @@ exports.updateAttendance = asyncHandler(async (req, res, next) => {
   // Save the updated class
   await cls.save();
 
-  res.status(200).json({ message: "Attendance updated successfully" });
+  res.status(200).json({ message: "class report updated successfully" });
+});
+
+exports.cancelClass = asyncHandler(async (req, res, next) => {
+  const classId = req.params.id;
+
+  // Find the class by ID
+  const cls = await classModel.findById(classId);
+
+  if (!cls) {
+    return next(new ApiError(`No class found for this id:${classId}`, 404));
+  }
+
+  // Check if the class is already completed or cancelled
+  if (cls.status === "completed" || cls.status === "cancelled") {
+    return next(
+      new ApiError(
+        `Cannot cancel a class that is already completed or cancelled`,
+        400
+      )
+    );
+  }
+
+  // Delete the Zoom meeting associated with the class
+  const { zoomMeetingId } = cls;
+  if (zoomMeetingId) {
+    // Call deleteMeeting function and pass the meetingId
+    await deleteMeeting(zoomMeetingId);
+  }
+
+  // Update the class status to "cancelled"
+  cls.status = "cancelled";
+  await cls.save();
+
+  res.status(200).json({ message: "Class cancelled successfully" });
 });

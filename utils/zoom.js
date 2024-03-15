@@ -130,6 +130,6 @@ exports.deleteMeeting = async function (meetingId) {
       return "Meeting deleted successfully from Zoom"
     }
   } catch (error) {
-    console.error("Error deleting meeting from Zoom:", error);
+    console.error("Error deleting meeting from Zoom:", error.data);
   }
 }
