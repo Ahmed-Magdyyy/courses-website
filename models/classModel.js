@@ -101,7 +101,6 @@ classSchema.pre("findOneAndDelete", async function (next) {
   }
 });
 
-// Pre-save hook to set timestamps
 classSchema.pre("save", function (next) {
   const currentTime = moment()
     .tz("Africa/Cairo")

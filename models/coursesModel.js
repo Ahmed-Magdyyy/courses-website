@@ -15,33 +15,31 @@ const courseSchema = new mongoose.Schema(
       type: String,
       required: [true, "Course image is required"],
     },
-    course_link: String,
-    teacher: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+    course_link: {
+      type: String,
+      required: [true, "Course link is required"],
+    },
+    // teacher: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
     studentsEnrolled: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
   },
   { timestamps: true }
 );
 
 courseSchema.post("save", async function (doc) {
-  // Skip middleware if the document is new (i.e., a new course is being created)
-  if (doc.isNew) {
-    return;
-  }
-
   const userModel = mongoose.model("user");
 
   // Update teacher if exists
-  if (doc.teacher) {
-    await userModel.updateOne(
-      { _id: doc.teacher },
-      { $addToSet: { courses: doc._id } }
-    );
-  }
+  // if (doc.teacher) {
+  //   await userModel.updateOne(
+  //     { _id: doc.teacher, courses: { $ne: doc._id } }, // Add condition to check if the course ID is not already present
+  //     { $addToSet: { classes: doc._id } }
+  //   );
+  // }
 
   // Update studentsEnrolled
   await userModel.updateMany(
-    { _id: { $in: doc.studentsEnrolled } },
-    { $addToSet: { courses: doc._id } }
+    { _id: { $in: doc.studentsEnrolled }, courses: { $ne: doc._id } }, // Add condition to check if the course ID is not already present
+    { $addToSet: { classes: doc._id } }
   );
 });
 
@@ -55,17 +53,10 @@ courseSchema.pre("findOneAndDelete", async function (next) {
     if (courseDoc) {
       const courseId = courseDoc._id;
 
-      // Update users who were either teachers or students in the deleted course
+      // Update users who have the course ID in their courses array and have the role of "student"
       await userModel.updateMany(
-        {
-          $or: [
-            { role: "teacher", courses: courseId },
-            { role: "student", courses: courseId },
-          ],
-        },
-        {
-          $pull: { courses: courseId }, // Remove class ID from 'courses' array
-        }
+        { role: "student", courses: courseId },
+        { $pull: { courses: courseId } } // Remove class ID from 'courses' array
       );
     }
 

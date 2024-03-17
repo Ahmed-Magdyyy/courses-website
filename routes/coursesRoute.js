@@ -7,7 +7,7 @@ const {
   getCourse,
   updateCourse,
   deleteCourse,
-  addStudentstoCourse,
+  addStudentToCourse,
   removeStudentFromCourse,
 } = require("../controllers/coursesController");
 
@@ -44,7 +44,7 @@ Router.route("/:id")
 Router.route("/:id/addStudent").put(
   allowedTo("superAdmin", "admin"),
   enabledControls("courses"),
-  addStudentstoCourse
+  addStudentToCourse
 );
 
 Router.route("/:id/removeStudent").put(

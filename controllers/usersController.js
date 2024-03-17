@@ -14,7 +14,6 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   let filter = {};
-  console.log(req.query);
   if (!req.query == {}) {
     filter = req.query;
 
@@ -23,7 +22,6 @@ exports.getUser = asyncHandler(async (req, res, next) => {
       return next(new ApiError(`No user found for this id:${id}`, 404));
     }
     res.status(200).json({ data: user });
-
   } else {
     const user = await usersModel.findById(id);
     if (!user) {
@@ -44,9 +42,13 @@ exports.createUser = asyncHandler(async (req, res) => {
 exports.updateuser = asyncHandler(async (req, res, next) => {
   const { name, email, phone, enabledControls } = req.body;
 
-  const User = await usersModel.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-  });
+  const User = await usersModel.findByIdAndUpdate(
+    req.params.id,
+    { name, email, phone, enabledControls },
+    {
+      new: true,
+    }
+  );
 
   if (!User) {
     return next(new ApiError(`No User for this id:${req.params.id}`, 404));
