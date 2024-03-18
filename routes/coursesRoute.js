@@ -2,6 +2,7 @@ const express = require("express");
 const Router = express.Router();
 
 const {
+  uploadCourseImage,
   createCourse,
   getAllCourses,
   getCourse,
@@ -24,6 +25,7 @@ Router.route("/")
   .post(
     allowedTo("superAdmin", "admin"),
     enabledControls("courses"),
+    uploadCourseImage,
     createCourse
   )
   .get(getAllCourses);

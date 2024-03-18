@@ -1,5 +1,7 @@
 const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
+
 const factory = require("./controllersFactory");
 const asyncHandler = require("express-async-handler");
 
@@ -7,7 +9,30 @@ const coursesModel = require("../models/coursesModel");
 const userModel = require("../models/userModel");
 const ApiError = require("../utils/ApiError");
 
-const multerStorage = multer.memoryStorage();
+function deleteUploadedFile(file) {
+  if (file) {
+    const filePath = `uploads/courses/${file.filename}`;
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Error deleting course image:", err);
+      } else {
+        console.log("Course image deleted successfully:", file.filename);
+      }
+    });
+  }
+}
+
+const multerStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/courses");
+  },
+  filename: function (req, file, cb) {
+    const ext = file.mimetype.split("/")[1];
+    const filename = `course-${uuidv4()}.${ext}`;
+    cb(null, filename);
+  },
+});
+
 const multerfilter = function (req, file, cb) {
   if (file.mimetype.startsWith("image")) {
     cb(null, true);
@@ -16,20 +41,52 @@ const multerfilter = function (req, file, cb) {
   }
 };
 
-const upload = multer({ storage: multerStorage, fileFilter: multerfilter });
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerfilter,
+}).single("image");
 
-exports.uploadourseImg = upload.single("courseImg")
-
-exports.createCourse = asyncHandler(async (req, res) => {
-  const { title, summary, image, course_link } = req.body;
-
-  const Document = await coursesModel.create({
-    title,
-    summary,
-    image,
-    course_link,
+exports.uploadCourseImage = (req, res, next) => {
+  upload(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+      // A Multer error occurred
+      console.error("Multer Error:", err);
+      deleteUploadedFile(req.file); // Delete the uploaded file
+      return next(
+        new ApiError("An error occurred while uploading the file", 500)
+      );
+    } else if (err) {
+      // An unknown error occurred
+      console.error("Unknown Error:", err);
+      deleteUploadedFile(req.file); // Delete the uploaded file
+      return next(new ApiError("An unknown error occurred", 500));
+    }
+    // File uploaded successfully
+    req.body.image = req.file.filename; // Set the image filename to req.body.image
+    next();
   });
-  res.status(201).json({ message: "Success", data: Document });
+};
+
+exports.createCourse = asyncHandler(async (req, res, next) => {
+  const { title, summary, course_link, image } = req.body;
+
+  try {
+    const Document = await coursesModel.create({
+      title,
+      summary,
+      image,
+      course_link,
+    });
+
+    res.status(201).json({ message: "Success", data: Document });
+  } catch (error) {
+    console.error("Error creating course:", error);
+    // Delete the uploaded image file if course creation fails
+    if (req.file) {
+      deleteUploadedFile(req.file);
+    }
+    next(error);
+  }
 });
 
 exports.getAllCourses = factory.getAll(coursesModel);

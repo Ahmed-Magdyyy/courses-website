@@ -25,6 +25,20 @@ const courseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+function setImageURL(doc) {
+  if (doc.image) {
+    const imgURL = `${process.env.BASE_URL}/courses/${doc.image}`;
+    doc.image = imgURL;
+  }
+}
+
+courseSchema.post("init", (doc) => {
+  setImageURL(doc);
+});
+courseSchema.post("save", (doc) => {
+  setImageURL(doc);
+});
+
 courseSchema.post("save", async function (doc) {
   const userModel = mongoose.model("user");
 
