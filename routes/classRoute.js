@@ -68,5 +68,4 @@ Router.route("/:id/cancelClass").put(
   cancelClass
 );
 
-// Router.route("/zoomWebHook").post(zoomWebHook)
 module.exports = Router;
