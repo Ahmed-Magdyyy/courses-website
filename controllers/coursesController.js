@@ -28,7 +28,7 @@ const multerStorage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const ext = file.mimetype.split("/")[1];
-    const filename = `course-${uuidv4()}.${ext}`;
+    const filename = `course-${req.body.title.split(" ").join("-")}-${uuidv4()}.${ext}`;
     cb(null, filename);
   },
 });
@@ -201,9 +201,28 @@ exports.updateCourse = factory.updateOne(coursesModel);
 
 exports.deleteCourse = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const Document = await coursesModel.findOneAndDelete({ _id: id });
-  if (!Document) {
-    return next(new ApiError(`No Course found for this id:${id}`, 404));
+
+  try {
+    // Find the course document to get the image filename
+    const course = await coursesModel.findById(id);
+    if (!course) {
+      return next(new ApiError(`No Course found for this id:${id}`, 404));
+    }
+
+    // Delete the course document
+    const deletedCourse = await coursesModel.findOneAndDelete({ _id: id });
+    if (!deletedCourse) {
+      return next(new ApiError(`Failed to delete course with id:${id}`, 500));
+    }
+
+    const file = {};
+    file.filename = course.image.split("/")[2];
+
+    // Delete the associated image file
+    deleteUploadedFile(file);
+
+    res.status(204).send("Document deleted successfully");
+  } catch (error) {
+    next(error);
   }
-  res.status(204).send("Document deleted successfully");
 });
