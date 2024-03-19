@@ -1,5 +1,6 @@
 const factory = require("./controllersFactory");
 const asyncHandler = require("express-async-handler");
+const crypto = require("crypto");
 
 const { createMeeting, deleteMeeting } = require("../utils/zoom");
 const ApiError = require("../utils/ApiError");
@@ -331,21 +332,21 @@ exports.cancelClass = asyncHandler(async (req, res, next) => {
   res.status(200).json({ message: "Class cancelled successfully" });
 });
 
-exports.zoomWebHook = asyncHandler(async (req, res, next) => {
-  console.log(req.body);
-  console.log("FROM ZOOM WEBHOOOOOOOK");
+// exports.zoomWebHook = asyncHandler(async (req, res, next) => {
+//   console.log(req.body);
+//   console.log("FROM ZOOM WEBHOOOOOOOK");
 
-  // Webhook request event type is a challenge-response check
-  if (req.body.event === "endpoint.url_validation") {
-    const hashForValidate = crypto
-      .createHmac("sha256", "KZNnqA3tTzq9ZZOLwgFwSw")
-      .update(req.body.payload.plainToken)
-      .digest("hex");
+//   // Webhook request event type is a challenge-response check
+//   if (req.body.event === "endpoint.url_validation") {
+//     const hashForValidate = crypto
+//       .createHmac("sha256", "KZNnqA3tTzq9ZZOLwgFwSw")
+//       .update(req.body.payload.plainToken)
+//       .digest("hex");
 
-    res.status(200).json({
-      plainToken: req.body.payload.plainToken,
-      encryptedToken: hashForValidate,
-    });
-  }
-  next();
-});
+//     res.status(200).json({
+//       plainToken: req.body.payload.plainToken,
+//       encryptedToken: hashForValidate,
+//     });
+//   }
+//   next();
+// });
