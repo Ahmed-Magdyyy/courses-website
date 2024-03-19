@@ -40,11 +40,11 @@ exports.createUser = asyncHandler(async (req, res) => {
 });
 
 exports.updateuser = asyncHandler(async (req, res, next) => {
-  const { name, email, phone, enabledControls } = req.body;
+  const { name, email, phone, remainingClasses, enabledControls } = req.body;
 
   const User = await usersModel.findByIdAndUpdate(
     req.params.id,
-    { name, email, phone, enabledControls },
+    { name, email, phone, remainingClasses, enabledControls },
     {
       new: true,
     }
