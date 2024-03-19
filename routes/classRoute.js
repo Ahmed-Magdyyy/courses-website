@@ -11,6 +11,7 @@ const {
   removeStudentFromClass,
   classReport,
   cancelClass,
+  zoomWebHook
 } = require("../controllers/classesController");
 
 const {
@@ -66,4 +67,8 @@ Router.route("/:id/cancelClass").put(
   enabledControls("classes"),
   cancelClass
 );
+
+Router.route("/zoomWebHook").post(
+  zoomWebHook
+)
 module.exports = Router;
