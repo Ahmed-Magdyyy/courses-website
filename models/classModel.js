@@ -16,7 +16,10 @@ const classSchema = new mongoose.Schema(
       type: String,
       required: [true, "class starting time is required"],
     },
-    zoomMeetingId: { type: Number, required: [true, "zoom meeting id is required"] },
+    zoomMeetingId: {
+      type: Number,
+      required: [true, "zoom meeting id is required"],
+    },
     classZoomLink: { type: String, required: [true, "class link is required"] },
     meetingPassword: {
       type: String,
@@ -26,7 +29,7 @@ const classSchema = new mongoose.Schema(
     studentsEnrolled: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
     status: {
       type: String,
-      enum: ["scheduled", "completed", "cancelled"],
+      enum: ["scheduled", "ended", "cancelled"],
       default: "scheduled",
     },
     comment: {
@@ -34,7 +37,7 @@ const classSchema = new mongoose.Schema(
     },
     attendance: [
       {
-        _id: false, // Prevent MongoDB from automatically creating _id field
+        _id: false,
         student: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "user",
@@ -43,12 +46,13 @@ const classSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
-        comment:{
+        comment: {
           type: String,
-          default: ""
-        }
+          default: "",
+        },
       },
     ],
+    assignments: [String],
   },
   { timestamps: true }
 );
@@ -73,6 +77,7 @@ classSchema.post("save", async function (doc) {
 
 classSchema.pre("findOneAndDelete", async function (next) {
   const userModel = mongoose.model("user");
+  const assignmentModel = mongoose.model("assignment");
 
   try {
     const classDoc = await this.model.findOne(this.getFilter());
@@ -93,6 +98,8 @@ classSchema.pre("findOneAndDelete", async function (next) {
           $pull: { classes: classId }, // Remove class ID from 'classes' array
         }
       );
+
+      await assignmentModel.deleteMany({ class: classId });
     }
 
     next();

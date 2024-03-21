@@ -223,7 +223,7 @@ exports.confirmEmail = asyncHandler(async (req, res, next) => {
 
     res.send("Email has been confirmed");
   } else {
-    res.send({ message: "Email already been confirmed" });
+    res.send({ message: "Email already confirmed" });
   }
 });
 
@@ -305,7 +305,6 @@ exports.allowedTo = (...roles) =>
 
 exports.enabledControls = (scope) =>
   asyncHandler(async (req, res, next) => {
-
     if (req.user.role == "admin" && !req.user.enabledControls.includes(scope)) {
       return next(
         new ApiError(

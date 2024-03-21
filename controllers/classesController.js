@@ -1,6 +1,5 @@
 const factory = require("./controllersFactory");
 const asyncHandler = require("express-async-handler");
-const crypto = require("crypto");
 
 const { createMeeting, deleteMeeting } = require("../utils/zoom");
 const ApiError = require("../utils/ApiError");
@@ -236,7 +235,7 @@ exports.classReport = asyncHandler(async (req, res, next) => {
   }
 
   cls.comment = classComment;
-  cls.status = "completed";
+  cls.status = "ended";
 
   console.log("Attendance received:", attendance);
 
@@ -308,11 +307,11 @@ exports.cancelClass = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No class found for this id:${classId}`, 404));
   }
 
-  // Check if the class is already completed or cancelled
-  if (cls.status === "completed" || cls.status === "cancelled") {
+  // Check if the class is already ended or cancelled
+  if (cls.status === "ended" || cls.status === "cancelled") {
     return next(
       new ApiError(
-        `Cannot cancel a class that is already completed or cancelled`,
+        `Cannot cancel a class that is already ended or cancelled`,
         400
       )
     );
