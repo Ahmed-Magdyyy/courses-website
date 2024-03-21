@@ -58,6 +58,12 @@ const userSchema = new mongoose.Schema(
         ref: "class",
       },
     ],
+    products: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "product",
+      },
+    ],
     remainingClasses: {
       type: Number,
       default: 0,

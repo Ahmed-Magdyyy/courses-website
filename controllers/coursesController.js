@@ -48,18 +48,21 @@ const upload = multer({
 
 exports.uploadCourseImage = (req, res, next) => {
   upload(req, res, function (err) {
+    console.log('====================================');
+    console.log(`courseeeee:`, req.file);
+    console.log('====================================');
     if (err instanceof multer.MulterError) {
       // A Multer error occurred
       console.error("Multer Error:", err);
       deleteUploadedFile(req.file); // Delete the uploaded file
       return next(
-        new ApiError("An error occurred while uploading the file", 500)
+        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
       );
     } else if (err) {
       // An unknown error occurred
       console.error("Unknown Error:", err);
       deleteUploadedFile(req.file); // Delete the uploaded file
-      return next(new ApiError("An unknown error occurred", 500));
+      return next(new ApiError(err, 500));
     }
     // File uploaded successfully
     req.body.image = req.file.filename; // Set the image filename to req.body.image

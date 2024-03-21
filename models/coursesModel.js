@@ -102,10 +102,6 @@ courseSchema.pre("findOneAndUpdate", function () {
   );
 });
 
-// Virtual property to get the number of students enrolled
-courseSchema.virtual("numberOfStudentsEnrolled").get(function () {
-  return this.studentsEnrolled.length;
-});
 
 const course = mongoose.model("course", courseSchema);
 module.exports = course;
