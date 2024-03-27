@@ -17,6 +17,7 @@ const classRoute = require("./routes/classRoute");
 const productRoute = require("./routes/productRoute");
 const zoomRoute = require("./routes/zoomCallBackRoute");
 const assignmentRoute = require("./routes/asignmentRoute");
+const reportRoute = require("./routes/MonthlyReportRoute");
 
 
 // middlewares
@@ -43,6 +44,7 @@ app.use("/api/v1/classes", classRoute);
 app.use("/api/v1/products", productRoute);
 app.use("/api/v1/zoom", zoomRoute);
 app.use("/api/v1/assignments", assignmentRoute);
+app.use("/api/v1/reports", reportRoute);
 
 
 app.all("*", (req, res, next) => {

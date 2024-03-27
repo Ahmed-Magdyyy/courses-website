@@ -182,7 +182,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
                       margin: 0 0 0;
                     "
                   >
-                    &copy; <strong>www.peacockchocolateksa.com</strong>
+                    &copy; <strong>www.jaweed.com</strong>
                   </p>
                 </td>
               </tr>
@@ -244,8 +244,15 @@ exports.login = asyncHandler(async (req, res, next) => {
   } else {
     const token = createToken(user._id, user.role);
 
-    // res.cookie("token", token);
-    res.status(200).json({ data: user, token }).cookie;
+    // // Set token in cookies
+    // res.cookie("token", token, {
+    //   maxAge:  process.env.JWT_EXPIRE_TIME, // Set cookie expiration
+    //   httpOnly: true, // Cookie is only accessible via HTTP(S)
+    //   secure: req.secure || req.headers["x-forwarded-proto"] === "https", // Set secure flag based on request protocol
+    // });
+
+    // Send response with user data and token
+    res.status(200).json({ data: user, token });
   }
 });
 
