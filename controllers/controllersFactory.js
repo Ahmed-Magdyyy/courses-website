@@ -34,7 +34,7 @@ exports.getAll = (Model) =>
       filter = req.query;
     }
 
-    const documents = await Model.find(filter);
+    const documents = await Model.find(filter).sort({ createdAt: -1 });
     res.status(200).json({ results: documents.length, data: documents });
   });
 

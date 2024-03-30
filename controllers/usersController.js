@@ -8,7 +8,20 @@ const createToken = require("../utils/createToken");
 
 //----- Admin Routes -----
 
-exports.getUsers = factory.getAll(usersModel);
+exports.getUsers = asyncHandler(async (req, res, next) => {
+  let filter = {};
+
+  if (req.query && req.query.role) {
+    filter = req.query;
+    console.log(filter);
+  } else {
+    filter = { ...req.query, role: { $ne: "superAdmin" } };
+    console.log(filter);
+  }
+
+  const users = await usersModel.find(filter).sort({ createdAt: -1 });
+  res.status(200).json({ results: users.length, data: users });
+});
 
 exports.getUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -31,7 +44,12 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.createUser = asyncHandler(async (req, res) => {
+exports.createUser = asyncHandler(async (req, res, next) => {
+  console.log(req.body);
+
+  if (req.body.role === "superAdmin") {
+    return next(new ApiError(`Can't create a new super admin!`, 400));
+  }
   const newDoc = await usersModel.create({
     ...req.body,
     account_status: "confirmed",
@@ -76,7 +94,24 @@ exports.updateUserPassword = asyncHandler(async (req, res, next) => {
   res.status(200).json({ data: User });
 });
 
-exports.deleteUser = factory.deleteOne(usersModel);
+exports.deleteUser = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const user = await usersModel.findById(id);
+
+  if (!user) {
+    return next(new ApiError(`No User for this id:${req.params.id}`, 404));
+  }
+
+  if (user.role === "superAdmin") {
+    return next(new ApiError(`Super admin can't be deleted!`, 400));
+  }
+
+  const deletedUser = await usersModel.findByIdAndDelete(id);
+  if (!Document) {
+    return next(new ApiError(`No Document found for this id:${id}`, 404));
+  }
+  res.status(204).send("Document deleted successfully");
+});
 
 //----- /Admin Routes -----
 

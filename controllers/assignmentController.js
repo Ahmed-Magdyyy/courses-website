@@ -135,6 +135,6 @@ exports.getAssignments = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
 
-  const assignments = await assignmentModel.find({ class: id, ... req.query });
+  const assignments = await assignmentModel.find({ class: id, ... req.query }).sort({ createdAt: -1 });
   res.status(200).json({ assignments });
 });
