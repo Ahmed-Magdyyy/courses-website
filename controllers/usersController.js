@@ -13,10 +13,8 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
 
   if (req.query && req.query.role) {
     filter = req.query;
-    console.log(filter);
   } else {
     filter = { ...req.query, role: { $ne: "superAdmin" } };
-    console.log(filter);
   }
 
   const users = await usersModel.find(filter).sort({ createdAt: -1 });
@@ -45,7 +43,6 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 });
 
 exports.createUser = asyncHandler(async (req, res, next) => {
-  console.log(req.body);
 
   if (req.body.role === "superAdmin") {
     return next(new ApiError(`Can't create a new super admin!`, 400));

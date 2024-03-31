@@ -65,6 +65,10 @@ exports.uploadCourseImage = (req, res, next) => {
       return next(new ApiError(err, 500));
     }
     // File uploaded successfully
+    console.log("////////////////////////////////");
+    console.log("from courses controller ---------", req.file)
+    console.log("////////////////////////////////");
+
     req.body.image = req.file.filename; // Set the image filename to req.body.image
     next();
   });
