@@ -55,6 +55,14 @@ exports.uploadCourseImage = (req, res, next) => {
       console.log(`courseeeee:`, req.body);
       console.log(`courseeeee:`, req.file);
       console.log("====================================");
+  
+      if (!req.file) {
+        return next(new ApiError(
+          `An error occurred while uploading the file. Make sure you select the image.`,
+          500
+        ))
+      }
+  
       if (err instanceof multer.MulterError) {
         // A Multer error occurred
         console.error("Multer Error:", err);
@@ -75,7 +83,7 @@ exports.uploadCourseImage = (req, res, next) => {
       console.log("////////////////////////////////");
       console.log("from courses controller ---------", req.file);
       console.log("////////////////////////////////");
-
+  
       req.body.image = req.file.filename; // Set the image filename to req.body.image
       next();
     });
@@ -83,6 +91,11 @@ exports.uploadCourseImage = (req, res, next) => {
     console.log(error)
     return next(new ApiError("Error while uploading the file.", 400));
   }
+
+
+
+
+  
 };
 
 exports.createCourse = asyncHandler(async (req, res, next) => {
