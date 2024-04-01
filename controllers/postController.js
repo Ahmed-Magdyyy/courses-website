@@ -2,6 +2,7 @@ const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
 const asyncHandler = require("express-async-handler");
+const moment = require("moment-timezone");
 
 const postsModel = require("../models/postModel");
 const factory = require("./controllersFactory");
@@ -26,7 +27,9 @@ const multerStorage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const ext = file.mimetype.split("/")[1];
-    const filename = `post-${uuidv4()}.${ext}`;
+    const currentDate = moment.tz("Africa/Cairo").format("DDMMYYYY");
+    const currentTime = moment.tz("Africa/Cairo").format("HH-mm-ss");
+    const filename = `post-${currentDate}-${currentTime}-${Math.floor(Math.random() * 1000000)}.${ext}`;
     cb(null, filename);
   },
 });

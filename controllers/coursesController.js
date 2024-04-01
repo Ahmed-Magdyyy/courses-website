@@ -28,7 +28,9 @@ const multerStorage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const ext = file.mimetype.split("/")[1];
-    const filename = `course-${req.body.title.split(" ").join("-")}-${uuidv4()}.${ext}`;
+    const filename = `course-${req.body.title
+      .split(" ")
+      .join("-")}-${uuidv4()}.${ext}`;
     cb(null, filename);
   },
 });
@@ -47,31 +49,40 @@ const upload = multer({
 }).single("image");
 
 exports.uploadCourseImage = (req, res, next) => {
-  upload(req, res, function (err) {
-    console.log('====================================');
-    console.log(`courseeeee:`, req.file);
-    console.log('====================================');
-    if (err instanceof multer.MulterError) {
-      // A Multer error occurred
-      console.error("Multer Error:", err);
-      deleteUploadedFile(req.file); // Delete the uploaded file
-      return next(
-        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
-      );
-    } else if (err) {
-      // An unknown error occurred
-      console.error("Unknown Error:", err);
-      deleteUploadedFile(req.file); // Delete the uploaded file
-      return next(new ApiError(err, 500));
-    }
-    // File uploaded successfully
-    console.log("////////////////////////////////");
-    console.log("from courses controller ---------", req.file)
-    console.log("////////////////////////////////");
+  try {
+    upload(req, res, function (err) {
+      console.log("====================================");
+      console.log(`courseeeee:`, req.body);
+      console.log(`courseeeee:`, req.file);
+      console.log("====================================");
+      if (err instanceof multer.MulterError) {
+        // A Multer error occurred
+        console.error("Multer Error:", err);
+        deleteUploadedFile(req.file); // Delete the uploaded file
+        return next(
+          new ApiError(
+            `An error occurred while uploading the file. ${err}`,
+            500
+          )
+        );
+      } else if (err) {
+        // An unknown error occurred
+        console.error("Unknown Error:", err);
+        deleteUploadedFile(req.file); // Delete the uploaded file
+        return next(new ApiError(err, 500));
+      }
+      // File uploaded successfully
+      console.log("////////////////////////////////");
+      console.log("from courses controller ---------", req.file);
+      console.log("////////////////////////////////");
 
-    req.body.image = req.file.filename; // Set the image filename to req.body.image
-    next();
-  });
+      req.body.image = req.file.filename; // Set the image filename to req.body.image
+      next();
+    });
+  } catch (error) {
+    console.log(error)
+    return next(new ApiError("Error while uploading the file.", 400));
+  }
 };
 
 exports.createCourse = asyncHandler(async (req, res, next) => {
