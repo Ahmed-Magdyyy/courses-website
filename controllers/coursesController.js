@@ -52,13 +52,13 @@ exports.uploadCourseImage = (req, res, next) => {
   try {
     upload(req, res, function (err) {
       console.log("====================================");
-      console.log(`courseeeee:`, req.body);
-      console.log(`courseeeee:`, req.file);
+      console.log(`courseeeee-body:`, req.body);
+      console.log(`courseeeee-file:`, req.file);
       console.log("====================================");
   
       if (!req.file) {
         return next(new ApiError(
-          `An error occurred while uploading the file. Make sure you select the image.`,
+          `An error occurred while uploading the file. Make sure you select an image.`,
           500
         ))
       }
@@ -69,7 +69,7 @@ exports.uploadCourseImage = (req, res, next) => {
         deleteUploadedFile(req.file); // Delete the uploaded file
         return next(
           new ApiError(
-            `An error occurred while uploading the file. ${err}`,
+            `An error occurred while uploading the file`,
             500
           )
         );
@@ -80,9 +80,6 @@ exports.uploadCourseImage = (req, res, next) => {
         return next(new ApiError(err, 500));
       }
       // File uploaded successfully
-      console.log("////////////////////////////////");
-      console.log("from courses controller ---------", req.file);
-      console.log("////////////////////////////////");
   
       req.body.image = req.file.filename; // Set the image filename to req.body.image
       next();

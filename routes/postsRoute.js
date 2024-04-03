@@ -7,7 +7,8 @@ const {
   getPost,
   uploadPostImage,
   editPost,
-  deletePost
+  deletePost,
+  toggleLike
 } = require("../controllers/postController");
 
 const {
@@ -22,5 +23,6 @@ Router.use(protect);
 Router.route("/").post(uploadPostImage, createPost).get(getAllPosts);
 
 Router.route("/:id").get(getPost).put(uploadPostImage,editPost).delete(deletePost)
+Router.route("/:id/like").put(toggleLike)
 
 module.exports = Router;

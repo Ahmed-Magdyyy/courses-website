@@ -8,7 +8,7 @@ const userModel = require("../models/userModel");
 const ApiError = require("../utils/ApiError");
 
 exports.getCallBack = asyncHandler(async (req, res, next) => {
-  console.log(req.body);
+  // console.log(req.body);
   console.log("FROM ZOOM WEBHOOOOOOOK");
 
   // Webhook request event type is a challenge-response check
