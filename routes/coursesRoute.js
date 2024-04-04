@@ -35,6 +35,7 @@ Router.route("/:id")
   .put(
     allowedTo("superAdmin", "admin"),
     enabledControls("courses"),
+    uploadCourseImage,
     updateCourse
   )
   .delete(

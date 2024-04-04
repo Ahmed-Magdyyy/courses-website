@@ -50,30 +50,16 @@ const upload = multer({
 
 exports.uploadCommentImage = (req, res, next) => {
   upload(req, res, function (err) {
-    console.log("====================================");
-    console.log(`commenttt:`, req.file);
-    console.log("====================================");
+    // File uploaded successfully
+    if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
+    next();
 
-    if (!req.file) {
-      return next();
-    }
-
-    if (err instanceof multer.MulterError) {
-      // A Multer error occurred
-      console.error("Multer Error:", err);
+    if (err) {
       deleteUploadedFile(req.file); // Delete the uploaded file
       return next(
         new ApiError(`An error occurred while uploading the file. ${err}`, 500)
       );
-    } else if (err) {
-      // An unknown error occurred
-      console.error("Unknown Error:", err);
-      deleteUploadedFile(req.file); // Delete the uploaded file
-      return next(new ApiError(err, 500));
     }
-    // File uploaded successfully
-    req.body.image = req.file.filename; // Set the image filename to req.body.image
-    next();
   });
 };
 
@@ -160,33 +146,96 @@ exports.getComment = asyncHandler(async (req, res, next) => {
   }
 });
 
+// exports.updateComment = asyncHandler(async (req, res, next) => {
+//   const { id } = req.params;
+//   const { content } = req.body;
+
+//   console.log("req.file fileeee", req.file);
+
+//   const comment = await commentsModel.findById(id);
+
+//   if (!comment) {
+//     if (comment.image) {
+//       const path = req.file.path;
+//       deleteUploadedFile({
+//         fieldname: "image",
+//         path,
+//       });
+//     }
+//     return next(new ApiError("Comment not found", 404));
+//   }
+
+//   if (req.user._id.toString() !== comment.author.toString()) {
+//     if (req.file) {
+//       const path = req.file.path;
+//       deleteUploadedFile({
+//         fieldname: "image",
+//         path,
+//       });
+//     }
+//     return next(new ApiError(`Only comment author can edit the comment.`, 400));
+//   }
+
+//   try {
+//     if (req.file && comment.image) {
+//       const index = comment.image.indexOf("posts/comments");
+//       const path = `uploads/${comment.image.substring(index)}`;
+//       deleteUploadedFile({
+//         fieldname: "image",
+//         path,
+//       });
+
+//       // Update the comment
+//       if (req.file !== undefined) comment.image = req.file.filename;
+//       if (content) comment.content = content;
+
+//       await comment.save();
+
+//       res
+//         .status(200)
+//         .json({ message: "Comment updated successfully", data: comment });
+//     } else {
+//       res.status(400).json({ message: "EEEEError updating comment" });
+//     }
+//   } catch (error) {
+//     console.error("Error updating comment:", error);
+//     res.status(400).json({ message: "Error updating comment", error });
+//     next(error);
+//   }
+// });
+
 exports.updateComment = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { content } = req.body;
+  const updateFields = {};
 
-  const comment = await commentsModel.findById(id);
-
-  if (!comment) {
-    if (comment.image) {
-      const path = req.file.path;
-      deleteUploadedFile({
-        fieldname: "image",
-        path,
-      });
-    }
-    return next(new ApiError("Comment not found", 404));
-  }
-
-  if (req.user._id.toString() !== comment.author.toString()) {
-    const path = req.file.path;
-    deleteUploadedFile({
-      fieldname: "image",
-      path,
-    });
-    return next(new ApiError(`Only comment author can edit the comment.`, 400));
-  }
+  console.log("req.file fileeee", req.file);
 
   try {
+    const comment = await commentsModel.findById(id);
+
+    if (!comment) {
+      if (req.file) {
+        const path = req.file.path;
+        deleteUploadedFile({
+          fieldname: "image",
+          path,
+        });
+      }
+      return next(new ApiError("Comment not found", 404));
+    }
+
+    if (req.user._id.toString() !== comment.author.toString()) {
+      if (req.file) {
+        const path = req.file.path;
+        deleteUploadedFile({
+          fieldname: "image",
+          path,
+        });
+      }
+      return next(new ApiError(`Only comment author can edit the comment.`, 400));
+    }
+
     if (req.file && comment.image) {
       const index = comment.image.indexOf("posts/comments");
       const path = `uploads/${comment.image.substring(index)}`;
@@ -194,25 +243,30 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
         fieldname: "image",
         path,
       });
-
-      // Update the comment
-      comment.image = req.file.filename;
-      comment.content = content;
-
-      await comment.save();
-
-      res
-        .status(200)
-        .json({ message: "Comment updated successfully", data: comment });
-    } else {
-      res.status(400).json({ message: "Error updating comment" });
+      updateFields.image = req.file.filename;
     }
+
+    if (content) {
+      updateFields.content = content;
+    }
+
+    // Update the comment in the database
+    const updatedComment = await commentsModel.findOneAndUpdate(
+      { _id: id },
+      { $set: updateFields },
+      { new: true } // Return the updated document
+    );
+
+    res
+      .status(200)
+      .json({ message: "Comment updated successfully", data: updatedComment });
   } catch (error) {
     console.error("Error updating comment:", error);
     res.status(400).json({ message: "Error updating comment", error });
     next(error);
   }
 });
+
 
 exports.deleteComment = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -246,7 +300,7 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
 
 exports.toggleLike = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const userId = req.user._id
+  const userId = req.user._id;
 
   try {
     // Check if the post exists

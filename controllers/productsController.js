@@ -144,47 +144,151 @@ exports.getAllProducts = factory.getAll(productModel);
 
 exports.getProduct = factory.getOne(productModel);
 
+// exports.editProduct = asyncHandler(async (req, res, next) => {
+//   const { title, summary } = req.body;
+//   const { image, productFile } = req.files;
+
+//   try {
+//     const product = await productModel.findById(req.params.id);
+// console.log('====================================');
+// console.log(product.image);
+// console.log('====================================');
+//     if (!product) {
+//       return next(new ApiError(`No product for this id:${req.params.id}`, 404));
+//     }
+
+//     // Check if image or productFile are uploaded
+//     if (image || productFile) {
+//       // Delete old files if new files are uploaded
+//       if (image && product.image) {
+//         const index = product.image.indexOf("products");
+//         const path = `uploads/${product.image.substring(index)}`;
+//         deleteUploadedFile({
+//           fieldname: "image",
+//           path,
+//         });
+//       }
+//       if (productFile && product.productFile) {
+//         const index = product.productFile.indexOf("products");
+//         const path = `uploads/${product.productFile.substring(index)}`;
+//         deleteUploadedFile({
+//           fieldname: "productFile",
+//           path,
+//         });
+//       }
+
+//       // Update product details with new files
+//       if (title) {
+//         product.title = title;
+//       }
+
+//       if (summary) {
+//         product.summary = summary;
+//       }
+
+//       if (req.files.image) {product.image = req.files.image[0].filename}
+//        else {
+//         product.image = product.image
+//       }
+//       if (req.files.productFile) {product.productFile = req.files.productFile[0].filename}
+//        else {
+//         product.productFile= product.productFile
+//       }
+
+//     } else {
+//       // No files uploaded, update only the product details
+//       if (title) {
+//         product.title = title;
+//       }
+
+//       if (summary) {
+//         product.summary = summary;
+//       }
+//     }
+
+//     // Save the updated product
+//     await product.save();
+
+//     res
+//       .status(200)
+//       .json({ message: "Product updated successfully", data: product });
+//   } catch (error) {
+//     console.error("Error updating product:", error);
+//     next(error);
+//   }
+// });
+
 exports.editProduct = asyncHandler(async (req, res, next) => {
   const { title, summary } = req.body;
-  const { image, productFile } = req.files;
+
+  const product = await productModel.findById(req.params.id);
+
+  if (!product) {
+    return next(new ApiError(`No product for this id:${req.params.id}`, 404));
+  }
 
   try {
-    const product = await productModel.findById(req.params.id);
+    let updateFields = {};
 
-    if (!product) {
+    // Check if image or productFile are uploaded
+    if (req.files) {
+      if (req.files.image || req.files.productFile) {
+        // Delete old files if new files are uploaded
+        if (req.files.image && product.image) {
+          const index = product.image.indexOf("products");
+          const path = `uploads/${product.image.substring(index)}`;
+          deleteUploadedFile({
+            fieldname: "image",
+            path,
+          });
+        }
+        if (req.files.productFile && product.productFile) {
+          const index = product.productFile.indexOf("products");
+          const path = `uploads/${product.productFile.substring(index)}`;
+          deleteUploadedFile({
+            fieldname: "productFile",
+            path,
+          });
+        }
+
+        // Update product details with new files
+        if (title) {
+          updateFields.title = title;
+        }
+
+        if (summary) {
+          updateFields.summary = summary;
+        }
+
+        if (req.files.image) updateFields.image = req.files.image[0].filename;
+        if (req.files.productFile)
+          updateFields.productFile = req.files.productFile[0].filename;
+      } else {
+        // No files uploaded, update only the product details
+        if (title) {
+          updateFields.title = title;
+        }
+
+        if (summary) {
+          updateFields.summary = summary;
+        }
+      }
+    }
+
+    // Update the product document
+    const updatedProduct = await productModel.findOneAndUpdate(
+      { _id: req.params.id },
+      { $set: updateFields },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedProduct) {
       return next(new ApiError(`No product for this id:${req.params.id}`, 404));
     }
 
-    // Delete old files if new files are uploaded
-    if (image && product.image) {
-      const index = product.image.indexOf("products");
-      const path = `uploads/${product.image.substring(index)}`;
-      deleteUploadedFile({
-        fieldname: "image",
-        path,
-      });
-    }
-    if (productFile && product.productFile) {
-      const index = product.productFile.indexOf("products");
-      const path = `uploads/${product.productFile.substring(index)}`;
-      deleteUploadedFile({
-        fieldname: "productFile",
-        path,
-      });
-    }
-
-    // Update product details
-    product.title = title;
-    product.summary = summary;
-    product.image = image[0].filename;
-    product.productFile = productFile[0].filename;
-
-    // Save the updated product
-    await product.save();
-
     res
       .status(200)
-      .json({ message: "Product updated successfully", data: product });
+      .json({ message: "Product updated successfully", data: updatedProduct });
   } catch (error) {
     console.error("Error updating product:", error);
     next(error);

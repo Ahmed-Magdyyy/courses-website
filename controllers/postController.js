@@ -45,44 +45,27 @@ const multerfilter = function (req, file, cb) {
   }
 };
 
-exports.uploadPostImage = (req, res, next) => {
-  upload(req, res, function (err) {
-    console.log("====================================");
-    console.log(`posttt:`, req.file);
-    console.log("====================================");
-
-    if (!req.file) {
-      return next(
-        new ApiError(
-          `An error occurred while uploading the file. Make sure you have selected an image.`,
-          500
-        )
-      );
-    }
-
-    if (err instanceof multer.MulterError) {
-      // A Multer error occurred
-      console.error("Multer Error:", err);
-      deleteUploadedFile(req.file); // Delete the uploaded file
-      return next(
-        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
-      );
-    } else if (err) {
-      // An unknown error occurred
-      console.error("Unknown Error:", err);
-      deleteUploadedFile(req.file); // Delete the uploaded file
-      return next(new ApiError(err, 500));
-    }
-    // File uploaded successfully
-    req.body.image = req.file.filename; // Set the image filename to req.body.image
-    next();
-  });
-};
-
 const upload = multer({
   storage: multerStorage,
   fileFilter: multerfilter,
 }).single("image");
+
+exports.uploadPostImage = (req, res, next) => {
+  upload(req, res, function (err) {
+
+
+    // File uploaded successfully
+  if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
+    next();
+
+    if (err) {
+      deleteUploadedFile(req.file); // Delete the uploaded file
+      return next(
+        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
+      );
+    }
+  });
+};
 
 exports.createPost = asyncHandler(async (req, res, next) => {
   const { content, image } = req.body;
@@ -132,9 +115,12 @@ exports.getPost = asyncHandler(async (req, res, next) => {
   res.status(200).json({ data: post });
 });
 
+
+
 exports.editPost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { content } = req.body;
+  const updateFields = {};
 
   try {
     const post = await postsModel.findById(id);
@@ -150,21 +136,28 @@ exports.editPost = asyncHandler(async (req, res, next) => {
         fieldname: "image",
         path,
       });
+      updateFields.image = req.file.filename; // Update image field in case of a new file
     }
 
-    // Update post details
-    post.content = content;
-    post.image = req.file.filename;
+    // Update post content
+    if (content) {
+      updateFields.content = content;
+    }
 
-    // Save the updated post
-    await post.save();
+    // Update post in the database
+    const updatedPost = await postsModel.findOneAndUpdate(
+      { _id: id },
+      { $set: updateFields },
+      { new: true } // Return the updated document
+    );
 
-    res.status(200).json({ message: "Post updated successfully", data: post });
+    res.status(200).json({ message: "Post updated successfully", data: updatedPost });
   } catch (error) {
     console.error("Error updating post:", error);
     next(error);
   }
 });
+
 
 exports.deletePost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;

@@ -79,29 +79,23 @@ const upload = multer({
 
 exports.uploadAssignmentFile = (req, res, next) => {
   upload(req, res, function (err) {
+    // File uploaded successfully
+    if (req.file) req.body.assignmentFile = req.file.filename; // Set the image filename to req.body.image
+    next();
 
-    if (err instanceof multer.MulterError) {
-      // A Multer error occurred
-      console.error("Multer Error:", err);
+    if (err) {
       deleteUploadedFile(req.file); // Delete the uploaded file
       return next(
-        new ApiError("An error occurred while uploading the file", 500)
+        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
       );
-    } else if (err) {
-      // An unknown error occurred
-      console.error("Unknown Error:", err);
-      deleteUploadedFile(req.file); // Delete the uploaded file
-      return next(new ApiError("An unknown error occurred", 500));
     }
-    // File uploaded successfully
-    req.body.assignmentFile = req.file.filename; // Set the image filename to req.body.assignmentFile
-    next();
   });
 };
 
 exports.submitAssignment = asyncHandler(async (req, res, next) => {
   const { classId, studentId, assignmentFile } = req.body;
 
+console.log(assignmentFile);
   try {
     const cls = await classModel.findOne({ _id: classId });
     if (!cls) {

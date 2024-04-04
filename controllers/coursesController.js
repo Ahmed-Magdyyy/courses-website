@@ -11,12 +11,12 @@ const ApiError = require("../utils/ApiError");
 
 function deleteUploadedFile(file) {
   if (file) {
-    const filePath = `uploads/courses/${file.filename}`;
+    const filePath = `${file.path}`;
     fs.unlink(filePath, (err) => {
       if (err) {
         console.error("Error deleting course image:", err);
       } else {
-        console.log("Course image deleted successfully:", file.filename);
+        console.log("Course image deleted successfully:", file.path);
       }
     });
   }
@@ -49,50 +49,18 @@ const upload = multer({
 }).single("image");
 
 exports.uploadCourseImage = (req, res, next) => {
-  try {
-    upload(req, res, function (err) {
-      console.log("====================================");
-      console.log(`courseeeee-body:`, req.body);
-      console.log(`courseeeee-file:`, req.file);
-      console.log("====================================");
-  
-      if (!req.file) {
-        return next(new ApiError(
-          `An error occurred while uploading the file. Make sure you select an image.`,
-          500
-        ))
-      }
-  
-      if (err instanceof multer.MulterError) {
-        // A Multer error occurred
-        console.error("Multer Error:", err);
-        deleteUploadedFile(req.file); // Delete the uploaded file
-        return next(
-          new ApiError(
-            `An error occurred while uploading the file`,
-            500
-          )
-        );
-      } else if (err) {
-        // An unknown error occurred
-        console.error("Unknown Error:", err);
-        deleteUploadedFile(req.file); // Delete the uploaded file
-        return next(new ApiError(err, 500));
-      }
-      // File uploaded successfully
-  
-      req.body.image = req.file.filename; // Set the image filename to req.body.image
-      next();
-    });
-  } catch (error) {
-    console.log(error)
-    return next(new ApiError("Error while uploading the file.", 400));
-  }
+  upload(req, res, function (err) {
+    // File uploaded successfully
+    if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
+    next();
 
-
-
-
-  
+    if (err) {
+      deleteUploadedFile(req.file); // Delete the uploaded file
+      return next(
+        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
+      );
+    }
+  });
 };
 
 exports.createCourse = asyncHandler(async (req, res, next) => {
@@ -225,7 +193,62 @@ exports.removeStudentFromCourse = asyncHandler(async (req, res, next) => {
     .json({ message: "Student removed successfully", updatedCourse });
 });
 
-exports.updateCourse = factory.updateOne(coursesModel);
+exports.updateCourse = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { title, summary, course_link } = req.body;
+  const updateFields = {};
+
+  try {
+    const course = await coursesModel.findById(id);
+
+    if (!course) {
+      if (req.file) {
+        const path = req.file.path;
+        deleteUploadedFile({
+          fieldname: "image",
+          path,
+        });
+      }
+      return next(new ApiError(`No document for this id:${id}`, 404));
+    }
+
+    if (req.file && course.image) {
+      const index = course.image.indexOf("courses");
+      const path = `uploads/${course.image.substring(index)}`;
+      deleteUploadedFile({
+        fieldname: "image",
+        path,
+      });
+      updateFields.image = req.file.filename;
+    }
+
+    if (title) {
+      updateFields.title = title;
+    }
+
+    if (summary) {
+      updateFields.summary = summary;
+    }
+
+    if (course_link) {
+      updateFields.course_link = course_link;
+    }
+
+    // Update the course in the database
+    const updatedCourse = await coursesModel.findOneAndUpdate(
+      { _id: id },
+      { $set: updateFields },
+      { new: true } // Return the updated document
+    );
+
+    res
+      .status(200)
+      .json({ message: "Course updated successfully", data: updatedCourse });
+  } catch (error) {
+    console.error("Error updating course:", error);
+    next(error);
+  }
+});
 
 exports.deleteCourse = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -243,11 +266,14 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
       return next(new ApiError(`Failed to delete course with id:${id}`, 500));
     }
 
-    const file = {};
-    file.filename = course.image.split("/")[2];
-
     // Delete the associated image file
-    deleteUploadedFile(file);
+    if (course.image) {
+      const index = course.image.indexOf("courses");
+      const path = `uploads/${course.image.substring(index)}`;
+      deleteUploadedFile({
+        path,
+      });
+    }
 
     res.status(204).send("Document deleted successfully");
   } catch (error) {

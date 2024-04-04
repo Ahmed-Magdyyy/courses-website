@@ -31,9 +31,6 @@ function setImageURL(doc) {
     doc.image = imgURL;
   }
   if (doc.productFile) {
-    console.log('====================================');
-    console.log(doc.productFile);
-    console.log('====================================');
     const fileURL = `${process.env.BASE_URL}/products/files/${doc.productFile}`;
     doc.productFile = fileURL;
   }
@@ -42,6 +39,7 @@ function setImageURL(doc) {
 productSchema.post("init", (doc) => {
   setImageURL(doc);
 });
+
 productSchema.post("save", (doc) => {
   setImageURL(doc);
 });
