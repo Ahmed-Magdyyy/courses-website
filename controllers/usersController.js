@@ -104,10 +104,8 @@ exports.deleteUser = asyncHandler(async (req, res, next) => {
   }
 
   const deletedUser = await usersModel.findByIdAndDelete(id);
-  if (!Document) {
-    return next(new ApiError(`No Document found for this id:${id}`, 404));
-  }
-  res.status(204).send("Document deleted successfully");
+
+  res.status(204).json({message:"Document deleted successfully", deletedUser});
 });
 
 //----- /Admin Routes -----
