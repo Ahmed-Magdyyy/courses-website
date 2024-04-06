@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 const fs = require("fs");
 const path = require("path");
+const ApiError = require("../utils/ApiError");
 
 const assignmentSchema = new mongoose.Schema(
   {
@@ -81,7 +82,8 @@ assignmentSchema.pre(/delete/i, async function (next) {
     const assignment = await this.model.findOne(this.getFilter());
     if (!assignment) {
       // Assignment not found
-      return next(new Error("Assignment not found"));
+      console.error("Assignment not found");
+      next();
     }
 
     // Determine the file path based on the file type

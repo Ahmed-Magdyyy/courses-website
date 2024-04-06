@@ -146,64 +146,6 @@ exports.getComment = asyncHandler(async (req, res, next) => {
   }
 });
 
-// exports.updateComment = asyncHandler(async (req, res, next) => {
-//   const { id } = req.params;
-//   const { content } = req.body;
-
-//   console.log("req.file fileeee", req.file);
-
-//   const comment = await commentsModel.findById(id);
-
-//   if (!comment) {
-//     if (comment.image) {
-//       const path = req.file.path;
-//       deleteUploadedFile({
-//         fieldname: "image",
-//         path,
-//       });
-//     }
-//     return next(new ApiError("Comment not found", 404));
-//   }
-
-//   if (req.user._id.toString() !== comment.author.toString()) {
-//     if (req.file) {
-//       const path = req.file.path;
-//       deleteUploadedFile({
-//         fieldname: "image",
-//         path,
-//       });
-//     }
-//     return next(new ApiError(`Only comment author can edit the comment.`, 400));
-//   }
-
-//   try {
-//     if (req.file && comment.image) {
-//       const index = comment.image.indexOf("posts/comments");
-//       const path = `uploads/${comment.image.substring(index)}`;
-//       deleteUploadedFile({
-//         fieldname: "image",
-//         path,
-//       });
-
-//       // Update the comment
-//       if (req.file !== undefined) comment.image = req.file.filename;
-//       if (content) comment.content = content;
-
-//       await comment.save();
-
-//       res
-//         .status(200)
-//         .json({ message: "Comment updated successfully", data: comment });
-//     } else {
-//       res.status(400).json({ message: "EEEEError updating comment" });
-//     }
-//   } catch (error) {
-//     console.error("Error updating comment:", error);
-//     res.status(400).json({ message: "Error updating comment", error });
-//     next(error);
-//   }
-// });
-
 exports.updateComment = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { content } = req.body;
@@ -266,7 +208,6 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
-
 
 exports.deleteComment = asyncHandler(async (req, res, next) => {
   const { id } = req.params;

@@ -28,9 +28,7 @@ const multerStorage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const ext = file.mimetype.split("/")[1];
-    const filename = `course-${req.body.title
-      .split(" ")
-      .join("-")}-${uuidv4()}.${ext}`;
+    const filename = `course-${uuidv4()}.${ext}`;
     cb(null, filename);
   },
 });
@@ -85,7 +83,34 @@ exports.createCourse = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.getAllCourses = factory.getAll(coursesModel);
+exports.getAllCourses = asyncHandler(async (req, res, next) => {
+  let filter = {};
+  const { page, limit, skip, ...query } = req.query;
+
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+
+  if (query) {
+    filter = query;
+  }
+
+  if (req.user.role === "student") {
+    const documents = await coursesModel
+      .find({
+        studentsEnrolled: { $in: [req.user._id] },
+      })
+      .sort({ createdAt: -1 })
+      .populate("studentsEnrolled", "_id name email phone").skip(skipNum).limit(limitNum);
+    res.status(200).json({ results: documents.length, data: documents });
+  } else {
+    const documents = await coursesModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .populate("studentsEnrolled", "_id name email phone").skip(skipNum).limit(limitNum);
+    res.status(200).json({ results: documents.length,page: pageNum, data: documents });
+  }
+});
 
 exports.getCourse = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -113,84 +138,131 @@ exports.getCourse = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.addStudentToCourse = asyncHandler(async (req, res, next) => {
+exports.addStudentsToCourse = asyncHandler(async (req, res, next) => {
   const courseId = req.params.id;
-  const { studentId } = req.body;
+  const { studentIds } = req.body;
 
-  // Find the course by ID
-  const course = await coursesModel.findById(courseId);
-  if (!course) {
-    return next(new ApiError(`No course found for this id:${courseId}`, 404));
+  try {
+    // Find the course by ID
+    const course = await coursesModel.findById(courseId);
+    if (!course) {
+      return next(new ApiError(`No course found for this id:${courseId}`, 404));
+    }
+
+    // Find the students by IDs
+    const students = await userModel.find({
+      _id: { $in: studentIds },
+      role: "student",
+    });
+
+    // Check if all students were found
+    if (students.length !== studentIds.length) {
+      const missingStudents = studentIds.filter(
+        (id) => !students.map((student) => student._id.toString()).includes(id)
+      );
+      return next(
+        new ApiError(
+          `Students not found with IDs: ${missingStudents.join(", ")}`,
+          404
+        )
+      );
+    }
+
+    // Check if any student IDs already exist in the studentsEnrolled array of the course
+    const existingStudents = studentIds.filter((id) =>
+      course.studentsEnrolled.includes(id)
+    );
+
+    // If any existing students found, return an error
+    if (existingStudents.length > 0) {
+      return next(
+        new ApiError(
+          `Students with IDs ${existingStudents.join(
+            ", "
+          )} are already enrolled in the course`,
+          400
+        )
+      );
+    }
+
+    // Add the course ID to the courses array of each student
+    students.forEach((student) => {
+      if (!student.courses.includes(courseId)) {
+        student.courses.push(courseId);
+        student.save(); // Save each student individually
+      }
+    });
+
+    // Add the new student IDs to the studentsEnrolled array of the course
+    const updatedCourse = await coursesModel.findOneAndUpdate(
+      { _id: courseId },
+      { $addToSet: { studentsEnrolled: { $each: studentIds } } },
+      { new: true }
+    );
+
+    res
+      .status(200)
+      .json({ message: "Students added successfully", updatedCourse });
+  } catch (error) {
+    console.error("Error adding students to course:", error);
+    next(error);
   }
-
-  // Find the student by ID
-  const student = await userModel.findOne({ _id: studentId, role: "student" });
-  if (!student) {
-    return next(new ApiError(`No user found with ID: ${studentId}`, 404));
-  }
-
-  // Check if the course ID is already present in the student's courses array
-  if (student.courses.includes(courseId)) {
-    return res
-      .status(400)
-      .json({ message: "Course ID already exists for this user" });
-  }
-
-  // Add the course ID to the student's courses array
-  student.courses.push(courseId);
-  // Save the updated user
-  await student.save();
-
-  // Add the new student ID to the studentsEnrolled array of the course
-  course.studentsEnrolled.push(studentId);
-  // Save the updated course
-  const updatedCourse = await course.save();
-
-  res
-    .status(200)
-    .json({ message: "Student added successfully", updatedCourse });
 });
 
 exports.removeStudentFromCourse = asyncHandler(async (req, res, next) => {
   const courseId = req.params.id;
-  const { studentId } = req.body;
+  const { studentIds } = req.body;
 
-  // Find the course by ID
-  const course = await coursesModel.findById(courseId);
-  if (!course) {
-    return next(new ApiError(`No course found for this id:${courseId}`, 404));
+  try {
+    // Find the course by ID
+    const course = await coursesModel.findById(courseId);
+    if (!course) {
+      return next(new ApiError(`No course found for this id:${courseId}`, 404));
+    }
+
+    // Check if provided student IDs match any enrolled students in the course
+    const enrolledStudents = course.studentsEnrolled.map((id) => id.toString());
+    const invalidStudentIds = studentIds.filter(
+      (id) => !enrolledStudents.includes(id.toString())
+    );
+
+    // If any invalid student IDs found, return an error
+    if (invalidStudentIds.length > 0) {
+      return next(
+        new ApiError(
+          `Students with IDs ${invalidStudentIds.join(
+            ", "
+          )} are not enrolled in the course`,
+          400
+        )
+      );
+    }
+
+    // Remove the course ID from the courses array of each student
+    await userModel.updateMany(
+      { _id: { $in: studentIds }, role: "student" },
+      { $pull: { courses: courseId } }
+    );
+
+    // Remove the student IDs from the studentsEnrolled array of the course
+    course.studentsEnrolled = course.studentsEnrolled.filter(
+      (id) => !studentIds.includes(id.toString())
+    );
+
+    // Update the course document using findOneAndUpdate
+    const updatedCourse = await coursesModel.findOneAndUpdate(
+      { _id: courseId },
+      { studentsEnrolled: course.studentsEnrolled },
+      { new: true } // Return the updated document
+    );
+
+    res
+      .status(200)
+      .json({ message: "Students removed successfully", updatedCourse });
+  } catch (error) {
+    console.error("Error removing students from course:", error);
+    next(error);
   }
-
-  // Find the student by ID
-  const student = await userModel.findOne({ _id: studentId, role: "student" });
-  if (!student) {
-    return next(new ApiError(`No user found with ID: ${studentId}`, 404));
-  }
-
-  // Check if the course ID is present in the student's courses array
-  const courseIndex = student.courses.indexOf(courseId);
-  if (courseIndex === -1) {
-    return res
-      .status(400)
-      .json({ message: "Course ID does not exist for this user" });
-  }
-
-  // Remove the course ID from the student's courses array
-  student.courses.splice(courseIndex, 1);
-  // Save the updated user
-  await student.save();
-
-  // Remove the student ID from the studentsEnrolled array of the course
-  const studentIndex = course.studentsEnrolled.indexOf(studentId);
-  if (studentIndex !== -1) {
-    course.studentsEnrolled.splice(studentIndex, 1);
-  }
-  // Save the updated course
-  const updatedCourse = await course.save();
-
-  res
-    .status(200)
-    .json({ message: "Student removed successfully", updatedCourse });
 });
 
 exports.updateCourse = asyncHandler(async (req, res, next) => {

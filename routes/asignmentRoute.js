@@ -12,8 +12,9 @@ const { protect } = require("../controllers/authController");
 // applied on all routes
 Router.use(protect);
 
-Router.route("/").post(uploadAssignmentFile, submitAssignment);
+Router.route("/").post(uploadAssignmentFile, submitAssignment)
+.get(getAssignments)
 
-Router.route("/:id").get(getAssignments);
+// Router.route("/:id").get(getAssignments);
 
 module.exports = Router;

@@ -8,7 +8,7 @@ const {
   getCourse,
   updateCourse,
   deleteCourse,
-  addStudentToCourse,
+  addStudentsToCourse,
   removeStudentFromCourse,
 } = require("../controllers/coursesController");
 
@@ -28,10 +28,14 @@ Router.route("/")
     uploadCourseImage,
     createCourse
   )
-  .get(getAllCourses);
+  .get(
+    allowedTo("superAdmin", "admin", "student"),
+    enabledControls("courses"),
+    getAllCourses
+  );
 
 Router.route("/:id")
-  .get(getCourse)
+  .get(allowedTo("superAdmin", "admin", "student"), getCourse)
   .put(
     allowedTo("superAdmin", "admin"),
     enabledControls("courses"),
@@ -44,13 +48,13 @@ Router.route("/:id")
     deleteCourse
   );
 
-Router.route("/:id/addStudent").put(
+Router.route("/:id/addStudents").put(
   allowedTo("superAdmin", "admin"),
   enabledControls("courses"),
-  addStudentToCourse
+  addStudentsToCourse
 );
 
-Router.route("/:id/removeStudent").put(
+Router.route("/:id/removeStudents").put(
   allowedTo("superAdmin", "admin"),
   enabledControls("courses"),
   removeStudentFromCourse

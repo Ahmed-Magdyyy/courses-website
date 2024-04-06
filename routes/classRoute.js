@@ -44,13 +44,13 @@ Router.route("/:id")
     deleteClass
   );
 
-Router.route("/:id/addStudent").put(
+Router.route("/:id/addStudents").put(
   allowedTo("superAdmin", "admin"),
   enabledControls("classes"),
   addStudentsToClass
 );
 
-Router.route("/:id/removeStudent").delete(
+Router.route("/:id/removeStudents").put(
   allowedTo("superAdmin", "admin"),
   enabledControls("classes"),
   removeStudentFromClass

@@ -6,6 +6,7 @@ const factory = require("./controllersFactory");
 const asyncHandler = require("express-async-handler");
 
 const productModel = require("../models/productModel");
+const userModel = require("../models/userModel");
 const ApiError = require("../utils/ApiError");
 
 // Function to delete uploaded file
@@ -140,7 +141,63 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.getAllProducts = factory.getAll(productModel);
+exports.getAllProducts = asyncHandler(async (req, res, next) => {
+  let filter = {};
+  const { page, limit, skip, ...query } = req.query;
+
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+
+  if (query) {
+    filter = query;
+  }
+
+  if (req.user.role === "student") {
+    console.log("====================================");
+    console.log("from student role");
+    console.log("====================================");
+    const documents = await productModel
+      .find({
+        students: { $in: [req.user._id] },
+      })
+      .sort({ createdAt: -1 })
+      .select("-students")
+      .skip(skipNum)
+      .limit(limitNum);
+    res
+      .status(200)
+      .json({ results: documents.length, page: pageNum, data: documents });
+  } else if (req.user.role === "teacher") {
+    console.log("====================================");
+    console.log("from teacher role");
+    console.log("====================================");
+
+    const documents = await productModel
+      .find({ teacher: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate("students", "_id name email phone")
+      .skip(skipNum)
+      .limit(limitNum);
+    res
+      .status(200)
+      .json({ results: documents.length, page: pageNum, data: documents });
+  } else {
+    console.log("====================================");
+    console.log("from rest roles");
+    console.log("====================================");
+
+    const documents = await productModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .populate("students", "_id name email phone")
+      .skip(skipNum)
+      .limit(limitNum);
+    res
+      .status(200)
+      .json({ results: documents.length, page: pageNum, data: documents });
+  }
+});
 
 exports.getProduct = factory.getOne(productModel);
 
@@ -322,6 +379,153 @@ exports.deleteProduct = asyncHandler(async (req, res, next) => {
     }
     res.status(204).send("Product deleted successfully");
   } catch (error) {
+    next(error);
+  }
+});
+
+exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
+  const productId = req.params.id;
+  const { studentIds } = req.body;
+
+  try {
+    // Find the product by ID
+    const product = await productModel.findById(productId);
+    if (!product) {
+      return next(
+        new ApiError(`No product found for this id:${productId}`, 404)
+      );
+    }
+
+    // Find the students by IDs
+    const students = await userModel.find({
+      _id: { $in: studentIds },
+      role: "student",
+    });
+
+    // Check if all students were found
+    if (students.length !== studentIds.length) {
+      const missingStudents = studentIds.filter(
+        (id) => !students.map((student) => student._id.toString()).includes(id)
+      );
+      return next(
+        new ApiError(
+          `Students not found with IDs: ${missingStudents.join(", ")}`,
+          404
+        )
+      );
+    }
+
+    // Check if any student IDs already exist in the product.students array
+    const existingStudents = studentIds.filter((id) =>
+      product.students.includes(id)
+    );
+
+    // If any existing students found, return an error
+    if (existingStudents.length > 0) {
+      return next(
+        new ApiError(
+          `Students with IDs ${existingStudents.join(
+            ", "
+          )} are already enrolled in the product`,
+          400
+        )
+      );
+    }
+
+    // Add the product ID to the products array of each student
+    students.forEach((student) => {
+      if (!student.products.includes(productId)) {
+        student.products.push(productId);
+      }
+    });
+
+    // Save all updated students
+    await Promise.all(students.map((student) => student.save()));
+
+    // Add the new student IDs to the students array of the product
+    product.students.push(...studentIds);
+
+    // Update the product document using findOneAndUpdate
+    const updatedProduct = await productModel.findOneAndUpdate(
+      { _id: productId },
+      { students: product.students },
+      { new: true } // Return the updated document
+    );
+
+    res
+      .status(200)
+      .json({ message: "Students added successfully", updatedProduct });
+  } catch (error) {
+    console.error("Error adding students to product:", error);
+    next(error);
+  }
+});
+
+exports.removeStudentsFromProduct = asyncHandler(async (req, res, next) => {
+  const productId = req.params.id;
+  const { studentIds } = req.body;
+
+  try {
+    // Find the product by ID
+    const product = await productModel.findById(productId);
+    if (!product) {
+      return next(
+        new ApiError(`No product found for this id:${productId}`, 404)
+      );
+    }
+
+    // Check if provided student IDs match any enrolled students in the product
+    const enrolledStudents = product.students.map((id) => id.toString());
+    const invalidStudentIds = studentIds.filter(
+      (id) => !enrolledStudents.includes(id.toString())
+    );
+
+    // If any invalid student IDs found, return an error
+    if (invalidStudentIds.length > 0) {
+      return next(
+        new ApiError(
+          `Students with IDs ${invalidStudentIds.join(
+            ", "
+          )} are not enrolled in the product`,
+          400
+        )
+      );
+    }
+
+    // Find the students by IDs
+    const students = await userModel.find({
+      _id: { $in: studentIds },
+      role: "student",
+    });
+
+    // Remove the product ID from the products array of each student
+    students.forEach((student) => {
+      const index = student.products.indexOf(productId);
+      if (index !== -1) {
+        student.products.splice(index, 1);
+      }
+    });
+
+    // Save all updated students
+    await Promise.all(students.map((student) => student.save()));
+
+    // Remove the student IDs from the students array of the product
+    product.students = product.students.filter(
+      (id) => !studentIds.includes(id.toString())
+    );
+
+    // Update the product document using findOneAndUpdate
+    const updatedProduct = await productModel.findOneAndUpdate(
+      { _id: productId },
+      { students: product.students },
+      { new: true } // Return the updated document
+    );
+
+    res
+      .status(200)
+      .json({ message: "Students removed successfully", updatedProduct });
+  } catch (error) {
+    console.error("Error removing students from product:", error);
     next(error);
   }
 });

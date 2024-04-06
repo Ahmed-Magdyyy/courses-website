@@ -40,8 +40,9 @@ productSchema.post("init", (doc) => {
   setImageURL(doc);
 });
 
-productSchema.post("save", (doc) => {
+productSchema.post("save", (doc,next) => {
   setImageURL(doc);
+  next();
 });
 
 productSchema.post("save", async function (doc) {

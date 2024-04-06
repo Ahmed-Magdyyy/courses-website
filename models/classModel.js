@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
+let assignmentModel = require("../models/assignmentModel")
 
 const classSchema = new mongoose.Schema(
   {
@@ -25,7 +26,7 @@ const classSchema = new mongoose.Schema(
       type: String,
       required: [true, "meeting password is required"],
     },
-    teacher: { type: mongoose.Schema.Types.ObjectId, ref: "teacher" },
+    teacher: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
     studentsEnrolled: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
     status: {
       type: String,
@@ -52,7 +53,10 @@ const classSchema = new mongoose.Schema(
         },
       },
     ],
-    assignments: [String],
+    assignments: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "assignment"
+    },
   },
   { timestamps: true }
 );
@@ -77,7 +81,9 @@ classSchema.post("save", async function (doc) {
 
 classSchema.pre("findOneAndDelete", async function (next) {
   const userModel = mongoose.model("user");
-  const assignmentModel = mongoose.model("assignment");
+const assignmentModel = require("../models/assignmentModel")
+
+
 
   try {
     const classDoc = await this.model.findOne(this.getFilter());
@@ -99,7 +105,10 @@ classSchema.pre("findOneAndDelete", async function (next) {
         }
       );
 
-      await assignmentModel.deleteMany({ class: classId });
+      console.log('====================================');
+      console.log(assignmentModel);
+      console.log('====================================');
+    const deletedAssignments=  await assignmentModel.deleteMany({ class: classId });
     }
 
     next();

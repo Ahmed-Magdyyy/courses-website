@@ -34,27 +34,25 @@ exports.createReport = asyncHandler(async (req, res, next) => {
 
 exports.getReport = asyncHandler(async (req, res, next) => {
   let filter = {};
+  const { page, limit, skip, ...query } = req.query;
+  console.log(query);
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
 
-  if (Object.keys(req.query).length === 0) {
-    const reports = await reportModel
-      .find(filter)
-      .populate("teacher", "_id name")
-      .populate("student", "_id name email");
-
-    if (!reports) {
-      return next(new ApiError(`No document found for this id:${id}`, 404));
-    }
-    res.status(200).json(reports);
-  } else {
-    filter = req.query;
-    const reports = await reportModel
-      .find(filter)
-      .populate("teacher", "_id name")
-      .populate("student", "_id name email");
-
-    if (!reports) {
-      return next(new ApiError(`No document found for this id:${id}`, 404));
-    }
-    res.status(200).json(reports);
+  if (query) {
+    filter = query;
   }
+
+  const reports = await reportModel
+    .find(filter)
+    .populate("teacher", "_id name")
+    .populate("student", "_id name email")
+    .skip(skipNum)
+    .limit(limitNum);
+
+  if (!reports) {
+    return next(new ApiError(`No document found for this id:${id}`, 404));
+  }
+  res.status(200).json({ results: reports.length, page: pageNum, reports });
 });

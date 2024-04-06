@@ -8,6 +8,8 @@ const {
   getProduct,
   editProduct,
   deleteProduct,
+  addStudentsToProduct,
+  removeStudentsFromProduct,
 } = require("../controllers/productsController");
 
 const {
@@ -26,10 +28,10 @@ Router.route("/")
     uploadProductFiles,
     createProduct
   )
-  .get(getAllProducts);
+  .get(allowedTo("superAdmin", "admin", "student"), getAllProducts);
 
 Router.route("/:id")
-  .get(getProduct)
+  .get(allowedTo("superAdmin", "admin", "student"),getProduct)
   .put(
     allowedTo("superAdmin", "admin"),
     enabledControls("products"),
@@ -41,4 +43,16 @@ Router.route("/:id")
     enabledControls("products"),
     deleteProduct
   );
+
+Router.route("/:id/addStudents").put(
+  allowedTo("superAdmin", "admin"),
+  enabledControls("products"),
+  addStudentsToProduct
+);
+
+Router.route("/:id/removeStudents").put(
+  allowedTo("superAdmin", "admin"),
+  enabledControls("products"),
+  removeStudentsFromProduct
+);
 module.exports = Router;

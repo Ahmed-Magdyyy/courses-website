@@ -90,15 +90,21 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 
 exports.getAllPosts = asyncHandler(async (req, res, next) => {
   let filter = {};
-  if (req.query) {
-    filter = req.query;
+  const { page, limit, skip, ...query } = req.query;
+
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+
+  if (query) {
+    filter = query;
   }
 
   const posts = await postsModel
     .find(filter)
     .populate("author", "_id name email phone role")
-    .sort({ createdAt: -1 });
-  res.status(200).json({ results: posts.length, data: posts });
+    .sort({ createdAt: -1 }).skip(skipNum).limit(limitNum);
+  res.status(200).json({ results: posts.length, page: pageNum, data: posts });
 });
 
 exports.getPost = asyncHandler(async (req, res, next) => {
@@ -114,8 +120,6 @@ exports.getPost = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({ data: post });
 });
-
-
 
 exports.editPost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
@@ -157,7 +161,6 @@ exports.editPost = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
-
 
 exports.deletePost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;

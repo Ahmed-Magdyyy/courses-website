@@ -54,10 +54,14 @@ const multerStorage = multer.diskStorage({
   filename: function (req, file, cb) {
     const ext = file.mimetype.split("/")[1]; // Get file extension
     if (file.mimetype.startsWith("audio")) {
-      const filename = `audio-assignment-${req.body.classId}-${Math.floor(Math.random()*100000)}.${ext}`; // Generate unique filename
+      const filename = `audio-assignment-${req.body.classId}-${Math.floor(
+        Math.random() * 100000
+      )}.${ext}`; // Generate unique filename
       cb(null, filename);
     } else if (file.mimetype.startsWith("image")) {
-      const filename = `image-assignment-${req.body.classId}-${Math.floor(Math.random()*100000)}.${ext}`; // Generate unique filename
+      const filename = `image-assignment-${req.body.classId}-${Math.floor(
+        Math.random() * 100000
+      )}.${ext}`; // Generate unique filename
       cb(null, filename);
     }
   },
@@ -95,7 +99,7 @@ exports.uploadAssignmentFile = (req, res, next) => {
 exports.submitAssignment = asyncHandler(async (req, res, next) => {
   const { classId, studentId, assignmentFile } = req.body;
 
-console.log(assignmentFile);
+  console.log(assignmentFile);
   try {
     const cls = await classModel.findOne({ _id: classId });
     if (!cls) {
@@ -113,6 +117,10 @@ console.log(assignmentFile);
       return next(new ApiError(`class must be ended to submit assignment`));
     }
 
+    if (!cls.studentsEnrolled.includes(studentId)) {
+      return next(new ApiError(`User was not enrolled in this class`));
+    }
+
     const assignment = await assignmentModel.create({
       class: classId,
       student: studentId,
@@ -126,9 +134,51 @@ console.log(assignmentFile);
 });
 
 exports.getAssignments = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
+  const { page, limit, skip, ...query } = req.query;
 
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
 
-  const assignments = await assignmentModel.find({ class: id, ... req.query }).sort({ createdAt: -1 });
-  res.status(200).json({ assignments });
+  if (req.user.role == "student") {
+    const assignments = await assignmentModel
+      .find({ student: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate("class", "-__v")
+      .populate("student", "_id name email phone")
+      .skip(skipNum)
+      .limit(limitNum);
+    res
+      .status(200)
+      .json({ results: assignments.length, page: pageNum, assignments });
+  } else if (req.user.role === "teacher") {
+    const classes = await classModel
+      .find({ teacher: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate("teacher", "_id name email phone")
+      .skip(skipNum)
+      .limit(limitNum);
+
+    const classesIDs = classes.map((cls) => cls._id);
+
+    const assignments = await assignmentModel
+      .find({ class: { $in: classesIDs } })
+      .sort({ createdAt: -1 })
+      .populate("class", "-__v")
+      .populate("student", "_id name email phone")
+      .skip(skipNum)
+      .limit(limitNum);
+    res
+      .status(200)
+      .json({ results: assignments.length, page: pageNum, assignments });
+  } else {
+    const assignments = await assignmentModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .populate("class", "-__v")
+      .populate("student", "_id name email phone");
+    res
+      .status(200)
+      .json({ results: assignments.length, page: pageNum, assignments });
+  }
 });

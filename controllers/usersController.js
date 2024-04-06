@@ -10,15 +10,24 @@ const createToken = require("../utils/createToken");
 
 exports.getUsers = asyncHandler(async (req, res, next) => {
   let filter = {};
+  const { page, limit, skip, ...query } = req.query;
 
-  if (req.query && req.query.role) {
-    filter = req.query;
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+
+  if (query && query.role) {
+    filter = query;
   } else {
-    filter = { ...req.query, role: { $ne: "superAdmin" } };
+    filter = { ...query, role: { $ne: "superAdmin" } };
   }
 
-  const users = await usersModel.find(filter).sort({ createdAt: -1 });
-  res.status(200).json({ results: users.length, data: users });
+  const users = await usersModel
+    .find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skipNum)
+    .limit(limitNum);
+  res.status(200).json({ results: users.length, page: pageNum, data: users });
 });
 
 exports.getUser = asyncHandler(async (req, res, next) => {
@@ -43,7 +52,6 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 });
 
 exports.createUser = asyncHandler(async (req, res, next) => {
-
   if (req.body.role === "superAdmin") {
     return next(new ApiError(`Can't create a new super admin!`, 400));
   }
@@ -105,7 +113,9 @@ exports.deleteUser = asyncHandler(async (req, res, next) => {
 
   const deletedUser = await usersModel.findByIdAndDelete(id);
 
-  res.status(204).json({message:"Document deleted successfully", deletedUser});
+  res
+    .status(204)
+    .json({ message: "Document deleted successfully", deletedUser });
 });
 
 //----- /Admin Routes -----
