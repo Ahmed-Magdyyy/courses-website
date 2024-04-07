@@ -149,7 +149,6 @@ exports.getPost = asyncHandler(async (req, res, next) => {
       },
     });
 
-    
   if (!post) {
     return next(new ApiError(`No post found for this ${id}`, 404));
   }

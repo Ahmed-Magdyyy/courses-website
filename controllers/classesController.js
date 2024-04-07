@@ -76,52 +76,67 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
   }
 
   if (req.user.role === "student") {
-console.log('====================================');
-console.log("from student role");
-console.log('====================================');
+    console.log("====================================");
+    console.log("from student role");
+    console.log("====================================");
     const documents = await classModel
       .find({
         studentsEnrolled: { $in: [req.user._id] },
       })
       .sort({ createdAt: -1 })
       .select("-studentsEnrolled")
-      .populate("teacher", "_id name email phone").populate("assignments", ("-__v")).skip(skipNum).limit(limitNum);
+      .populate("teacher", "_id name email phone")
+      .populate("assignments", "-__v")
+      .populate("attendance.student", "_id name email")
+      .skip(skipNum)
+      .limit(limitNum);
 
     res.status(200).json({ results: documents.length, data: documents });
-    
   } else if (req.user.role === "teacher") {
-    console.log('====================================');
+    console.log("====================================");
     console.log("from teacher role");
-    console.log('====================================');
-    
+    console.log("====================================");
+
     const documents = await classModel
-    .find({ teacher: req.user._id })
-    .sort({ createdAt: -1 })
-    .populate("studentsEnrolled", "_id name email phone")
-    .populate("teacher", "_id name email phone").populate("assignments", ("-__v")).skip(skipNum).limit(limitNum);
+      .find({ teacher: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate("studentsEnrolled", "_id name email phone")
+      .populate("teacher", "_id name email phone")
+      .populate("assignments", "-__v")
+      .populate("attendance.student", "_id name email")
+      .skip(skipNum)
+      .limit(limitNum);
 
-  res.status(200).json({ results: documents.length, data: documents });
-
-  }else {
-    console.log('====================================');
-console.log("from rest role");
-console.log('====================================');
+    res.status(200).json({ results: documents.length, data: documents });
+  } else {
+    console.log("====================================");
+    console.log("from rest role");
+    console.log("====================================");
 
     const documents = await classModel
       .find(filter)
       .sort({ createdAt: -1 })
       .populate("studentsEnrolled", "_id name email phone")
-      .populate("teacher", "_id name email phone").populate("assignments", ("-__v")).skip(skipNum).limit(limitNum);
+      .populate("teacher", "_id name email phone")
+      .populate("assignments", "-__v")
+      .populate("attendance.student", "_id name email")
+      .skip(skipNum)
+      .limit(limitNum);
 
-    res.status(200).json({ results: documents.length,page: pageNum, data: documents });
+    res
+      .status(200)
+      .json({ results: documents.length, page: pageNum, data: documents });
   }
 });
 
 exports.getClass = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const document = await classModel.findById(id)      .populate("studentsEnrolled", "_id name email phone")
-  .populate("studentsEnrolled", "_id name email phone")
-  .populate("teacher", "_id name email phone");
+  const document = await classModel
+    .findById(id)
+    .populate("studentsEnrolled", "_id name email phone")
+    .populate("studentsEnrolled", "_id name email phone")
+    .populate("teacher", "_id name email phone")
+    .populate("attendance.student", "_id name email");
 
   if (!document) {
     return next(new ApiError(`No document found for this id:${id}`, 404));
