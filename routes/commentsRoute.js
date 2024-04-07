@@ -8,7 +8,7 @@ const {
   getComment,
   updateComment,
   deleteComment,
-  toggleLike
+  toggleLike,
 } = require("../controllers/commentController");
 
 const {
@@ -22,14 +22,14 @@ Router.use(protect);
 Router.use(allowedTo("superAdmin", "admin", "teacher", "student"));
 Router.use(enabledControls("posts"));
 
-Router.route("/").post(uploadCommentImage, createComment);
-
-Router.route("/post/:postId").get(getCommentsForPost);
+Router.route("/post/:postId")
+  .post(uploadCommentImage, createComment)
+  .get(getCommentsForPost);
 
 Router.route("/:id")
   .get(getComment)
   .put(uploadCommentImage, updateComment)
   .delete(deleteComment);
 
-  Router.route("/:id/like").put(toggleLike)
+Router.route("/:id/like").put(toggleLike);
 module.exports = Router;

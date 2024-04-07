@@ -52,10 +52,8 @@ const upload = multer({
 
 exports.uploadPostImage = (req, res, next) => {
   upload(req, res, function (err) {
-
-
     // File uploaded successfully
-  if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
+    if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
     next();
 
     if (err) {
@@ -103,7 +101,10 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
   const posts = await postsModel
     .find(filter)
     .populate("author", "_id name email phone role")
-    .sort({ createdAt: -1 }).skip(skipNum).limit(limitNum);
+    .populate("likes.users", "_id name")
+    .sort({ createdAt: -1 })
+    .skip(skipNum)
+    .limit(limitNum);
   res.status(200).json({ results: posts.length, page: pageNum, data: posts });
 });
 
@@ -155,7 +156,9 @@ exports.editPost = asyncHandler(async (req, res, next) => {
       { new: true } // Return the updated document
     );
 
-    res.status(200).json({ message: "Post updated successfully", data: updatedPost });
+    res
+      .status(200)
+      .json({ message: "Post updated successfully", data: updatedPost });
   } catch (error) {
     console.error("Error updating post:", error);
     next(error);
@@ -202,9 +205,42 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
   res.status(204).send("Document deleted successfully");
 });
 
+// exports.toggleLike = asyncHandler(async (req, res, next) => {
+//   const { id } = req.params;
+//   const userId = req.user._id
+
+//   try {
+//     // Check if the post exists
+//     const post = await postsModel.findById(id);
+//     if (!post) {
+//       return next(new ApiError("Post not found", 404));
+//     }
+
+//     // Check if the user has already liked the post
+//     const userIndex = post.likes.users.indexOf(userId);
+//     if (userIndex === -1) {
+//       // User hasn't liked the post, so add like
+//       post.likes.users.push(userId);
+//       post.likes.count++;
+//     } else {
+//       // User has liked the post, so remove like
+//       post.likes.users.splice(userIndex, 1);
+//       post.likes.count--;
+//     }
+
+//     // Save the updated post
+//     await post.save();
+
+//     res.status(200).json({ message: "Toggle like successful", data: post });
+//   } catch (error) {
+//     console.error("Error toggling like:", error);
+//     next(error);
+//   }
+// });
+
 exports.toggleLike = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const userId = req.user._id
+  const userId = req.user._id;
 
   try {
     // Check if the post exists
@@ -215,20 +251,33 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
 
     // Check if the user has already liked the post
     const userIndex = post.likes.users.indexOf(userId);
+    let updateOperation;
+    let message;
+
     if (userIndex === -1) {
       // User hasn't liked the post, so add like
-      post.likes.users.push(userId);
-      post.likes.count++;
+      updateOperation = {
+        $push: { "likes.users": userId },
+        $inc: { "likes.count": 1 },
+      };
+      message = "You have successfully liked the post";
     } else {
       // User has liked the post, so remove like
-      post.likes.users.splice(userIndex, 1);
-      post.likes.count--;
+      updateOperation = {
+        $pull: { "likes.users": userId },
+        $inc: { "likes.count": -1 },
+      };
+      message = "Like removed";
     }
 
-    // Save the updated post
-    await post.save();
+    // Update the post
+    const updatedPost = await postsModel.findByIdAndUpdate(
+      id,
+      updateOperation,
+      { new: true }
+    );
 
-    res.status(200).json({ message: "Toggle like successful", data: post });
+    res.status(200).json({ message, data: updatedPost });
   } catch (error) {
     console.error("Error toggling like:", error);
     next(error);

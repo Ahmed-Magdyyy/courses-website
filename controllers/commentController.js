@@ -64,9 +64,10 @@ exports.uploadCommentImage = (req, res, next) => {
 };
 
 exports.createComment = asyncHandler(async (req, res, next) => {
-  const { content, postID, image } = req.body;
+  const { postId } = req.params;
+  const { content, image } = req.body;
   try {
-    const post = await postsModel.findById(postID);
+    const post = await postsModel.findById(postId);
     if (!post) {
       if (req.file) {
         const path = req.file.path;
@@ -79,7 +80,7 @@ exports.createComment = asyncHandler(async (req, res, next) => {
 
     // Create the comment
     const comment = await commentsModel.create({
-      post: postID,
+      post: postId,
       content,
       author: req.user._id,
       image,
@@ -87,7 +88,7 @@ exports.createComment = asyncHandler(async (req, res, next) => {
 
     // Add the comment to the post's comments array
     await postsModel.findOneAndUpdate(
-      { _id: postID },
+      { _id: postId },
       { $push: { comments: comment._id } }
     );
 
@@ -175,7 +176,9 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
           path,
         });
       }
-      return next(new ApiError(`Only comment author can edit the comment.`, 400));
+      return next(
+        new ApiError(`Only comment author can edit the comment.`, 400)
+      );
     }
 
     if (req.file && comment.image) {
@@ -239,33 +242,79 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
   }
 });
 
+// exports.toggleLike = asyncHandler(async (req, res, next) => {
+//   const { id } = req.params;
+//   const userId = req.user._id;
+
+//   try {
+//     // Check if the post exists
+//     const comment = await commentsModel.findById(id);
+//     if (!comment) {
+//       return next(new ApiError("Comment not found", 404));
+//     }
+
+//     // Check if the user has already liked the post
+//     const userIndex = comment.likes.users.indexOf(userId);
+//     if (userIndex === -1) {
+//       // User hasn't liked the comment, so add like
+//       comment.likes.users.push(userId);
+//       comment.likes.count++;
+//     } else {
+//       // User has liked the comment, so remove like
+//       comment.likes.users.splice(userIndex, 1);
+//       comment.likes.count--;
+//     }
+
+//     // Save the updated post
+//     await comment.save();
+
+//     res.status(200).json({ message: "Toggle like successful", data: comment });
+//   } catch (error) {
+//     console.error("Error toggling like:", error);
+//     next(error);
+//   }
+// });
+
 exports.toggleLike = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user._id;
 
   try {
-    // Check if the post exists
+    // Check if the comment exists
     const comment = await commentsModel.findById(id);
     if (!comment) {
       return next(new ApiError("Comment not found", 404));
     }
 
-    // Check if the user has already liked the post
+    // Check if the user has already liked the comment
     const userIndex = comment.likes.users.indexOf(userId);
+    let updateOperation;
+    let message;
+
     if (userIndex === -1) {
       // User hasn't liked the comment, so add like
-      comment.likes.users.push(userId);
-      comment.likes.count++;
+      updateOperation = {
+        $push: { "likes.users": userId },
+        $inc: { "likes.count": 1 },
+      };
+      message = "You have successfully liked the comment";
     } else {
       // User has liked the comment, so remove like
-      comment.likes.users.splice(userIndex, 1);
-      comment.likes.count--;
+      updateOperation = {
+        $pull: { "likes.users": userId },
+        $inc: { "likes.count": -1 },
+      };
+      message = "Like removed";
     }
 
-    // Save the updated post
-    await comment.save();
+    // Update the comment
+    const updatedComment = await commentsModel.findByIdAndUpdate(
+      id,
+      updateOperation,
+      { new: true }
+    );
 
-    res.status(200).json({ message: "Toggle like successful", data: comment });
+    res.status(200).json({ message, data: updatedComment });
   } catch (error) {
     console.error("Error toggling like:", error);
     next(error);
