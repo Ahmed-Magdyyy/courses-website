@@ -102,6 +102,22 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
     .find(filter)
     .populate("author", "_id name email phone role")
     .populate("likes.users", "_id name")
+    .populate({
+      path: "comments",
+      select: "-__v -post",
+      populate: {
+        path: "author",
+        select: "_id name",
+      },
+    })
+    .populate({
+      path: "comments",
+      select: "-__v -post",
+      populate: {
+        path: "likes.users",
+        select: "_id name",
+      },
+    })
     .sort({ createdAt: -1 })
     .skip(skipNum)
     .limit(limitNum);
@@ -113,8 +129,8 @@ exports.getPost = asyncHandler(async (req, res, next) => {
 
   const post = await postsModel
     .findById(id)
-    .populate("author", "_id name email phone role");
-
+    .populate("author", "_id name email phone role")
+    .populate("likes.users", "_id name");
   if (!post) {
     return next(new ApiError(`No post found for this ${id}`, 404));
   }
@@ -204,39 +220,6 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
 
   res.status(204).send("Document deleted successfully");
 });
-
-// exports.toggleLike = asyncHandler(async (req, res, next) => {
-//   const { id } = req.params;
-//   const userId = req.user._id
-
-//   try {
-//     // Check if the post exists
-//     const post = await postsModel.findById(id);
-//     if (!post) {
-//       return next(new ApiError("Post not found", 404));
-//     }
-
-//     // Check if the user has already liked the post
-//     const userIndex = post.likes.users.indexOf(userId);
-//     if (userIndex === -1) {
-//       // User hasn't liked the post, so add like
-//       post.likes.users.push(userId);
-//       post.likes.count++;
-//     } else {
-//       // User has liked the post, so remove like
-//       post.likes.users.splice(userIndex, 1);
-//       post.likes.count--;
-//     }
-
-//     // Save the updated post
-//     await post.save();
-
-//     res.status(200).json({ message: "Toggle like successful", data: post });
-//   } catch (error) {
-//     console.error("Error toggling like:", error);
-//     next(error);
-//   }
-// });
 
 exports.toggleLike = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
