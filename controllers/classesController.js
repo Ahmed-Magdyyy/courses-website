@@ -1,4 +1,3 @@
-const factory = require("./controllersFactory");
 const asyncHandler = require("express-async-handler");
 
 const { createMeeting, deleteMeeting } = require("../utils/zoom");

@@ -6,7 +6,6 @@ const asyncHandler = require("express-async-handler");
 
 const postsModel = require("../models/postModel");
 const commentModel = require("../models/commentModel");
-const factory = require("./controllersFactory");
 const ApiError = require("../utils/ApiError");
 
 function deleteUploadedFile(file) {
