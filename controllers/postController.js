@@ -130,7 +130,26 @@ exports.getPost = asyncHandler(async (req, res, next) => {
   const post = await postsModel
     .findById(id)
     .populate("author", "_id name email phone role")
-    .populate("likes.users", "_id name");
+    .populate("likes.users", "_id name")
+    .populate("comments", "_id name")
+    .populate({
+      path: "comments",
+      select: "-__v -post",
+      populate: {
+        path: "author",
+        select: "_id name",
+      },
+    })
+    .populate({
+      path: "comments",
+      select: "-__v -post",
+      populate: {
+        path: "likes.users",
+        select: "_id name",
+      },
+    });
+
+    
   if (!post) {
     return next(new ApiError(`No post found for this ${id}`, 404));
   }
