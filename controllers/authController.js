@@ -326,28 +326,6 @@ exports.enabledControls = (scope) =>
     next();
   });
 
-// exports.checkEnrollment = (scope) =>
-//   asyncHandler(async (req, res, next) => {
-//     let { _id, role, courses, classes, products } = req.user;
-//     if (role == "student") {
-//       if (scope == "courses") {
-//         if (courses.length == 0) {
-//           return next(
-//             new ApiError("You are not enrolled in any courses.", 400)
-//           );
-//         }
-//         const courses = await coursesModel.find({
-//           studentsEnrolled: { $in: [userId] },
-//         });
-//         console.log("====================================");
-//         console.log(courses);
-//         console.log("====================================");
-//       }
-//       next()
-//     }
-//     next()
-//   });
-
 exports.forgetPassword = asyncHandler(async (req, res, next) => {
   //1) Get user by email
   const user = await usersModel.findOne({ email: req.body.email });

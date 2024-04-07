@@ -247,39 +247,6 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
   }
 });
 
-// exports.toggleLike = asyncHandler(async (req, res, next) => {
-//   const { id } = req.params;
-//   const userId = req.user._id;
-
-//   try {
-//     // Check if the post exists
-//     const comment = await commentsModel.findById(id);
-//     if (!comment) {
-//       return next(new ApiError("Comment not found", 404));
-//     }
-
-//     // Check if the user has already liked the post
-//     const userIndex = comment.likes.users.indexOf(userId);
-//     if (userIndex === -1) {
-//       // User hasn't liked the comment, so add like
-//       comment.likes.users.push(userId);
-//       comment.likes.count++;
-//     } else {
-//       // User has liked the comment, so remove like
-//       comment.likes.users.splice(userIndex, 1);
-//       comment.likes.count--;
-//     }
-
-//     // Save the updated post
-//     await comment.save();
-
-//     res.status(200).json({ message: "Toggle like successful", data: comment });
-//   } catch (error) {
-//     console.error("Error toggling like:", error);
-//     next(error);
-//   }
-// });
-
 exports.toggleLike = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user._id;
