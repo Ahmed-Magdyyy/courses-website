@@ -6,6 +6,7 @@ const PORT = process.env.PORT || 3000;
 const morgan = require("morgan");
 const cors = require("cors");
 const path = require("path");
+
 const ApiError = require("./utils/ApiError");
 const globalError = require("./middlewares/errorMiddleware");
 const dbConnection = require("./config/database");
@@ -20,6 +21,8 @@ const assignmentRoute = require("./routes/asignmentRoute");
 const reportRoute = require("./routes/MonthlyReportRoute");
 const postsRoute = require("./routes/postsRoute");
 const commentsRoute = require("./routes/commentsRoute");
+const socketConfig = require("./socketConfig");
+const chatRoute = require("./routes/chatRoute");
 
 
 // middlewares
@@ -49,6 +52,7 @@ app.use("/api/v1/assignments", assignmentRoute);
 app.use("/api/v1/reports", reportRoute);
 app.use("/api/v1/posts", postsRoute);
 app.use("/api/v1/comments", commentsRoute);
+app.use("/api/v1/chat", chatRoute);
 
 
 app.all("*", (req, res, next) => {
@@ -61,6 +65,12 @@ app.use(globalError);
 const server = app.listen(process.env.PORT, () =>
   console.log(`Example app listening on port ${PORT}!`)
 );
+
+const io = require("socket.io")(server)
+
+
+// Socket.IO setup
+socketConfig(io);
 
 // UnhandledRejections event handler (rejection outside express)
 process.on("unhandledRejection", (err) => {

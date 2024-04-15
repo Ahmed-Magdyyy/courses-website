@@ -1,8 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const moment = require("moment-timezone");
-const ApiError = require("../utils/ApiError");
-
 
 const userSchema = new mongoose.Schema(
   {
