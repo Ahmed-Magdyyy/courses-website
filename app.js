@@ -66,7 +66,11 @@ const server = app.listen(process.env.PORT, () =>
   console.log(`Example app listening on port ${PORT}!`)
 );
 
-const io = require("socket.io")(server)
+const io = require("socket.io")(server,{
+  cors: {
+    origin: "*"
+  }
+})
 
 
 // Socket.IO setup

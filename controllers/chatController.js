@@ -18,7 +18,7 @@ exports.sendMessage = async (io, data) => {
       attachment,
     });
 
-    io.to(receiver).emit("message", message);
+    io.emit("message", message);
 
     console.log("Message sent:", message);
   } catch (error) {
@@ -35,7 +35,7 @@ exports.getMessages = async (io, data) => {
       .populate("sender", "_id name email phone")
       .populate("receiver", "_id name email phone");
 
-    io.to(receiver).emit("messages", messages);
+    io.emit("messages", messages);
 
     console.log("Messages sent from getMessages:", messages);
   } catch (error) {
