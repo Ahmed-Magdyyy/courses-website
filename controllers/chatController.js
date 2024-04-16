@@ -1,6 +1,6 @@
 const Message = require("../models/chatMessageModel");
 
-exports.sendMessage = async (io, data) => {
+exports.sendMessage = async (io, socket, data) => {
   try {
     const { sender, receiver, content } = data;
     let attachment = null;
@@ -18,7 +18,8 @@ exports.sendMessage = async (io, data) => {
       attachment,
     });
 
-    io.emit("message", message);
+  // Send the message only to the receiver socket
+  io.emit('message', message);
 
     console.log("Message sent:", message);
   } catch (error) {
@@ -27,7 +28,7 @@ exports.sendMessage = async (io, data) => {
   }
 };
 
-exports.getMessages = async (io, data) => {
+exports.getMessages = async (io, socket, data) => {
   try {
     const { sender, receiver } = data;
     const messages = await Message.find({ sender, receiver })

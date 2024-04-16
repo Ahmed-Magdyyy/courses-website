@@ -5,11 +5,17 @@ module.exports = (io) => {
     console.log('A user connected:', socket.id);
 
     socket.on('sendMessage', (data) => {
-      sendMessage(io, data);
+      sendMessage(io, socket, data);
+      console.log("//////////////////////");
+      console.log(socket.id);
+      console.log("//////////////////////");
     });
 
     socket.on('getMessages', (data) => {
-      getMessages(io, data);
+      getMessages(io, socket, data);
+      // console.log("//////////////////////");
+      // console.log(socket.id);
+      // console.log("//////////////////////");
     });
 
     socket.on('disconnect', () => {
