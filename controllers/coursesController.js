@@ -101,14 +101,20 @@ exports.getAllCourses = asyncHandler(async (req, res, next) => {
         studentsEnrolled: { $in: [req.user._id] },
       })
       .sort({ createdAt: -1 })
-      .populate("studentsEnrolled", "_id name email phone").skip(skipNum).limit(limitNum);
+      .populate("studentsEnrolled", "_id name email phone")
+      .skip(skipNum)
+      .limit(limitNum);
     res.status(200).json({ results: documents.length, data: documents });
   } else {
     const documents = await coursesModel
       .find(filter)
       .sort({ createdAt: -1 })
-      .populate("studentsEnrolled", "_id name email phone").skip(skipNum).limit(limitNum);
-    res.status(200).json({ results: documents.length,page: pageNum, data: documents });
+      .populate("studentsEnrolled", "_id name email phone")
+      .skip(skipNum)
+      .limit(limitNum);
+    res
+      .status(200)
+      .json({ results: documents.length, page: pageNum, data: documents });
   }
 });
 
@@ -138,76 +144,76 @@ exports.getCourse = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.addStudentsToCourse = asyncHandler(async (req, res, next) => {
-  const courseId = req.params.id;
-  const { studentIds } = req.body;
+// exports.addStudentsToCourse = asyncHandler(async (req, res, next) => {
+//   const courseId = req.params.id;
+//   const { studentIds } = req.body;
 
-  try {
-    // Find the course by ID
-    const course = await coursesModel.findById(courseId);
-    if (!course) {
-      return next(new ApiError(`No course found for this id:${courseId}`, 404));
-    }
+//   try {
+//     // Find the course by ID
+//     const course = await coursesModel.findById(courseId);
+//     if (!course) {
+//       return next(new ApiError(`No course found for this id:${courseId}`, 404));
+//     }
 
-    // Find the students by IDs
-    const students = await userModel.find({
-      _id: { $in: studentIds },
-      role: "student",
-    });
+//     // Find the students by IDs
+//     const students = await userModel.find({
+//       _id: { $in: studentIds },
+//       role: "student",
+//     });
 
-    // Check if all students were found
-    if (students.length !== studentIds.length) {
-      const missingStudents = studentIds.filter(
-        (id) => !students.map((student) => student._id.toString()).includes(id)
-      );
-      return next(
-        new ApiError(
-          `Students not found with IDs: ${missingStudents.join(", ")}`,
-          404
-        )
-      );
-    }
+//     // Check if all students were found
+//     if (students.length !== studentIds.length) {
+//       const missingStudents = studentIds.filter(
+//         (id) => !students.map((student) => student._id.toString()).includes(id)
+//       );
+//       return next(
+//         new ApiError(
+//           `Students not found with IDs: ${missingStudents.join(", ")}`,
+//           404
+//         )
+//       );
+//     }
 
-    // Check if any student IDs already exist in the studentsEnrolled array of the course
-    const existingStudents = studentIds.filter((id) =>
-      course.studentsEnrolled.includes(id)
-    );
+//     // Check if any student IDs already exist in the studentsEnrolled array of the course
+//     const existingStudents = studentIds.filter((id) =>
+//       course.studentsEnrolled.includes(id)
+//     );
 
-    // If any existing students found, return an error
-    if (existingStudents.length > 0) {
-      return next(
-        new ApiError(
-          `Students with IDs ${existingStudents.join(
-            ", "
-          )} are already enrolled in the course`,
-          400
-        )
-      );
-    }
+//     // If any existing students found, return an error
+//     if (existingStudents.length > 0) {
+//       return next(
+//         new ApiError(
+//           `Students with IDs ${existingStudents.join(
+//             ", "
+//           )} are already enrolled in the course`,
+//           400
+//         )
+//       );
+//     }
 
-    // Add the course ID to the courses array of each student
-    students.forEach((student) => {
-      if (!student.courses.includes(courseId)) {
-        student.courses.push(courseId);
-        student.save(); // Save each student individually
-      }
-    });
+//     // Add the course ID to the courses array of each student
+//     students.forEach((student) => {
+//       if (!student.courses.includes(courseId)) {
+//         student.courses.push(courseId);
+//         student.save(); // Save each student individually
+//       }
+//     });
 
-    // Add the new student IDs to the studentsEnrolled array of the course
-    const updatedCourse = await coursesModel.findOneAndUpdate(
-      { _id: courseId },
-      { $addToSet: { studentsEnrolled: { $each: studentIds } } },
-      { new: true }
-    );
+//     // Add the new student IDs to the studentsEnrolled array of the course
+//     const updatedCourse = await coursesModel.findOneAndUpdate(
+//       { _id: courseId },
+//       { $addToSet: { studentsEnrolled: { $each: studentIds } } },
+//       { new: true }
+//     );
 
-    res
-      .status(200)
-      .json({ message: "Students added successfully", updatedCourse });
-  } catch (error) {
-    console.error("Error adding students to course:", error);
-    next(error);
-  }
-});
+//     res
+//       .status(200)
+//       .json({ message: "Students added successfully", updatedCourse });
+//   } catch (error) {
+//     console.error("Error adding students to course:", error);
+//     next(error);
+//   }
+// });
 
 exports.removeStudentFromCourse = asyncHandler(async (req, res, next) => {
   const courseId = req.params.id;
@@ -349,6 +355,145 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
 
     res.status(204).send("Document deleted successfully");
   } catch (error) {
+    next(error);
+  }
+});
+
+// exports.addStudentsToCourse = asyncHandler(async (req, res, next) => {
+//   const courseId = req.params.id;
+//   const { studentIds } = req.body;
+
+//   try {
+//     // Find the course by ID
+//     const course = await coursesModel.findById(courseId);
+//     if (!course) {
+//       return next(new ApiError(`No course found for this id:${courseId}`, 404));
+//     }
+
+//     // Find the students by IDs
+//     const students = await userModel.find({
+//       _id: { $in: studentIds },
+//       role: "student",
+//     });
+
+//     // Check if all students were found
+//     if (students.length !== studentIds.length) {
+//       const missingStudents = studentIds.filter(
+//         (id) => !students.map((student) => student._id.toString()).includes(id)
+//       );
+//       return next(
+//         new ApiError(
+//           `Students not found with IDs: ${missingStudents.join(", ")}`,
+//           404
+//         )
+//       );
+//     }
+
+//     // Filter out the student IDs that are already present in the course's studentsEnrolled array
+//     const newStudentIds = studentIds.filter(
+//       (id) => !course.studentsEnrolled.includes(id)
+//     );
+
+//     // Add the course ID to the courses array of each student
+//     await Promise.all(
+//       students.map(async (student) => {
+//         if (!student.courses.includes(courseId)) {
+//           student.courses.push(courseId);
+//           await student.save();
+//         }
+//       })
+//     );
+
+//     // Add the new student IDs to the studentsEnrolled array of the course
+//     const updatedCourse = await coursesModel.findOneAndUpdate(
+//       { _id: courseId },
+//       { $addToSet: { studentsEnrolled: { $each: newStudentIds } } },
+//       { new: true }
+//     );
+
+//     res
+//       .status(200)
+//       .json({ message: "Students added successfully", updatedCourse });
+//   } catch (error) {
+//     console.error("Error adding students to course:", error);
+//     next(error);
+//   }
+// });
+
+exports.addStudentsToCourse = asyncHandler(async (req, res, next) => {
+  const courseId = req.params.id;
+  const { studentIds } = req.body;
+
+  try {
+    // Find the course by ID
+    const course = await coursesModel.findById(courseId);
+    if (!course) {
+      return next(new ApiError(`No course found for this id:${courseId}`, 404));
+    }
+
+    // Clear studentsEnrolled array and remove course from students' courses field if studentIds array is empty
+    if (!studentIds || studentIds.length === 0) {
+      await userModel.updateMany(
+        { courses: courseId },
+        { $pull: { courses: courseId } },
+        { multi: true }
+      );
+      const updatedCourse = await coursesModel.findOneAndUpdate(
+        { _id: courseId },
+        { studentsEnrolled: studentIds },
+        { new: true }
+      );
+      return res
+        .status(200)
+        .json({ message: "Course updated successfully", updatedCourse });
+    }
+
+    // Find the students by IDs
+    const students = await userModel.find({
+      _id: { $in: studentIds },
+      role: "student",
+    });
+
+    // Check if all students were found
+    if (students.length !== studentIds.length) {
+      const missingStudents = studentIds.filter(
+        (id) => !students.map((student) => student._id.toString()).includes(id)
+      );
+      return next(
+        new ApiError(
+          `Students not found with IDs: ${missingStudents.join(", ")}`,
+          404
+        )
+      );
+    }
+
+    // Filter out the student IDs that are already present in the course's studentsEnrolled array
+    const newStudentIds = studentIds.filter(
+      (id) => !course.studentsEnrolled.includes(id)
+    );
+
+    // Add the course ID to the courses array of each student
+    await Promise.all(
+      students.map(async (student) => {
+        if (!student.courses.includes(courseId)) {
+          student.courses.push(courseId);
+          await student.save();
+        }
+      })
+    );
+
+    // Add the new student IDs to the studentsEnrolled array of the course
+    const updatedCourse = await coursesModel.findOneAndUpdate(
+      { _id: courseId },
+      { $addToSet: { studentsEnrolled: { $each: newStudentIds } } },
+      { new: true }
+    );
+
+    res
+      .status(200)
+      .json({ message: "Students added successfully", updatedCourse });
+  } catch (error) {
+    console.error("Error adding students to course:", error);
     next(error);
   }
 });

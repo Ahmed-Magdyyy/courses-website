@@ -9,7 +9,7 @@ const createToken = require("../utils/createToken");
 //----- Admin Routes -----
 
 exports.getUsers = asyncHandler(async (req, res, next) => {
-  let filter = {};
+  let filter = {active: true};
   const { page, limit, skip, ...query } = req.query;
 
   const pageNum = page * 1 || 1;

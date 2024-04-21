@@ -2,10 +2,9 @@ const express = require("express");
 const Router = express.Router();
 
 const {
-  createChat,
-  getUserChats,
-  findChat,
-} = require("../controllers/chatController");
+  createmessage,
+  getMessages,
+} = require("../controllers/messageController");
 
 const {
   protect,
@@ -16,8 +15,7 @@ const {
 // applied on all routes
 Router.use(protect);
 
-Router.post("/", createChat)
-  .get("/", getUserChats)
-  .get("/users/:firstId/:secondId", findChat);
+Router.post("/", createmessage)
+  .get("/:chatId", getMessages)
 
 module.exports = Router;

@@ -201,80 +201,6 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
 
 exports.getProduct = factory.getOne(productModel);
 
-// exports.editProduct = asyncHandler(async (req, res, next) => {
-//   const { title, summary } = req.body;
-//   const { image, productFile } = req.files;
-
-//   try {
-//     const product = await productModel.findById(req.params.id);
-// console.log('====================================');
-// console.log(product.image);
-// console.log('====================================');
-//     if (!product) {
-//       return next(new ApiError(`No product for this id:${req.params.id}`, 404));
-//     }
-
-//     // Check if image or productFile are uploaded
-//     if (image || productFile) {
-//       // Delete old files if new files are uploaded
-//       if (image && product.image) {
-//         const index = product.image.indexOf("products");
-//         const path = `uploads/${product.image.substring(index)}`;
-//         deleteUploadedFile({
-//           fieldname: "image",
-//           path,
-//         });
-//       }
-//       if (productFile && product.productFile) {
-//         const index = product.productFile.indexOf("products");
-//         const path = `uploads/${product.productFile.substring(index)}`;
-//         deleteUploadedFile({
-//           fieldname: "productFile",
-//           path,
-//         });
-//       }
-
-//       // Update product details with new files
-//       if (title) {
-//         product.title = title;
-//       }
-
-//       if (summary) {
-//         product.summary = summary;
-//       }
-
-//       if (req.files.image) {product.image = req.files.image[0].filename}
-//        else {
-//         product.image = product.image
-//       }
-//       if (req.files.productFile) {product.productFile = req.files.productFile[0].filename}
-//        else {
-//         product.productFile= product.productFile
-//       }
-
-//     } else {
-//       // No files uploaded, update only the product details
-//       if (title) {
-//         product.title = title;
-//       }
-
-//       if (summary) {
-//         product.summary = summary;
-//       }
-//     }
-
-//     // Save the updated product
-//     await product.save();
-
-//     res
-//       .status(200)
-//       .json({ message: "Product updated successfully", data: product });
-//   } catch (error) {
-//     console.error("Error updating product:", error);
-//     next(error);
-//   }
-// });
-
 exports.editProduct = asyncHandler(async (req, res, next) => {
   const { title, summary } = req.body;
 
@@ -396,6 +322,23 @@ exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
       );
     }
 
+    // Clear studentsEnrolled array and remove course from students' courses field if studentIds array is empty
+    if (!studentIds || studentIds.length === 0) {
+      await userModel.updateMany(
+        { products: productId },
+        { $pull: { products: productId } },
+        { multi: true }
+      );
+      const updatedProduct = await productModel.findOneAndUpdate(
+        { _id: productId },
+        { students: studentIds },
+        { new: true }
+      );
+      return res
+        .status(200)
+        .json({ message: "Course updated successfully", updatedProduct });
+    }
+
     // Find the students by IDs
     const students = await userModel.find({
       _id: { $in: studentIds },
@@ -415,35 +358,26 @@ exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
       );
     }
 
-    // Check if any student IDs already exist in the product.students array
-    const existingStudents = studentIds.filter((id) =>
-      product.students.includes(id)
+    // Filter out the student IDs that are already present in the product's students array
+    const newStudentIds = studentIds.filter(
+      (id) => !product.students.includes(id)
     );
 
-    // If any existing students found, return an error
-    if (existingStudents.length > 0) {
-      return next(
-        new ApiError(
-          `Students with IDs ${existingStudents.join(
-            ", "
-          )} are already enrolled in the product`,
-          400
-        )
-      );
-    }
-
     // Add the product ID to the products array of each student
-    students.forEach((student) => {
-      if (!student.products.includes(productId)) {
-        student.products.push(productId);
-      }
-    });
+    await Promise.all(
+      students.map(async (student) => {
+        if (!student.products.includes(productId)) {
+          student.products.push(productId);
+          await student.save();
+        }
+      })
+    );
 
     // Save all updated students
     await Promise.all(students.map((student) => student.save()));
 
     // Add the new student IDs to the students array of the product
-    product.students.push(...studentIds);
+    product.students.push(...newStudentIds);
 
     // Update the product document using findOneAndUpdate
     const updatedProduct = await productModel.findOneAndUpdate(

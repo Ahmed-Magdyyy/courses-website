@@ -21,8 +21,9 @@ const assignmentRoute = require("./routes/asignmentRoute");
 const reportRoute = require("./routes/MonthlyReportRoute");
 const postsRoute = require("./routes/postsRoute");
 const commentsRoute = require("./routes/commentsRoute");
-const socketConfig = require("./socketConfig");
 const chatRoute = require("./routes/chatRoute");
+const messageRoute = require("./routes/messageRoute");
+// const socketConfig = require("./socketConfig");
 
 
 // middlewares
@@ -53,6 +54,7 @@ app.use("/api/v1/reports", reportRoute);
 app.use("/api/v1/posts", postsRoute);
 app.use("/api/v1/comments", commentsRoute);
 app.use("/api/v1/chat", chatRoute);
+app.use("/api/v1/message", messageRoute);
 
 
 app.all("*", (req, res, next) => {
@@ -66,15 +68,15 @@ const server = app.listen(process.env.PORT, () =>
   console.log(`Example app listening on port ${PORT}!`)
 );
 
-const io = require("socket.io")(server,{
-  cors: {
-    origin: "*"
-  }
-})
+// const io = require("socket.io")(server,{
+//   cors: {
+//     origin: "*"
+//   }
+// })
 
 
 // Socket.IO setup
-socketConfig(io);
+// socketConfig(io);
 
 // UnhandledRejections event handler (rejection outside express)
 process.on("unhandledRejection", (err) => {

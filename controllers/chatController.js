@@ -1,46 +1,88 @@
-const Message = require("../models/chatMessageModel");
+const asyncHandler = require("express-async-handler");
+const chatModel = require("../models/chatModel");
 
-exports.sendMessage = async (io, socket, data) => {
+const ApiError = require("../utils/ApiError");
+
+exports.createChat = asyncHandler(async (req, res, next) => {
+  const userID = req.user._id;
+  const { receiverID } = req.body;
+
+  if (!userID || !receiverID) {
+    return next(
+      new ApiError(
+        `Both userID and receiverID are required to create a chat`,
+        400
+      )
+    );
+  }
+
   try {
-    const { sender, receiver, content } = data;
-    let attachment = null;
-
-    if (data.attachment) {
-      // Process the attachment (e.g., save it to the server or database)
-      // For simplicity, we'll assume attachment is already processed and saved
-      attachment = data.attachment;
-    }
-
-    const message = await Message.create({
-      sender,
-      receiver,
-      content,
-      attachment,
+    const chat = await chatModel.findOne({
+      members: { $all: [userID, receiverID] },
     });
 
-  // Send the message only to the receiver socket
-  io.emit('message', message);
+    if (chat) {
+      return next(
+        new ApiError(
+          `There is a chat already exists between users: ${userID} & ${receiverID}`,
+          400
+        )
+      );
+    }
 
-    console.log("Message sent:", message);
+    const newChat = await chatModel.create({
+      members: [userID, receiverID],
+    });
+
+    res
+      .status(200)
+      .json({ message: "chat created successfully", chat: newChat });
   } catch (error) {
-    console.error("Error sending message:", error);
-    // Handle error if necessary
+    console.log(error);
+    res.status(500).json({ error: error.message });
   }
-};
+});
 
-exports.getMessages = async (io, socket, data) => {
+exports.getUserChats = asyncHandler(async (req, res, next) => {
+  const userId = req.user._id;
+
   try {
-    const { sender, receiver } = data;
-    const messages = await Message.find({ sender, receiver })
+    const chats = await chatModel
+      .find({ members: { $in: [userId] } })
       .sort({ createdAt: -1 })
-      .populate("sender", "_id name email phone")
-      .populate("receiver", "_id name email phone");
+      .populate("members", "_id name role");
 
-    io.emit("messages", messages);
+    if (!chats) {
+      return next(new ApiError(`No chats found`, 404));
+    }
 
-    console.log("Messages sent from getMessages:", messages);
+    res.status(200).json({ results: chats.length, chats });
   } catch (error) {
-    console.error("Error receiving messages:", error);
-    // Handle error if necessary
+    console.log(error);
+    res.status(500).json({ error });
   }
-};
+});
+
+exports.findChat = asyncHandler(async (req, res, next) => {
+  const { firstId, secondId } = req.params;
+
+  try {
+    const chat = await chatModel.findOne({
+      members: { $all: [firstId, secondId] },
+    });
+
+    if (!chat) {
+      return next(
+        new ApiError(
+          `There is no chat found between users: (${firstId}) & (${secondId})`,
+          404
+        )
+      );
+    }
+
+    res.status(200).json({ chat });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error });
+  }
+});
