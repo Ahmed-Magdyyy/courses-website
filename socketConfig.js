@@ -1,20 +1,29 @@
-// const {getMessages, sendMessage} = require('./controllers/chatController');
+const { getMessages, sendMessage } = require("./controllers/chatController");
 
-// module.exports = (io) => {
-//   io.on('connection', (socket) => {
-//     console.log('A user connected:', socket.id);
+module.exports = (io) => {
+  let onlineUsers = [];
 
-//     socket.on('sendMessage', (data) => {
-//       sendMessage(io, socket, data ,socket.id);
+  io.on("connection", (socket) => {
+    console.log("A user connected:", socket.id);
 
-//     });
+    socket.on("addNewUser", (userId) => {
+      !onlineUsers.some((user) => user.userId === userId) &&
+        onlineUsers.push({ userId, socketId: socket.id });
+      console.log("onlineUsers", onlineUsers);
+      
+      io.emit("getOnlineUsers", onlineUsers);
+    });
 
-//     socket.on('getMessages', (data) => {
-//       getMessages(io, socket, data);
-//     });
+    socket.on("sendMessage", (data) => {
+      sendMessage(io, socket, data, socket.id);
+    });
 
-//     socket.on('disconnect', () => {
-//       console.log('A user disconnected:', socket.id);
-//     });
-//   });
-// };
+    socket.on("getMessages", (data) => {
+      getMessages(io, socket, data);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("A user disconnected:", socket.id);
+    });
+  });
+};

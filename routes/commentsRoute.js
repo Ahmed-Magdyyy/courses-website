@@ -19,8 +19,10 @@ const {
 
 // applied on all routes
 Router.use(protect);
-Router.use(allowedTo("superAdmin", "admin", "teacher", "student"));
-Router.use(enabledControls("posts"));
+Router.use(
+  allowedTo("superAdmin", "admin", "teacher", "student"),
+  enabledControls("timeline")
+);
 
 Router.route("/post/:postId")
   .post(uploadCommentImage, createComment)

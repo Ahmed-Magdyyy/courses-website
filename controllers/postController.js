@@ -167,6 +167,21 @@ exports.editPost = asyncHandler(async (req, res, next) => {
       return next(new ApiError(`No post found for ${id}`, 404));
     }
 
+    if (
+      req.user._id.toString() !== post.author.toString() &&
+      req.user.role !== "superAdmin" &&
+      req.user.role !== "admin"
+    ) {
+      if (req.file) {
+        const path = req.file.path;
+        deleteUploadedFile({
+          fieldname: "image",
+          path,
+        });
+      }
+      return next(new ApiError(`Only post author can edit the post.`, 403));
+    }
+
     if (req.file && post.image) {
       const index = post.image.indexOf("posts");
       const path = `uploads/${post.image.substring(index)}`;
@@ -194,6 +209,7 @@ exports.editPost = asyncHandler(async (req, res, next) => {
       .json({ message: "Post updated successfully", data: updatedPost });
   } catch (error) {
     console.error("Error updating post:", error);
+    res.status(400).json({ message: "Error updating post", error });
     next(error);
   }
 });
@@ -206,6 +222,22 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
   if (!Post) {
     return next(new ApiError(`No post found for ${id}`, 404));
   }
+
+  if (
+    req.user._id.toString() !== post.author.toString() &&
+    req.user.role !== "superAdmin" &&
+    req.user.role !== "admin"
+  ) {
+    if (req.file) {
+      const path = req.file.path;
+      deleteUploadedFile({
+        fieldname: "image",
+        path,
+      });
+    }
+    return next(new ApiError(`Only post author can delete the post.`, 400));
+  }
+
   const comments = await commentModel.find({ post: id });
 
   // Delete images associated with deleted comments
@@ -260,7 +292,7 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
         $push: { "likes.users": userId },
         $inc: { "likes.count": 1 },
       };
-      message = "You have successfully liked the post";
+      message = "You liked the post";
     } else {
       // User has liked the post, so remove like
       updateOperation = {

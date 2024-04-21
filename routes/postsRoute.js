@@ -8,7 +8,7 @@ const {
   uploadPostImage,
   editPost,
   deletePost,
-  toggleLike
+  toggleLike,
 } = require("../controllers/postController");
 
 const {
@@ -19,10 +19,17 @@ const {
 
 // applied on all routes
 Router.use(protect);
+Router.use(
+  allowedTo("superAdmin", "admin", "teacher", "student"),
+  enabledControls("timeline")
+);
 
 Router.route("/").post(uploadPostImage, createPost).get(getAllPosts);
 
-Router.route("/:id").get(getPost).put(uploadPostImage,editPost).delete(deletePost)
-Router.route("/:id/like").put(toggleLike)
+Router.route("/:id")
+  .get(getPost)
+  .put(uploadPostImage, editPost)
+  .delete(deletePost);
+Router.route("/:id/like").put(toggleLike);
 
 module.exports = Router;

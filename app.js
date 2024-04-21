@@ -23,7 +23,7 @@ const postsRoute = require("./routes/postsRoute");
 const commentsRoute = require("./routes/commentsRoute");
 const chatRoute = require("./routes/chatRoute");
 const messageRoute = require("./routes/messageRoute");
-// const socketConfig = require("./socketConfig");
+const socketConfig = require("./socketConfig");
 
 
 // middlewares
@@ -68,15 +68,14 @@ const server = app.listen(process.env.PORT, () =>
   console.log(`Example app listening on port ${PORT}!`)
 );
 
-// const io = require("socket.io")(server,{
-//   cors: {
-//     origin: "*"
-//   }
-// })
-
+const io = require("socket.io")(server,{
+  cors: {
+    origin: "*"
+  }
+})
 
 // Socket.IO setup
-// socketConfig(io);
+socketConfig(io);
 
 // UnhandledRejections event handler (rejection outside express)
 process.on("unhandledRejection", (err) => {

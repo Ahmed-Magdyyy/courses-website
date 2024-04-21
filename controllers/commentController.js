@@ -173,7 +173,11 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
       return next(new ApiError("Comment not found", 404));
     }
 
-    if (req.user._id.toString() !== comment.author.toString()) {
+    if (
+      req.user._id.toString() !== comment.author.toString() &&
+      req.user.role !== "superAdmin" &&
+      req.user.role !== "admin"
+    ) {
       if (req.file) {
         const path = req.file.path;
         deleteUploadedFile({
@@ -182,7 +186,7 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
         });
       }
       return next(
-        new ApiError(`Only comment author can edit the comment.`, 400)
+        new ApiError(`Only comment author can edit the comment.`, 403)
       );
     }
 
@@ -224,6 +228,21 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
     const comment = await commentsModel.findByIdAndDelete(id);
     if (!comment) {
       return next(new ApiError("Comment not found", 404));
+    }
+
+    if (
+      req.user._id.toString() !== post.author.toString() &&
+      req.user.role !== "superAdmin" &&
+      req.user.role !== "admin"
+    ) {
+      if (req.file) {
+        const path = req.file.path;
+        deleteUploadedFile({
+          fieldname: "image",
+          path,
+        });
+      }
+      return next(new ApiError(`Only comment author can delete the comment.`, 400));
     }
 
     // Remove the comment from the post's comments array
