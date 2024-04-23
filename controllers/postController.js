@@ -235,7 +235,7 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
         deleteUploadedFile({ path });
       });
     }
-
+ 
     // Delete post document from DB
     await post.deleteOne();
 
