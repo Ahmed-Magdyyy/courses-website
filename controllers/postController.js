@@ -1,6 +1,5 @@
 const fs = require("fs");
 const multer = require("multer");
-const { v4: uuidv4 } = require("uuid");
 const moment = require("moment-timezone");
 const asyncHandler = require("express-async-handler");
 
@@ -37,50 +36,212 @@ const multerStorage = multer.diskStorage({
 });
 
 const multerfilter = function (req, file, cb) {
-  if (file.mimetype.startsWith("image")) {
+  if (file.mimetype.startsWith("image") || file.mimetype.startsWith("video")) {
     cb(null, true);
   } else {
-    cb(new ApiError("only Images allowed", 400), false);
+    cb(new ApiError("Only images and videos are allowed", 400), false);
   }
 };
 
 const upload = multer({
   storage: multerStorage,
   fileFilter: multerfilter,
-}).single("image");
+  limits: {
+    files: 10, // Limit total number of files to 10
+  },
+}).array("media", 10); // Accept up to 10 media files
 
-exports.uploadPostImage = (req, res, next) => {
+exports.uploadPostMedia = (req, res, next) => {
   upload(req, res, function (err) {
-    // File uploaded successfully
-    if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
-    next();
-
     if (err) {
-      deleteUploadedFile(req.file); // Delete the uploaded file
+      if (req.files) {
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+      }
       return next(
         new ApiError(`An error occurred while uploading the file. ${err}`, 500)
       );
     }
+
+    let mediaFiles = [];
+
+    // Check uploaded files
+    if (req.files) mediaFiles = req.files;
+
+    // Check the total number of files
+    if (mediaFiles.length > 10) {
+      // Delete uploaded files
+      mediaFiles.forEach((file) => deleteUploadedFile(file));
+      return next(new ApiError("Exceeded maximum number of files (10)", 400));
+    }
+
+    // Validate each file
+    mediaFiles.forEach((file) => {
+      if (
+        !file.mimetype.startsWith("image") &&
+        !file.mimetype.startsWith("video")
+      ) {
+        // Delete uploaded files
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+        return next(new ApiError("Only images and videos are allowed", 400));
+      }
+      // Check file size for videos
+      if (file.mimetype.startsWith("video") && file.size > 25 * 1024 * 1024) {
+        // Delete uploaded files
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+        return next(new ApiError("Video file size exceeds 25 MB", 400));
+      }
+      // Add file information to req.body.media
+      req.body.media = req.body.media || []; // Initialize req.body.media if it's undefined
+      req.body.media.push({
+        type: file.mimetype.startsWith("image") ? "image" : "video",
+        url: file.filename,
+      });
+    });
+
+    next();
   });
 };
 
 exports.createPost = asyncHandler(async (req, res, next) => {
-  const { content, image } = req.body;
+  const { content } = req.body;
+  const media = req.body.media || [];
 
   try {
     const post = await postsModel.create({
       author: req.user._id,
       content,
-      image,
+      media,
     });
 
     res.status(201).json({ message: "Success", data: post });
   } catch (error) {
-    console.error("Error creating course:", error);
-    // Delete the uploaded image file if post creation fails
-    if (req.file) {
-      deleteUploadedFile(req.file);
+    console.error("Error creating post:", error);
+    // Delete the uploaded media files if post creation fails
+    if (req.files) {
+      req.files.forEach((file) => deleteUploadedFile(file));
     }
+    res.status(400).json({ message: "Error creating post", error });
+    next(error);
+  }
+});
+
+exports.editPost = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { content } = req.body;
+  const updateFields = {};
+
+  try {
+    const post = await postsModel.findById(id);
+
+    if (!post) {
+      // Delete the uploaded media files if post not found
+      if (req.files) {
+        req.files.forEach((file) => deleteUploadedFile(file));
+      }
+      return next(new ApiError(`No post found for ${id}`, 404));
+    }
+
+    if (
+      req.user._id.toString() !== post.author.toString() &&
+      req.user.role !== "superAdmin" &&
+      req.user.role !== "admin"
+    ) {
+      if (req.files) {
+        req.files.forEach((file) => deleteUploadedFile(file));
+      }
+      return next(new ApiError(`Only post author can edit the post.`, 403));
+    }
+
+    // Update post content
+    if (content) {
+      updateFields.content = content;
+    }
+
+    // Update post media if any
+    if (req.body.media) {
+      updateFields.media = req.body.media;
+    }
+
+    if (req.body.media && post.media.length > 0) {
+      post.media.forEach((mediaItem) => {
+        const index = mediaItem.url.indexOf("posts");
+        const path = `uploads/${mediaItem.url.substring(index)}`;
+        console.log(path);
+        deleteUploadedFile({ path });
+      });
+    }
+
+    // Update post in the database
+    const updatedPost = await postsModel.findOneAndUpdate(
+      { _id: id },
+      { $set: updateFields },
+      { new: true } // Return the updated document
+    );
+
+    res
+      .status(200)
+      .json({ message: "Post updated successfully", data: updatedPost });
+  } catch (error) {
+    console.error("Error updating post:", error);
+    // Delete the uploaded media files if post updating fails
+    if (req.files) {
+      req.files.forEach((file) => deleteUploadedFile(file));
+    }
+    res.status(400).json({ message: "Error updating post", error });
+    next(error);
+  }
+});
+
+exports.deletePost = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  try {
+    const post = await postsModel.findById(id);
+
+    if (!post) {
+      return next(new ApiError(`No post found for ${id}`, 404));
+    }
+
+    if (
+      req.user._id.toString() !== post.author.toString() &&
+      req.user.role !== "superAdmin" &&
+      req.user.role !== "admin"
+    ) {
+      return next(new ApiError(`Only post author can delete the post.`, 403));
+    }
+
+    const comments = await commentModel.find({ post: id });
+
+    console.log("comments", comments);
+
+    // Delete images associated with deleted comments
+    for (const comment of comments) {
+      if (comment.media && comment.media > 0) {
+        const index = comment.image.indexOf("posts/comments");
+        const path = `uploads/${comment.image.substring(index)}`;
+        deleteUploadedFile({ path });
+      }
+    }
+
+    // Delete all comments associated with the deleted post
+    await commentModel.deleteMany({ post: id });
+
+    // Delete media files associated with the post
+    if (post.media && post.media.length > 0) {
+      post.media.forEach((mediaItem) => {
+        const index = mediaItem.url.indexOf("posts");
+        const path = `uploads/${mediaItem.url.substring(index)}`;
+        console.log(path);
+        deleteUploadedFile({ path });
+      });
+    }
+
+    // Delete post document from DB
+    await post.deleteOne();
+
+    res.status(204).send("Post deleted successfully");
+  } catch (error) {
+    console.error("Error deleting post:", error);
     next(error);
   }
 });
@@ -153,121 +314,6 @@ exports.getPost = asyncHandler(async (req, res, next) => {
   }
 
   res.status(200).json({ data: post });
-});
-
-exports.editPost = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const { content } = req.body;
-  const updateFields = {};
-
-  try {
-    const post = await postsModel.findById(id);
-
-    if (!post) {
-      return next(new ApiError(`No post found for ${id}`, 404));
-    }
-
-    if (
-      req.user._id.toString() !== post.author.toString() &&
-      req.user.role !== "superAdmin" &&
-      req.user.role !== "admin"
-    ) {
-      if (req.file) {
-        const path = req.file.path;
-        deleteUploadedFile({
-          fieldname: "image",
-          path,
-        });
-      }
-      return next(new ApiError(`Only post author can edit the post.`, 403));
-    }
-
-    if (req.file && post.image) {
-      const index = post.image.indexOf("posts");
-      const path = `uploads/${post.image.substring(index)}`;
-      deleteUploadedFile({
-        fieldname: "image",
-        path,
-      });
-      updateFields.image = req.file.filename; // Update image field in case of a new file
-    }
-
-    // Update post content
-    if (content) {
-      updateFields.content = content;
-    }
-
-    // Update post in the database
-    const updatedPost = await postsModel.findOneAndUpdate(
-      { _id: id },
-      { $set: updateFields },
-      { new: true } // Return the updated document
-    );
-
-    res
-      .status(200)
-      .json({ message: "Post updated successfully", data: updatedPost });
-  } catch (error) {
-    console.error("Error updating post:", error);
-    res.status(400).json({ message: "Error updating post", error });
-    next(error);
-  }
-});
-
-exports.deletePost = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-
-  const Post = await postsModel.findById(id);
-
-  if (!Post) {
-    return next(new ApiError(`No post found for ${id}`, 404));
-  }
-
-  if (
-    req.user._id.toString() !== post.author.toString() &&
-    req.user.role !== "superAdmin" &&
-    req.user.role !== "admin"
-  ) {
-    if (req.file) {
-      const path = req.file.path;
-      deleteUploadedFile({
-        fieldname: "image",
-        path,
-      });
-    }
-    return next(new ApiError(`Only post author can delete the post.`, 400));
-  }
-
-  const comments = await commentModel.find({ post: id });
-
-  // Delete images associated with deleted comments
-  for (const comment of comments) {
-    if (comment.image) {
-      const index = comment.image.indexOf("posts/comments");
-      const path = `uploads/${comment.image.substring(index)}`;
-      deleteUploadedFile({ path });
-    }
-  }
-
-  // Delete all comments associated with the deleted post
-  await commentModel.deleteMany({ post: id });
-
-  if (Post.image) {
-    const index = Post.image.indexOf("posts");
-    const Post_path = `uploads/${Post.image.substring(index)}`;
-    console.log("====================================");
-    console.log("Post.image:", Post.image);
-    console.log("path:", Post_path);
-    console.log("====================================");
-    deleteUploadedFile({
-      path: Post_path,
-    });
-  }
-
-  // Delete Post document from DB
-  await Post.deleteOne({ id });
-
-  res.status(204).send("Document deleted successfully");
 });
 
 exports.toggleLike = asyncHandler(async (req, res, next) => {

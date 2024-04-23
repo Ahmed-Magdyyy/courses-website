@@ -2,7 +2,7 @@ const express = require("express");
 const Router = express.Router();
 
 const {
-  uploadCommentImage,
+  uploadCommentMedia,
   createComment,
   getCommentsForPost,
   getComment,
@@ -25,12 +25,12 @@ Router.use(
 );
 
 Router.route("/post/:postId")
-  .post(uploadCommentImage, createComment)
+  .post(uploadCommentMedia, createComment)
   .get(getCommentsForPost);
 
 Router.route("/:id")
   .get(getComment)
-  .put(uploadCommentImage, updateComment)
+  .put(uploadCommentMedia, updateComment)
   .delete(deleteComment);
 
 Router.route("/:id/like").put(toggleLike);

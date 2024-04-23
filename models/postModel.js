@@ -9,7 +9,17 @@ const postSchema = new mongoose.Schema(
       required: true,
     },
     content: { type: String, required: true },
-    image : String,
+    media: [
+      {
+        _id: false,
+        type: {
+          type: String,
+          enum: ["image", "video"],
+          required: true,
+        },
+        url: { type: String, required: true },
+      },
+    ],
     likes: {
       count: { type: Number, default: 0 },
       users: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
@@ -25,18 +35,19 @@ const postSchema = new mongoose.Schema(
 );
 
 
-function setImageURL(doc) {
-  if (doc.image) {
-    const imgURL = `${process.env.BASE_URL}/posts/${doc.image}`;
-    doc.image = imgURL;
+function setMediaURL(doc) {
+  if (doc.media && doc.media.length > 0) {
+    doc.media.forEach((mediaItem) => {
+      mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
+    });
   }
 }
 
 postSchema.post("init", (doc) => {
-  setImageURL(doc);
+  setMediaURL(doc);
 });
 postSchema.post("save", (doc) => {
-  setImageURL(doc);
+  setMediaURL(doc);
 });
 
 

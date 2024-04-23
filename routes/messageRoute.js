@@ -15,7 +15,7 @@ const {
 // applied on all routes
 Router.use(protect);
 
-Router.post("/", createmessage)
+Router.post("/:chatId", createmessage)
   .get("/:chatId", getMessages)
 
 module.exports = Router;

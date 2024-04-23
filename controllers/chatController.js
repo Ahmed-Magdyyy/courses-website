@@ -86,3 +86,28 @@ exports.findChat = asyncHandler(async (req, res, next) => {
     res.status(500).json({ error });
   }
 });
+
+
+// chatController.js
+
+
+// exports.createChat = asyncHandler(async (req, res, next) => {
+//   const { userId, receiverId } = req.body;
+
+//   try {
+//     // Create a new chat room in Firebase
+//     const chatRoomRef = firebase.database().ref("chats").push();
+//     const chatRoomId = chatRoomRef.key;
+
+//     // Store chat metadata in Firebase
+//     chatRoomRef.set({
+//       members: [userId, receiverId],
+//       createdAt: firebase.database.ServerValue.TIMESTAMP,
+//     });
+
+//     res.status(200).json({ message: "Chat created successfully", chatRoomId });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });

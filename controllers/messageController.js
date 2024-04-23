@@ -4,7 +4,9 @@ const chatModel = require("../models/chatModel");
 const ApiError = require("../utils/ApiError");
 
 exports.createmessage = asyncHandler(async (req, res, next) => {
-  const { chatId, text } = req.body;
+
+  const { chatId } = req.params;
+  const { text } = req.body;
 
   const chat = await chatModel.findById(chatId);
 
@@ -55,3 +57,27 @@ exports.getMessages = asyncHandler(async (req, res, next) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// messageController.js
+
+// exports.createMessage = asyncHandler(async (req, res, next) => {
+//   const { chatRoomId, senderId, text } = req.body;
+
+//   try {
+//     // Push a new message to the messages subcollection of the chat room
+//     const messageRef = firebase.database().ref(`chats/${chatRoomId}/messages`).push();
+//     const messageId = messageRef.key;
+
+//     // Store message data in Firebase
+//     messageRef.set({
+//       senderId,
+//       text,
+//       createdAt: firebase.database.ServerValue.TIMESTAMP,
+//     });
+
+//     res.status(200).json({ message: "Message sent successfully", messageId });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });

@@ -5,7 +5,7 @@ const {
   createPost,
   getAllPosts,
   getPost,
-  uploadPostImage,
+  uploadPostMedia,
   editPost,
   deletePost,
   toggleLike,
@@ -24,11 +24,11 @@ Router.use(
   enabledControls("timeline")
 );
 
-Router.route("/").post(uploadPostImage, createPost).get(getAllPosts);
+Router.route("/").post(uploadPostMedia, createPost).get(getAllPosts);
 
 Router.route("/:id")
   .get(getPost)
-  .put(uploadPostImage, editPost)
+  .put(uploadPostMedia, editPost)
   .delete(deletePost);
 Router.route("/:id/like").put(toggleLike);
 

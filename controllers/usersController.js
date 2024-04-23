@@ -8,8 +8,11 @@ const createToken = require("../utils/createToken");
 
 //----- Admin Routes -----
 
+
+
+
 exports.getUsers = asyncHandler(async (req, res, next) => {
-  let filter = {active: true};
+  let filter = { active: true };
   const { page, limit, skip, ...query } = req.query;
 
   const pageNum = page * 1 || 1;
@@ -22,12 +25,90 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
     filter = { ...query, role: { $ne: "superAdmin" } };
   }
 
-  const users = await usersModel
-    .find(filter)
-    .sort({ createdAt: -1 })
-    .skip(skipNum)
-    .limit(limitNum);
-  res.status(200).json({ results: users.length, page: pageNum, data: users });
+
+  if (query.role === "teacher") {
+    const users = await usersModel.aggregate([
+      { $match: filter },
+      {
+        $lookup: {
+          from: "classes",
+          localField: "classes",
+          foreignField: "_id",
+          as: "classes"
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          email: 1,
+          phone: 1,
+          classes: {
+            $map: {
+              input: "$classes",
+              as: "class",
+              in: {
+                _id: "$$class._id",
+                start_date: "$$class.start_date",
+                start_time: "$$class.start_time",
+                status: "$$class.status"
+              }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          completedClasses: {
+            $size: {
+              $filter: {
+                input: "$classes",
+                as: "class",
+                cond: { $eq: ["$$class.status", "ended"] }
+              }
+            }
+          },
+          scheduledClasses: {
+            $size: {
+              $filter: {
+                input: "$classes",
+                as: "class",
+                cond: { $eq: ["$$class.status", "scheduled"] }
+              }
+            }
+          },
+          cancelledClasses: {
+            $size: {
+              $filter: {
+                input: "$classes",
+                as: "class",
+                cond: { $eq: ["$$class.status", "cancelled"] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $skip: skipNum
+      },
+      {
+        $limit: limitNum
+      }
+    ]);
+
+    res.status(200).json({ results: users.length, page: pageNum, data: users });
+  } else {
+    const users = await usersModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skipNum)
+      .limit(limitNum);
+
+    res.status(200).json({ results: users.length, page: pageNum, data: users });
+  }
 });
 
 exports.getUser = asyncHandler(async (req, res, next) => {

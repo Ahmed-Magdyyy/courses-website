@@ -6,6 +6,8 @@ const PORT = process.env.PORT || 3000;
 const morgan = require("morgan");
 const cors = require("cors");
 const path = require("path");
+// const firebase = require("firebase");
+
 
 const ApiError = require("./utils/ApiError");
 const globalError = require("./middlewares/errorMiddleware");
@@ -67,6 +69,20 @@ app.use(globalError);
 const server = app.listen(process.env.PORT, () =>
   console.log(`Example app listening on port ${PORT}!`)
 );
+
+// const firebaseConfig = {
+//   apiKey: "AIzaSyCnou1t9GdFzJjvEdYDg-kX0hqMyXCCrNk",
+//   authDomain: "chat-66909.firebaseapp.com",
+//   databaseURL: "https://chat-66909-default-rtdb.firebaseio.com",
+//   projectId: "chat-66909",
+//   storageBucket: "chat-66909.appspot.com",
+//   messagingSenderId: "752671842567",
+//   appId: "1:752671842567:web:6e065875a17836ee5ea5a2",
+//   measurementId: "G-4STXS0XM9D"
+// };
+
+// // Initialize Firebase
+// firebase.initializeApp(firebaseConfig);
 
 const io = require("socket.io")(server,{
   cors: {

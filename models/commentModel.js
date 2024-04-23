@@ -15,7 +15,17 @@ const commentSchema = new mongoose.Schema(
       ref: "user",
       required: true,
     },
-    image: String,
+    media: [
+      {
+        _id: false,
+        type: {
+          type: String,
+          enum: ["image", "video"],
+          required: true,
+        },
+        url: { type: String, required: true },
+      },
+    ],
     likes: {
       count: { type: Number, default: 0 },
       users: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
@@ -24,18 +34,19 @@ const commentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-function setImageURL(doc) {
-  if (doc.image) {
-    const imgURL = `${process.env.BASE_URL}/posts/comments/${doc.image}`;
-    doc.image = imgURL;
+function setMediaURL(doc) {
+  if (doc.media && doc.media.length > 0) {
+    doc.media.forEach((mediaItem) => {
+      mediaItem.url = `${process.env.BASE_URL}/posts/comments/${mediaItem.url}`;
+    });
   }
 }
 
 commentSchema.post("init", (doc) => {
-  setImageURL(doc);
+  setMediaURL(doc);
 });
 commentSchema.post("save", (doc) => {
-  setImageURL(doc);
+  setMediaURL(doc);
 });
 
 commentSchema.pre("save", function (next) {
