@@ -25,6 +25,15 @@ module.exports = (io) => {
 
     socket.on("sendMessage", ({ senderId, receiverId, text }) => {
       const user = getUser(receiverId);
+
+
+      if (user == undefined || !user) {
+        io.emit("error", "error getting user id.");
+        return;
+      }
+
+      if (user !== undefined) console.log(user);
+
       io.to(user.socketId).emit("getMessage", {
         senderId,
         text,
@@ -34,8 +43,8 @@ module.exports = (io) => {
     socket.on("disconnect", () => {
       console.log("A user disconnected:", socket.id);
       removeUser(socket.id);
-      // io.emit("getOnlineUsers", onlineUsers);
-      // console.log("onlineUsers", onlineUsers);
+      io.emit("getUsers", users);
+
     });
   });
 };
