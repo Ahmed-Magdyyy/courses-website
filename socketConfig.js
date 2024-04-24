@@ -10,6 +10,10 @@ module.exports = (io) => {
     users = users.filter((user) => user.socketId !== socketId);
   };
 
+  const getUser = (userId) => {
+    return users.find((user) => user.userId === userId);
+  };
+
   io.on("connection", (socket) => {
     console.log("A user connected:", socket.id);
 
@@ -19,16 +23,13 @@ module.exports = (io) => {
       console.log("users", users);
     });
 
-
-
-    // socket.on("sendMessage", (message) => {
-    //   const user = users.find(
-    //     (user) => user.userId === message.recipientId
-    //   );
-    //   if (user) {
-    //     io.to(user.socketId).emit("getMessage", message);
-    //   }
-    // });
+    socket.on("sendMessage", ({ senderId, receiverId, text }) => {
+      const user = getUser(receiverId);
+      io.to(user.socketId).emit("getMessage", {
+        senderId,
+        text,
+      });
+    });
 
     socket.on("disconnect", () => {
       console.log("A user disconnected:", socket.id);
