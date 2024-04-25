@@ -1,5 +1,15 @@
-module.exports = (io) => {
-  let users = [];
+const moment = require("moment-timezone");
+let io;
+let users;
+
+function initSocket(server) {
+  io = require("socket.io")(server, {
+    cors: {
+      origin: "*",
+    },
+  });
+
+  users = [];
 
   const addUser = (userId, socketId) => {
     !users.some((user) => user.userId === userId) &&
@@ -20,23 +30,30 @@ module.exports = (io) => {
     socket.on("addUser", (userId) => {
       addUser(userId, socket.id);
       io.emit("getUsers", users);
-      console.log("users", users);
+      console.log("users connected to socket", users);
     });
 
     socket.on("sendMessage", ({ senderId, receiverId, text }) => {
       const user = getUser(receiverId);
-
 
       if (user == undefined || !user) {
         io.emit("error", "error getting user id.");
         return;
       }
 
-      if (user !== undefined) console.log(user);
-
       io.to(user.socketId).emit("getMessage", {
         senderId,
         text,
+      });
+
+      const currentTime = moment()
+        .tz("Africa/Cairo")
+        .format("YYYY-MM-DDTHH:mm:ss[Z]");
+
+      io.to(user.socketId).emit("notification", {
+        senderId,
+        isRead: false,
+        createdAt: currentTime,
       });
     });
 
@@ -44,7 +61,18 @@ module.exports = (io) => {
       console.log("A user disconnected:", socket.id);
       removeUser(socket.id);
       io.emit("getUsers", users);
-
     });
   });
+}
+
+function getIO() {
+  if (!io) {
+    throw new Error("Socket.IO is not initialized");
+  }
+  return { io, users };
+}
+
+module.exports = {
+  initSocket,
+  getIO,
 };

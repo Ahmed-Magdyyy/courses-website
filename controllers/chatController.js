@@ -87,27 +87,23 @@ exports.findChat = asyncHandler(async (req, res, next) => {
   }
 });
 
+exports.findSpeceficChat = asyncHandler(async (req, res, next) => {
+  const { chatId } = req.params;
 
-// chatController.js
+  try {
+    const chat = await chatModel
+      .findById(chatId)
+      .populate("members", "_id name role");
 
+    if (!chat) {
+      return next(
+        new ApiError(`There is no chat found for this id ${chatId}`, 404)
+      );
+    }
 
-// exports.createChat = asyncHandler(async (req, res, next) => {
-//   const { userId, receiverId } = req.body;
-
-//   try {
-//     // Create a new chat room in Firebase
-//     const chatRoomRef = firebase.database().ref("chats").push();
-//     const chatRoomId = chatRoomRef.key;
-
-//     // Store chat metadata in Firebase
-//     chatRoomRef.set({
-//       members: [userId, receiverId],
-//       createdAt: firebase.database.ServerValue.TIMESTAMP,
-//     });
-
-//     res.status(200).json({ message: "Chat created successfully", chatRoomId });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ error: error.message });
-//   }
-// });
+    res.status(200).json({ chat });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error });
+  }
+});

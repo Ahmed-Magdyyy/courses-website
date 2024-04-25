@@ -4,7 +4,8 @@ const { createMeeting, deleteMeeting } = require("../utils/zoom");
 const ApiError = require("../utils/ApiError");
 const classModel = require("../models/classModel");
 const userModel = require("../models/userModel");
-
+const Notification = require("../models/notificationModel");
+const { getIO } = require("../socketConfig");
 
 exports.createClass = asyncHandler(async (req, res, next) => {
   try {
@@ -59,9 +60,78 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       })),
     });
 
-    res
-      .status(201)
-      .json({ message: "Success", class: classInfo, meetingInfo: meeting });
+    const teacherNotification = await Notification.create({
+      scope: "class",
+      userId: teacher,
+      message: `you have been assigned to class ${name}`,
+    });
+
+    const studentsNotification = await Promise.all(
+      students.map(async (studentId) => {
+        return await Notification.create({
+          scope: "class",
+          userId: studentId,
+          message: `You have been enrolled in a new class: ${name}`,
+        });
+      })
+    );
+
+    console.log("teacherNotification", teacherNotification);
+    console.log("studentsNotification", studentsNotification);
+
+    // Emit notifications to teacher and students
+    const { io, users } = getIO();
+
+    if (users.length > 0) {
+      const connectedTeacher = users.find(
+        (user) => user.userId.toString() === teacher.toString()
+      );
+      const connectedStudents = users.filter((user) =>
+        students.includes(user.userId)
+      );
+      console.log("connectedTeacher", connectedTeacher.socketId);
+      console.log(
+        "connectedStudents",
+        connectedStudents.map((student) => student.socketId)
+      );
+
+      if (connectedTeacher) {
+        const { userId, scope, message, _id, createdAt } = teacherNotification;
+        console.log("from blablabla");
+        io.to(connectedTeacher.socketId).emit("notification", {
+          userId,
+          scope,
+          message,
+          _id,
+          createdAt,
+        });
+      }
+
+      connectedStudents.forEach((student) => {
+        const studentNotification = studentsNotification.find(
+          (notification) =>
+            notification.userId.toString() === student.userId.toString()
+        );
+
+        if (studentNotification) {
+          const { userId, scope, message, _id, createdAt } =
+            studentNotification;
+          io.to(student.socketId).emit("notification", {
+            userId,
+            scope,
+            message,
+            _id,
+            createdAt,
+          });
+        }
+      });
+    }
+
+    res.status(200).json({
+      message: "Success",
+      class: classInfo,
+      meetingInfo: meeting,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -357,6 +427,44 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
       { $addToSet: { classes: classId } }
     );
 
+    const studentsNotification = await Promise.all(
+      studentIds.map(async (studentId) => {
+        return await Notification.create({
+          scope: "class",
+          userId: studentId,
+          message: `You have been enrolled in class: ${classes.name}`,
+        });
+      })
+    );
+
+    // Emit notifications to teacher and students
+    const { io, users } = getIO();
+    if (users.length > 0) {
+
+      const connectedStudents = users.filter((user) =>
+      studentIds.includes(user.userId)
+    );
+
+      connectedStudents.forEach((student) => {
+        const studentNotification = studentsNotification.find(
+          (notification) =>
+            notification.userId.toString() === student.userId.toString()
+        );
+
+        if (studentNotification) {
+          const { userId, scope, message, _id, createdAt } =
+            studentNotification;
+          io.to(student.socketId).emit("notification", {
+            userId,
+            scope,
+            message,
+            _id,
+            createdAt,
+          });
+        }
+      });
+    }
+
     res
       .status(200)
       .json({ message: "Students added to class successfully", updatedClass });
@@ -419,16 +527,16 @@ exports.removeStudentFromClass = asyncHandler(async (req, res, next) => {
       (id) => !studentIds.includes(id.toString())
     );
 
+    // Update the class document using findOneAndUpdate
+    const updatedClass = await classModel.findOneAndUpdate(
+      { _id: classId },
+      { studentsEnrolled: classes.studentsEnrolled },
+      { new: true } // Return the updated document
+    );
 
-
-        // Update the class document using findOneAndUpdate
-        const updatedClass = await classModel.findOneAndUpdate(
-          { _id: classId },
-          { studentsEnrolled: classes.studentsEnrolled },
-          { new: true } // Return the updated document
-        );
-
-    res.status(200).json({ message: "Students removed successfully",updatedClass });
+    res
+      .status(200)
+      .json({ message: "Students removed successfully", updatedClass });
   } catch (error) {
     console.error("Error removing students from class:", error);
     next(error);
