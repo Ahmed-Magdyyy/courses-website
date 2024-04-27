@@ -90,6 +90,15 @@ exports.uploadPostMedia = (req, res, next) => {
         mediaFiles.forEach((file) => deleteUploadedFile(file));
         return next(new ApiError("Video file size exceeds 25 MB", 400));
       }
+      // Check file size for images
+      if (
+        file.mimetype.startsWith("image") &&
+        file.size > 5 * 1024 * 1024 // 5 MB limit for images
+      ) {
+        // Delete uploaded files
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+        return next(new ApiError("Image file size exceeds 5 MB", 400));
+      }
       // Add file information to req.body.media
       req.body.media = req.body.media || []; // Initialize req.body.media if it's undefined
       req.body.media.push({
@@ -235,7 +244,7 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
         deleteUploadedFile({ path });
       });
     }
- 
+
     // Delete post document from DB
     await post.deleteOne();
 

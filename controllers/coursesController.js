@@ -48,16 +48,30 @@ const upload = multer({
 
 exports.uploadCourseImage = (req, res, next) => {
   upload(req, res, function (err) {
-    // File uploaded successfully
-    if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
-    next();
-
     if (err) {
       deleteUploadedFile(req.file); // Delete the uploaded file
       return next(
         new ApiError(`An error occurred while uploading the file. ${err}`, 500)
       );
     }
+
+    // Check if the uploaded file is not an image
+    if (req.file && !req.file.mimetype.startsWith("image")) {
+      // Delete the uploaded file
+      deleteUploadedFile(req.file);
+      return next(new ApiError("Only images are allowed", 400));
+    }
+
+    // Check if the uploaded file exceeds the size limit
+    if (req.file && req.file.size > 5 * 1024 * 1024) {
+      // Delete the uploaded file
+      deleteUploadedFile(req.file);
+      return next(new ApiError("Image file size exceeds 5 MB", 400));
+    }
+
+    // File uploaded successfully
+    if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
+    next();
   });
 };
 
@@ -73,7 +87,7 @@ const courseNotify = async (array, message) => {
     })
   );
 
-  console.log(studentsNotification)
+  console.log(studentsNotification);
 
   // Emit notifications students
   const { io, users } = getIO();
@@ -254,7 +268,10 @@ exports.addStudentsToCourse = asyncHandler(async (req, res, next) => {
       { new: true }
     );
 
-    courseNotify(studentIds, `You have been enrolled in course: ${course.title}`)
+    courseNotify(
+      studentIds,
+      `You have been enrolled in course: ${course.title}`
+    );
 
     res
       .status(200)
@@ -312,8 +329,10 @@ exports.removeStudentFromCourse = asyncHandler(async (req, res, next) => {
       { new: true } // Return the updated document
     );
 
-    courseNotify(studentIds, `You have been reomoved from course: ${course.title}`)
-
+    courseNotify(
+      studentIds,
+      `You have been reomoved from course: ${course.title}`
+    );
 
     res
       .status(200)
@@ -406,8 +425,7 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
       });
     }
 
-    courseNotify(studentIds, `Course: ${course.title} has been deleted`)
-
+    courseNotify(studentIds, `Course: ${course.title} has been deleted`);
 
     res.status(204).send("Document deleted successfully");
   } catch (error) {

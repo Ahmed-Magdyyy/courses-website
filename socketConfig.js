@@ -55,6 +55,15 @@ function initSocketServer(server) {
       //   isRead: false,
       //   createdAt: currentTime,
       // });
+
+      socket.on("broadcast", () =>(message)=>{
+        io.broadcast.emit(message)
+      })
+    });
+
+    socket.on("broadcast", (message) => {
+      // Broadcast the message to all connected clients except the sender
+      socket.broadcast.emit("notification", message);
     });
 
     socket.on("disconnect", () => {

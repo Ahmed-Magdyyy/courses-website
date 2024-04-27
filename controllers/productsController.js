@@ -23,8 +23,6 @@ const productNotify = async (array, message) => {
     })
   );
 
-  console.log(studentsNotification)
-
   // Emit notifications students
   const { io, users } = getIO();
   if (users.length > 0) {
@@ -121,6 +119,12 @@ const multerStorage = multer.diskStorage({
 const imageFilter = function (req, file, cb) {
   if (file.mimetype.startsWith("image")) {
     cb(null, true);
+    // Check file size (5 MB)
+    if (file.size <= 5 * 1024 * 1024) {
+      cb(null, true);
+    } else {
+      cb(new ApiError("Image file size exceeds 5 MB", 400), false);
+    }
   } else {
     cb(new ApiError("Only images are allowed", 400), false);
   }
@@ -132,7 +136,12 @@ const pptxFilter = function (req, file, cb) {
     file.mimetype ===
     "application/vnd.openxmlformats-officedocument.presentationml.presentation"
   ) {
-    cb(null, true);
+    // Check file size (25 MB)
+    if (file.size <= 25 * 1024 * 1024) {
+      cb(null, true);
+    } else {
+      cb(new ApiError("PowerPoint file size exceeds 25 MB", 400), false);
+    }
   } else {
     cb(new ApiError("Only PowerPoint files (PPTX) are allowed", 400), false);
   }
@@ -500,8 +509,10 @@ exports.removeStudentsFromProduct = asyncHandler(async (req, res, next) => {
       { new: true } // Return the updated document
     );
 
-    productNotify(studentIds, `Your access to product: ${product.title} have been removed`);
-
+    productNotify(
+      studentIds,
+      `Your access to product: ${product.title} have been removed`
+    );
 
     res
       .status(200)

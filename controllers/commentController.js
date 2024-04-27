@@ -93,6 +93,15 @@ exports.uploadCommentMedia = (req, res, next) => {
         mediaFiles.forEach((file) => deleteUploadedFile(file));
         return next(new ApiError("Video file size exceeds 25 MB", 400));
       }
+      // Check file size for images
+      if (
+        file.mimetype.startsWith("image") &&
+        file.size > 5 * 1024 * 1024 // 5 MB limit for images
+      ) {
+        // Delete uploaded files
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+        return next(new ApiError("Image file size exceeds 5 MB", 400));
+      }
       // Add file information to req.body.media
       req.body.media = req.body.media || []; // Initialize req.body.media if it's undefined
       req.body.media.push({
@@ -139,31 +148,31 @@ exports.createComment = asyncHandler(async (req, res, next) => {
     const commentAuthor = await userModel.findById(comment.author);
 
     // if (postOwner.toString() === commentAuthor.toString()) {
-      const postOwnernotification = await Notification.create({
-        scope: "comment",
-        userId: postOwner.toString(),
-        message: `${commentAuthor.name} commented on your post.`,
-      });
+    const postOwnernotification = await Notification.create({
+      scope: "comment",
+      userId: postOwner.toString(),
+      message: `${commentAuthor.name} commented on your post.`,
+    });
 
-      // Emit notifications students
-      const { io, users } = getIO();
-      if (users.length > 0) {
-        const connectedPostOwner = users.filter(
-          (user) => user.userId === postOwner.toString()
-        );
+    // Emit notifications students
+    const { io, users } = getIO();
+    if (users.length > 0) {
+      const connectedPostOwner = users.filter(
+        (user) => user.userId === postOwner.toString()
+      );
 
-        if (connectedPostOwner) {
-          const { userId, scope, message, _id, createdAt } =
-            postOwnernotification;
-          io.to(connectedPostOwner[0].socketId).emit("notification", {
-            userId,
-            scope,
-            message,
-            _id,
-            createdAt,
-          });
-        }
+      if (connectedPostOwner) {
+        const { userId, scope, message, _id, createdAt } =
+          postOwnernotification;
+        io.to(connectedPostOwner[0].socketId).emit("notification", {
+          userId,
+          scope,
+          message,
+          _id,
+          createdAt,
+        });
       }
+    }
     // }
 
     res
