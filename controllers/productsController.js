@@ -8,6 +8,49 @@ const asyncHandler = require("express-async-handler");
 const productModel = require("../models/productModel");
 const userModel = require("../models/userModel");
 const ApiError = require("../utils/ApiError");
+const Notification = require("../models/notificationModel");
+const { getIO } = require("../socketConfig");
+
+const productNotify = async (array, message) => {
+  // Send notifications to added students
+  const studentsNotification = await Promise.all(
+    array.map(async (studentId) => {
+      return await Notification.create({
+        scope: "product",
+        userId: studentId,
+        message,
+      });
+    })
+  );
+
+  console.log(studentsNotification)
+
+  // Emit notifications students
+  const { io, users } = getIO();
+  if (users.length > 0) {
+    const connectedStudents = users.filter((user) =>
+      array.includes(user.userId)
+    );
+
+    connectedStudents.forEach((student) => {
+      const studentNotification = studentsNotification.find(
+        (notification) =>
+          notification.userId.toString() === student.userId.toString()
+      );
+
+      if (studentNotification) {
+        const { userId, scope, message, _id, createdAt } = studentNotification;
+        io.to(student.socketId).emit("notification", {
+          userId,
+          scope,
+          message,
+          _id,
+          createdAt,
+        });
+      }
+    });
+  }
+};
 
 // Function to delete uploaded file
 function deleteUploadedFile(file) {
@@ -386,6 +429,8 @@ exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
       { new: true } // Return the updated document
     );
 
+    productNotify(studentIds, `You have access to product: ${product.title}`);
+
     res
       .status(200)
       .json({ message: "Students added successfully", updatedProduct });
@@ -454,6 +499,9 @@ exports.removeStudentsFromProduct = asyncHandler(async (req, res, next) => {
       { students: product.students },
       { new: true } // Return the updated document
     );
+
+    productNotify(studentIds, `Your access to product: ${product.title} have been removed`);
+
 
     res
       .status(200)

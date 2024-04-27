@@ -3,9 +3,12 @@ const multer = require("multer");
 const moment = require("moment-timezone");
 const asyncHandler = require("express-async-handler");
 
+const userModel = require("../models/userModel");
 const postsModel = require("../models/postModel");
 const commentsModel = require("../models/commentModel");
 const ApiError = require("../utils/ApiError");
+const Notification = require("../models/notificationModel");
+const { getIO } = require("../socketConfig");
 
 function deleteUploadedFile(file) {
   if (file) {
@@ -131,6 +134,37 @@ exports.createComment = asyncHandler(async (req, res, next) => {
       { _id: postId },
       { $push: { comments: comment._id } }
     );
+
+    const postOwner = post.author;
+    const commentAuthor = await userModel.findById(comment.author);
+
+    // if (postOwner.toString() === commentAuthor.toString()) {
+      const postOwnernotification = await Notification.create({
+        scope: "comment",
+        userId: postOwner.toString(),
+        message: `${commentAuthor.name} commented on your post.`,
+      });
+
+      // Emit notifications students
+      const { io, users } = getIO();
+      if (users.length > 0) {
+        const connectedPostOwner = users.filter(
+          (user) => user.userId === postOwner.toString()
+        );
+
+        if (connectedPostOwner) {
+          const { userId, scope, message, _id, createdAt } =
+            postOwnernotification;
+          io.to(connectedPostOwner[0].socketId).emit("notification", {
+            userId,
+            scope,
+            message,
+            _id,
+            createdAt,
+          });
+        }
+      }
+    // }
 
     res
       .status(201)

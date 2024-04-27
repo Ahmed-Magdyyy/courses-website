@@ -2,7 +2,7 @@ const moment = require("moment-timezone");
 let io;
 let users;
 
-function initSocket(server) {
+function initSocketServer(server) {
   io = require("socket.io")(server, {
     cors: {
       origin: "*",
@@ -63,6 +63,8 @@ function initSocket(server) {
       io.emit("getUsers", users);
     });
   });
+
+  return io.listen(3005)
 }
 
 function getIO() {
@@ -73,6 +75,6 @@ function getIO() {
 }
 
 module.exports = {
-  initSocket,
+  initSocketServer,
   getIO,
 };

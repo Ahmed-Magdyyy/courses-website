@@ -73,7 +73,7 @@ const server = app.listen(process.env.PORT, () =>
 
 
 // Initialize Socket.IO
-socketConfig.initSocket(server);
+socketConfig.initSocketServer(server);
 
 // UnhandledRejections event handler (rejection outside express)
 process.on("unhandledRejection", (err) => {

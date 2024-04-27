@@ -1,12 +1,12 @@
 const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
 const fs = require("fs");
-
 const asyncHandler = require("express-async-handler");
 
 const ApiError = require("../utils/ApiError");
 const coursesModel = require("../models/coursesModel");
 const userModel = require("../models/userModel");
+const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 
 function deleteUploadedFile(file) {
@@ -59,6 +59,47 @@ exports.uploadCourseImage = (req, res, next) => {
       );
     }
   });
+};
+
+const courseNotify = async (array, message) => {
+  // Send notifications to added students
+  const studentsNotification = await Promise.all(
+    array.map(async (studentId) => {
+      return await Notification.create({
+        scope: "class",
+        userId: studentId,
+        message,
+      });
+    })
+  );
+
+  console.log(studentsNotification)
+
+  // Emit notifications students
+  const { io, users } = getIO();
+  if (users.length > 0) {
+    const connectedStudents = users.filter((user) =>
+      array.includes(user.userId)
+    );
+
+    connectedStudents.forEach((student) => {
+      const studentNotification = studentsNotification.find(
+        (notification) =>
+          notification.userId.toString() === student.userId.toString()
+      );
+
+      if (studentNotification) {
+        const { userId, scope, message, _id, createdAt } = studentNotification;
+        io.to(student.socketId).emit("notification", {
+          userId,
+          scope,
+          message,
+          _id,
+          createdAt,
+        });
+      }
+    });
+  }
 };
 
 exports.createCourse = asyncHandler(async (req, res, next) => {
@@ -213,6 +254,8 @@ exports.addStudentsToCourse = asyncHandler(async (req, res, next) => {
       { new: true }
     );
 
+    courseNotify(studentIds, `You have been enrolled in course: ${course.title}`)
+
     res
       .status(200)
       .json({ message: "Students added successfully", updatedCourse });
@@ -268,6 +311,9 @@ exports.removeStudentFromCourse = asyncHandler(async (req, res, next) => {
       { studentsEnrolled: course.studentsEnrolled },
       { new: true } // Return the updated document
     );
+
+    courseNotify(studentIds, `You have been reomoved from course: ${course.title}`)
+
 
     res
       .status(200)
@@ -359,6 +405,9 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
         path,
       });
     }
+
+    courseNotify(studentIds, `Course: ${course.title} has been deleted`)
+
 
     res.status(204).send("Document deleted successfully");
   } catch (error) {

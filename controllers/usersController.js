@@ -186,7 +186,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
         }
       ]);
 
-      res.status(200).json({ data: userData });
+      res.status(200).json({ data: userData[0] });
     } else {
       res.status(200).json({ data: user });
     }

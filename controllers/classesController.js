@@ -288,7 +288,7 @@ exports.deleteClass = asyncHandler(async (req, res, next) => {
     await deleteMeeting(zoomMeetingId);
   }
 
-  classNotify(Document.studentsEnrolled, `Class: ${Document.name} have been deleted.`);
+  classNotify(Document.studentsEnrolled, `Class: ${Document.name} has been deleted.`);
 
 
   res.status(204).send("Class deleted successfully");
@@ -399,7 +399,7 @@ exports.cancelClass = asyncHandler(async (req, res, next) => {
   cls.status = "cancelled";
   await cls.save();
 
-  classNotify(cls.studentsEnrolled, `Class: ${cls.name} have been cancelled.`);
+  classNotify(cls.studentsEnrolled, `Class: ${cls.name} has been cancelled.`);
 
 
   res.status(200).json({ message: "Class cancelled successfully" });
