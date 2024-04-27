@@ -5,6 +5,7 @@ const bcrypt = require("bcrypt");
 const usersModel = require("../models/userModel");
 const ApiError = require("../utils/ApiError");
 const createToken = require("../utils/createToken");
+const mongoose = require("mongoose");
 
 //----- Admin Routes -----
 
@@ -111,26 +112,111 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
   }
 });
 
+// exports.getUser = asyncHandler(async (req, res, next) => {
+//   const { id } = req.params;
+
+//   let filter = {};
+//   if (!req.query == {}) {
+//     filter = req.query;
+
+//     const user = await usersModel.findById(filter);
+//     if (!user) {
+//       return next(new ApiError(`No user found for this id:${id}`, 404));
+//     }
+//     res.status(200).json({ data: user });
+//   } else {
+//     const user = await usersModel.findById(id);
+//     if (!user) {
+//       return next(new ApiError(`No user found for this id:${id}`, 404));
+//     }
+//     res.status(200).json({ data: user });
+//   }
+// });
+
 exports.getUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
-  let filter = {};
-  if (!req.query == {}) {
-    filter = req.query;
-
-    const user = await usersModel.findById(filter);
-    if (!user) {
-      return next(new ApiError(`No user found for this id:${id}`, 404));
-    }
-    res.status(200).json({ data: user });
-  } else {
+  try {
     const user = await usersModel.findById(id);
+
     if (!user) {
       return next(new ApiError(`No user found for this id:${id}`, 404));
     }
-    res.status(200).json({ data: user });
+
+    if (user.role === "teacher") {
+      const userData = await usersModel.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(id) } },
+        {
+          $lookup: {
+            from: "classes",
+            localField: "classes",
+            foreignField: "_id",
+            as: "classes"
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            email: 1,
+            phone: 1,
+            classes: {
+              $map: {
+                input: "$classes",
+                as: "class",
+                in: {
+                  _id: "$$class._id",
+                  start_date: "$$class.start_date",
+                  start_time: "$$class.start_time",
+                  status: "$$class.status"
+                }
+              }
+            }
+          }
+        },
+        {
+          $addFields: {
+            completedClasses: {
+              $size: {
+                $filter: {
+                  input: "$classes",
+                  as: "class",
+                  cond: { $eq: ["$$class.status", "ended"] }
+                }
+              }
+            },
+            scheduledClasses: {
+              $size: {
+                $filter: {
+                  input: "$classes",
+                  as: "class",
+                  cond: { $eq: ["$$class.status", "scheduled"] }
+                }
+              }
+            },
+            cancelledClasses: {
+              $size: {
+                $filter: {
+                  input: "$classes",
+                  as: "class",
+                  cond: { $eq: ["$$class.status", "cancelled"] }
+                }
+              }
+            }
+          }
+        }
+      ]);
+
+      res.status(200).json({ data: userData });
+    } else {
+      res.status(200).json({ data: user });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
 
 exports.createUser = asyncHandler(async (req, res, next) => {
   if (req.body.role === "superAdmin") {

@@ -313,7 +313,7 @@ exports.allowedTo = (...roles) =>
     next();
   });
 
-exports.enabledControls = (scope) =>
+exports.enabledControls = (...scope) =>
   asyncHandler(async (req, res, next) => {
     if (req.user.role == "admin" && !req.user.enabledControls.includes(scope)) {
       return next(

@@ -7,6 +7,45 @@ const userModel = require("../models/userModel");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 
+const classNotify = async (array, message) => {
+  // Send notifications to added students
+  const studentsNotification = await Promise.all(
+    array.map(async (studentId) => {
+      return await Notification.create({
+        scope: "class",
+        userId: studentId,
+        message,
+      });
+    })
+  );
+
+  // Emit notifications students
+  const { io, users } = getIO();
+  if (users.length > 0) {
+    const connectedStudents = users.filter((user) =>
+      array.includes(user.userId)
+    );
+
+    connectedStudents.forEach((student) => {
+      const studentNotification = studentsNotification.find(
+        (notification) =>
+          notification.userId.toString() === student.userId.toString()
+      );
+
+      if (studentNotification) {
+        const { userId, scope, message, _id, createdAt } = studentNotification;
+        io.to(student.socketId).emit("notification", {
+          userId,
+          scope,
+          message,
+          _id,
+          createdAt,
+        });
+      }
+    });
+  }
+};
+
 exports.createClass = asyncHandler(async (req, res, next) => {
   try {
     const { name, duration, start_date, start_time, teacher, students } =
@@ -249,6 +288,9 @@ exports.deleteClass = asyncHandler(async (req, res, next) => {
     await deleteMeeting(zoomMeetingId);
   }
 
+  classNotify(Document.studentsEnrolled, `Class: ${Document.name} have been deleted.`);
+
+
   res.status(204).send("Class deleted successfully");
 });
 
@@ -337,10 +379,10 @@ exports.cancelClass = asyncHandler(async (req, res, next) => {
   }
 
   // Check if the class is already ended or cancelled
-  if (cls.status === "ended" || cls.status === "cancelled") {
+  if (cls.status !== "scheduled") {
     return next(
       new ApiError(
-        `Cannot cancel a class that is already ended or cancelled`,
+        `Can't cancel a class that is already ended or cancelled`,
         400
       )
     );
@@ -357,6 +399,9 @@ exports.cancelClass = asyncHandler(async (req, res, next) => {
   cls.status = "cancelled";
   await cls.save();
 
+  classNotify(cls.studentsEnrolled, `Class: ${cls.name} have been cancelled.`);
+
+
   res.status(200).json({ message: "Class cancelled successfully" });
 });
 
@@ -369,6 +414,12 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
     const classes = await classModel.findById(classId);
     if (!classes) {
       return next(new ApiError(`No class found for this id:${classId}`, 404));
+    }
+
+    if (classes.status !== "scheduled") {
+      return next(
+        new ApiError(`Can't add students to ${classes.status} classes`, 500)
+      );
     }
 
     // Clear studentsEnrolled array and remove class from students' classes field if studentIds array is empty
@@ -427,43 +478,8 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
       { $addToSet: { classes: classId } }
     );
 
-    const studentsNotification = await Promise.all(
-      studentIds.map(async (studentId) => {
-        return await Notification.create({
-          scope: "class",
-          userId: studentId,
-          message: `You have been enrolled in class: ${classes.name}`,
-        });
-      })
-    );
-
-    // Emit notifications to teacher and students
-    const { io, users } = getIO();
-    if (users.length > 0) {
-
-      const connectedStudents = users.filter((user) =>
-      studentIds.includes(user.userId)
-    );
-
-      connectedStudents.forEach((student) => {
-        const studentNotification = studentsNotification.find(
-          (notification) =>
-            notification.userId.toString() === student.userId.toString()
-        );
-
-        if (studentNotification) {
-          const { userId, scope, message, _id, createdAt } =
-            studentNotification;
-          io.to(student.socketId).emit("notification", {
-            userId,
-            scope,
-            message,
-            _id,
-            createdAt,
-          });
-        }
-      });
-    }
+    // Emit notifications to students
+    classNotify(studentIds, `You have been enrolled in class: ${classes.name}`);
 
     res
       .status(200)
@@ -483,6 +499,15 @@ exports.removeStudentFromClass = asyncHandler(async (req, res, next) => {
     const classes = await classModel.findById(classId);
     if (!classes) {
       return next(new ApiError(`No class found for this id:${classId}`, 404));
+    }
+
+    if (classes.status !== "scheduled") {
+      return next(
+        new ApiError(
+          `Can't remove students from ${classes.status} classes`,
+          500
+        )
+      );
     }
 
     // Check if provided student IDs match any enrolled students in the class
@@ -511,7 +536,7 @@ exports.removeStudentFromClass = asyncHandler(async (req, res, next) => {
       role: "student",
     });
 
-    // Remove the product ID from the products array of each student
+    // Remove the class ID from the classes array of each student
     students.forEach((student) => {
       const index = student.classes.indexOf(classId);
       if (index !== -1) {
@@ -533,6 +558,9 @@ exports.removeStudentFromClass = asyncHandler(async (req, res, next) => {
       { studentsEnrolled: classes.studentsEnrolled },
       { new: true } // Return the updated document
     );
+
+    // Emit notifications to students
+    classNotify(studentIds, `You have been removed from class: ${classes.name}`);
 
     res
       .status(200)

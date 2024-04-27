@@ -50,11 +50,11 @@ function initSocket(server) {
         .tz("Africa/Cairo")
         .format("YYYY-MM-DDTHH:mm:ss[Z]");
 
-      io.to(user.socketId).emit("notification", {
-        senderId,
-        isRead: false,
-        createdAt: currentTime,
-      });
+      // io.to(user.socketId).emit("notification", {
+      //   senderId,
+      //   isRead: false,
+      //   createdAt: currentTime,
+      // });
     });
 
     socket.on("disconnect", () => {
