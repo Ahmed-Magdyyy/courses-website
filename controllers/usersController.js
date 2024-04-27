@@ -112,27 +112,6 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
   }
 });
 
-// exports.getUser = asyncHandler(async (req, res, next) => {
-//   const { id } = req.params;
-
-//   let filter = {};
-//   if (!req.query == {}) {
-//     filter = req.query;
-
-//     const user = await usersModel.findById(filter);
-//     if (!user) {
-//       return next(new ApiError(`No user found for this id:${id}`, 404));
-//     }
-//     res.status(200).json({ data: user });
-//   } else {
-//     const user = await usersModel.findById(id);
-//     if (!user) {
-//       return next(new ApiError(`No user found for this id:${id}`, 404));
-//     }
-//     res.status(200).json({ data: user });
-//   }
-// });
-
 exports.getUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
@@ -216,7 +195,6 @@ exports.getUser = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
 
 exports.createUser = asyncHandler(async (req, res, next) => {
   if (req.body.role === "superAdmin") {
