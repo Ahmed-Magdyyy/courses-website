@@ -55,6 +55,8 @@ const upload = multer({
 }).array("media", 10); // Accept up to 10 media files
 
 exports.uploadCommentMedia = (req, res, next) => {
+  let mediaFiles = [];
+
   upload(req, res, function (err) {
     if (err) {
       if (req.files) {
@@ -65,7 +67,6 @@ exports.uploadCommentMedia = (req, res, next) => {
       );
     }
 
-    let mediaFiles = [];
 
     // Check uploaded files
     if (req.files) mediaFiles = req.files;
