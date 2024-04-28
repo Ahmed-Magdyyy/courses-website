@@ -53,15 +53,6 @@ const upload = multer({
 
 exports.uploadPostMedia = (req, res, next) => {
   upload(req, res, function (err) {
-    if (err) {
-      if (req.files) {
-        mediaFiles.forEach((file) => deleteUploadedFile(file));
-      }
-      return next(
-        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
-      );
-    }
-
     let mediaFiles = [];
 
     // Check uploaded files
@@ -106,6 +97,15 @@ exports.uploadPostMedia = (req, res, next) => {
         url: file.filename,
       });
     });
+
+    if (err) {
+      if (req.files) {
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+      }
+      return next(
+        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
+      );
+    }
 
     next();
   });
