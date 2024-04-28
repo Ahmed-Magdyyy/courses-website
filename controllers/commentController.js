@@ -58,16 +58,6 @@ exports.uploadCommentMedia = (req, res, next) => {
   let mediaFiles = [];
 
   upload(req, res, function (err) {
-    if (err) {
-      if (req.files) {
-        mediaFiles.forEach((file) => deleteUploadedFile(file));
-      }
-      return next(
-        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
-      );
-    }
-
-
     // Check uploaded files
     if (req.files) mediaFiles = req.files;
 
@@ -110,6 +100,15 @@ exports.uploadCommentMedia = (req, res, next) => {
         url: file.filename,
       });
     });
+
+    if (err) {
+      if (req.files) {
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+      }
+      return next(
+        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
+      );
+    }
 
     next();
   });
