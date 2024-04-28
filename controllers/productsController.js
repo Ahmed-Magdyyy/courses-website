@@ -119,12 +119,6 @@ const multerStorage = multer.diskStorage({
 const imageFilter = function (req, file, cb) {
   if (file.mimetype.startsWith("image")) {
     cb(null, true);
-    // Check file size (5 MB)
-    if (file.size <= 5 * 1024 * 1024) {
-      cb(null, true);
-    } else {
-      cb(new ApiError("Image file size exceeds 5 MB", 400), false);
-    }
   } else {
     cb(new ApiError("Only images are allowed", 400), false);
   }
@@ -136,12 +130,7 @@ const pptxFilter = function (req, file, cb) {
     file.mimetype ===
     "application/vnd.openxmlformats-officedocument.presentationml.presentation"
   ) {
-    // Check file size (25 MB)
-    if (file.size <= 25 * 1024 * 1024) {
-      cb(null, true);
-    } else {
-      cb(new ApiError("PowerPoint file size exceeds 25 MB", 400), false);
-    }
+    cb(null, true);
   } else {
     cb(new ApiError("Only PowerPoint files (PPTX) are allowed", 400), false);
   }
@@ -168,6 +157,14 @@ exports.uploadProductFiles = upload.fields([
 exports.createProduct = asyncHandler(async (req, res, next) => {
   const { title, summary } = req.body;
   const { image, productFile } = req.files;
+
+  const existsProduct = await productModel.findOne({title})
+
+if (existsProduct) {
+  deleteUploadedFile(image[0]);
+  deleteUploadedFile(productFile[0]);
+  return next(new ApiError(`Product already exists with same title: ${title}`, 400));
+}
 
   // Check if both files are uploaded
   if (!image || !productFile) {

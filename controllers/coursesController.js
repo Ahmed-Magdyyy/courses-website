@@ -48,13 +48,6 @@ const upload = multer({
 
 exports.uploadCourseImage = (req, res, next) => {
   upload(req, res, function (err) {
-    if (err) {
-      deleteUploadedFile(req.file); // Delete the uploaded file
-      return next(
-        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
-      );
-    }
-
     // Check if the uploaded file is not an image
     if (req.file && !req.file.mimetype.startsWith("image")) {
       // Delete the uploaded file
@@ -72,6 +65,13 @@ exports.uploadCourseImage = (req, res, next) => {
     // File uploaded successfully
     if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
     next();
+
+    if (err) {
+      deleteUploadedFile(req.file); // Delete the uploaded file
+      return next(
+        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
+      );
+    }
   });
 };
 
@@ -120,6 +120,15 @@ exports.createCourse = asyncHandler(async (req, res, next) => {
   const { title, summary, course_link, image } = req.body;
 
   try {
+    const existCourse = await coursesModel.findOne({ title });
+
+    if (existCourse) {
+      deleteUploadedFile(req.file);
+      return next(
+        new ApiError(`Course already exists with same title: ${title}`, 400)
+      );
+    }
+
     const Document = await coursesModel.create({
       title,
       summary,
