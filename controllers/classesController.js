@@ -190,9 +190,10 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
   }
 
   if (req.user.role === "student") {
-    console.log("====================================");
-    console.log("from student role");
-    console.log("====================================");
+    const totalClassesCount = await classModel.countDocuments({
+      studentsEnrolled: { $in: [req.user._id] },
+    });
+    const totalPages = Math.ceil(totalClassesCount / limitNum);
     const documents = await classModel
       .find({
         studentsEnrolled: { $in: [req.user._id] },
@@ -205,11 +206,19 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
       .skip(skipNum)
       .limit(limitNum);
 
-    res.status(200).json({ results: documents.length, data: documents });
+    res
+      .status(200)
+      .json({
+        totalPages,
+        page: pageNum,
+        results: documents.length,
+        data: documents,
+      });
   } else if (req.user.role === "teacher") {
-    console.log("====================================");
-    console.log("from teacher role");
-    console.log("====================================");
+    const totalClassesCount = await classModel.countDocuments({
+      teacher: req.user._id,
+    });
+    const totalPages = Math.ceil(totalClassesCount / limitNum);
 
     const documents = await classModel
       .find({ teacher: req.user._id })
@@ -221,11 +230,17 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
       .skip(skipNum)
       .limit(limitNum);
 
-    res.status(200).json({ results: documents.length, data: documents });
+    res
+      .status(200)
+      .json({
+        totalPages,
+        page: pageNum,
+        results: documents.length,
+        data: documents,
+      });
   } else {
-    console.log("====================================");
-    console.log("from rest role");
-    console.log("====================================");
+    const totalClassesCount = await classModel.countDocuments(filter);
+    const totalPages = Math.ceil(totalClassesCount / limitNum);
 
     const documents = await classModel
       .find(filter)
@@ -239,7 +254,12 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
 
     res
       .status(200)
-      .json({ results: documents.length, page: pageNum, data: documents });
+      .json({
+        totalPages,
+        page: pageNum,
+        results: documents.length,
+        data: documents,
+      });
   }
 });
 
@@ -288,8 +308,10 @@ exports.deleteClass = asyncHandler(async (req, res, next) => {
     await deleteMeeting(zoomMeetingId);
   }
 
-  classNotify(Document.studentsEnrolled, `Class: ${Document.name} has been deleted.`);
-
+  classNotify(
+    Document.studentsEnrolled,
+    `Class: ${Document.name} has been deleted.`
+  );
 
   res.status(204).send("Class deleted successfully");
 });
@@ -400,7 +422,6 @@ exports.cancelClass = asyncHandler(async (req, res, next) => {
   await cls.save();
 
   classNotify(cls.studentsEnrolled, `Class: ${cls.name} has been cancelled.`);
-
 
   res.status(200).json({ message: "Class cancelled successfully" });
 });
@@ -560,7 +581,10 @@ exports.removeStudentFromClass = asyncHandler(async (req, res, next) => {
     );
 
     // Emit notifications to students
-    classNotify(studentIds, `You have been removed from class: ${classes.name}`);
+    classNotify(
+      studentIds,
+      `You have been removed from class: ${classes.name}`
+    );
 
     res
       .status(200)

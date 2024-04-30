@@ -32,14 +32,28 @@ exports.createNotification = asyncHandler(async (req, res, next) => {
 // Controller to get all notifications for a user
 exports.getNotifications = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
+  const { page, limit, skip } = req.query;
 
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+  const totalPostsCount = await Notification.countDocuments({ userId });
+  const totalPages = Math.ceil(totalPostsCount / limitNum);
   try {
-    const notifications = await Notification.find({ userId }).sort({
-      createdAt: -1,
-    });
+    const notifications = await Notification.find({ userId })
+      .sort({
+        createdAt: -1,
+      })
+      .skip(skipNum)
+      .limit(limitNum);
     res
       .status(200)
-      .json({ results: notifications.length, data: notifications });
+      .json({
+        totalPages,
+        page: pageNum,
+        results: notifications.length,
+        data: notifications,
+      });
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return next(new ApiError("Error getting notifications", 500));

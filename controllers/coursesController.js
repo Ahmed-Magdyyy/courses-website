@@ -160,6 +160,10 @@ exports.getAllCourses = asyncHandler(async (req, res, next) => {
   }
 
   if (req.user.role === "student") {
+    const totalCoursesCount = await coursesModel.countDocuments({
+      studentsEnrolled: { $in: [req.user._id] },
+    });
+    const totalPages = Math.ceil(totalCoursesCount / limitNum);
     const documents = await coursesModel
       .find({
         studentsEnrolled: { $in: [req.user._id] },
@@ -168,8 +172,10 @@ exports.getAllCourses = asyncHandler(async (req, res, next) => {
       .populate("studentsEnrolled", "_id name email phone")
       .skip(skipNum)
       .limit(limitNum);
-    res.status(200).json({ results: documents.length, data: documents });
+    res.status(200).json({totalPages, page: pageNum, results: documents.length, data: documents });
   } else {
+    const totalCoursesCount = await coursesModel.countDocuments(filter);
+    const totalPages = Math.ceil(totalCoursesCount / limitNum);
     const documents = await coursesModel
       .find(filter)
       .sort({ createdAt: -1 })
@@ -178,7 +184,7 @@ exports.getAllCourses = asyncHandler(async (req, res, next) => {
       .limit(limitNum);
     res
       .status(200)
-      .json({ results: documents.length, page: pageNum, data: documents });
+      .json({totalPages, page: pageNum, results: documents.length, data: documents });
   }
 });
 

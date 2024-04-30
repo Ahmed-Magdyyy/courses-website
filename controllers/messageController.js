@@ -35,7 +35,6 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
     (u) => u._id.toString() !== req.user._id.toString()
   );
 
-
   try {
     const Message = await messageModel.create({
       chatId,
@@ -45,12 +44,12 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
 
     // send offline notification to message receiver
     const notification = await Notification.create({
-      scope : "message",
+      scope: "message",
       userId: receiver._id,
-      message: `You got a new message from ${req.user.name} -${req.user.role}`
-    })
+      message: `You got a new message from ${req.user.name} -${req.user.role}`,
+    });
 
-    const {userId,scope,message, _id, createdAt } = notification
+    const { userId, scope, message, _id, createdAt } = notification;
 
     // Emit the notification to message receiver
     const { io, users } = getIO();
@@ -64,13 +63,23 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
         user !== undefined &&
         receiver._id.toString() == user.userId.toString()
       ) {
-        io.to(user.socketId).emit("notification", {userId,scope,message, _id, createdAt })
+        io.to(user.socketId).emit("notification", {
+          userId,
+          scope,
+          message,
+          _id,
+          createdAt,
+        });
       }
     }
 
-
-
-    res.status(200).json({message: `message sent successfully, and a notification was sent to user ${receiver._id}`, messageSent:Message, notification:{userId,scope,message, _id, createdAt }});
+    res
+      .status(200)
+      .json({
+        message: `message sent successfully, and a notification was sent to user ${receiver._id}`,
+        messageSent: Message,
+        notification: { userId, scope, message, _id, createdAt },
+      });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
@@ -79,11 +88,20 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
 
 exports.getMessages = asyncHandler(async (req, res, next) => {
   const { chatId } = req.params;
+  const { page, limit, skip } = req.query;
+
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+  const totalMessageCount = await messageModel.countDocuments({ chatId });
+  const totalPages = Math.ceil(totalMessageCount / limitNum);
   try {
     const messages = await messageModel
       .find({ chatId })
       .sort({ createdAt: -1 })
-      .populate("senderId", "_id name");
+      .populate("senderId", "_id name")
+      .skip(skipNum)
+      .limit(limitNum);
 
     if (!messages) {
       return next(
@@ -91,7 +109,9 @@ exports.getMessages = asyncHandler(async (req, res, next) => {
       );
     }
 
-    res.status(200).json({ results: messages.length, messages });
+    res
+      .status(200)
+      .json({ totalPages, page: pageNum, results: messages.length, messages });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });

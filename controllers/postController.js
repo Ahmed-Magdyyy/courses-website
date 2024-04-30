@@ -259,13 +259,15 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
   let filter = {};
   const { page, limit, skip, ...query } = req.query;
 
-  const pageNum = page * 1 || 1;
-  const limitNum = limit * 1 || 5;
-  const skipNum = (pageNum - 1) * limit;
-
   if (query) {
     filter = query;
   }
+
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+  const totalPostsCount = await postsModel.countDocuments(filter);
+  const totalPages = Math.ceil(totalPostsCount / limitNum);
 
   const posts = await postsModel
     .find(filter)
@@ -290,7 +292,10 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
     .sort({ createdAt: -1 })
     .skip(skipNum)
     .limit(limitNum);
-  res.status(200).json({ results: posts.length, page: pageNum, data: posts });
+
+  res
+    .status(200)
+    .json({ totalPages, page: pageNum, results: posts.length, data: posts });
 });
 
 exports.getPost = asyncHandler(async (req, res, next) => {

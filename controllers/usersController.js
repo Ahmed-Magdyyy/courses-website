@@ -9,16 +9,9 @@ const mongoose = require("mongoose");
 
 //----- Admin Routes -----
 
-
-
-
 exports.getUsers = asyncHandler(async (req, res, next) => {
   let filter = { active: true };
   const { page, limit, skip, ...query } = req.query;
-
-  const pageNum = page * 1 || 1;
-  const limitNum = limit * 1 || 5;
-  const skipNum = (pageNum - 1) * limit;
 
   if (query && query.role) {
     filter = query;
@@ -26,6 +19,11 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
     filter = { ...query, role: { $ne: "superAdmin" } };
   }
 
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+  const totalPostsCount = await usersModel.countDocuments(filter);
+  const totalPages = Math.ceil(totalPostsCount / limitNum);
 
   if (query.role === "teacher") {
     const users = await usersModel.aggregate([
@@ -35,8 +33,8 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
           from: "classes",
           localField: "classes",
           foreignField: "_id",
-          as: "classes"
-        }
+          as: "classes",
+        },
       },
       {
         $project: {
@@ -52,11 +50,11 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
                 _id: "$$class._id",
                 start_date: "$$class.start_date",
                 start_time: "$$class.start_time",
-                status: "$$class.status"
-              }
-            }
-          }
-        }
+                status: "$$class.status",
+              },
+            },
+          },
+        },
       },
       {
         $addFields: {
@@ -65,39 +63,39 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
               $filter: {
                 input: "$classes",
                 as: "class",
-                cond: { $eq: ["$$class.status", "ended"] }
-              }
-            }
+                cond: { $eq: ["$$class.status", "ended"] },
+              },
+            },
           },
           scheduledClasses: {
             $size: {
               $filter: {
                 input: "$classes",
                 as: "class",
-                cond: { $eq: ["$$class.status", "scheduled"] }
-              }
-            }
+                cond: { $eq: ["$$class.status", "scheduled"] },
+              },
+            },
           },
           cancelledClasses: {
             $size: {
               $filter: {
                 input: "$classes",
                 as: "class",
-                cond: { $eq: ["$$class.status", "cancelled"] }
-              }
-            }
-          }
-        }
+                cond: { $eq: ["$$class.status", "cancelled"] },
+              },
+            },
+          },
+        },
       },
       {
-        $sort: { createdAt: -1 }
+        $sort: { createdAt: -1 },
       },
       {
-        $skip: skipNum
+        $skip: skipNum,
       },
       {
-        $limit: limitNum
-      }
+        $limit: limitNum,
+      },
     ]);
 
     res.status(200).json({ results: users.length, page: pageNum, data: users });
@@ -108,7 +106,9 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
       .skip(skipNum)
       .limit(limitNum);
 
-    res.status(200).json({ results: users.length, page: pageNum, data: users });
+    res
+      .status(200)
+      .json({ totalPages, page: pageNum, results: users.length, data: users });
   }
 });
 
@@ -130,8 +130,8 @@ exports.getUser = asyncHandler(async (req, res, next) => {
             from: "classes",
             localField: "classes",
             foreignField: "_id",
-            as: "classes"
-          }
+            as: "classes",
+          },
         },
         {
           $project: {
@@ -147,11 +147,11 @@ exports.getUser = asyncHandler(async (req, res, next) => {
                   _id: "$$class._id",
                   start_date: "$$class.start_date",
                   start_time: "$$class.start_time",
-                  status: "$$class.status"
-                }
-              }
-            }
-          }
+                  status: "$$class.status",
+                },
+              },
+            },
+          },
         },
         {
           $addFields: {
@@ -160,30 +160,30 @@ exports.getUser = asyncHandler(async (req, res, next) => {
                 $filter: {
                   input: "$classes",
                   as: "class",
-                  cond: { $eq: ["$$class.status", "ended"] }
-                }
-              }
+                  cond: { $eq: ["$$class.status", "ended"] },
+                },
+              },
             },
             scheduledClasses: {
               $size: {
                 $filter: {
                   input: "$classes",
                   as: "class",
-                  cond: { $eq: ["$$class.status", "scheduled"] }
-                }
-              }
+                  cond: { $eq: ["$$class.status", "scheduled"] },
+                },
+              },
             },
             cancelledClasses: {
               $size: {
                 $filter: {
                   input: "$classes",
                   as: "class",
-                  cond: { $eq: ["$$class.status", "cancelled"] }
-                }
-              }
-            }
-          }
-        }
+                  cond: { $eq: ["$$class.status", "cancelled"] },
+                },
+              },
+            },
+          },
+        },
       ]);
 
       res.status(200).json({ data: userData[0] });

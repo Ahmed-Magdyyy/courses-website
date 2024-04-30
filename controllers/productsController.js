@@ -158,13 +158,15 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
   const { title, summary } = req.body;
   const { image, productFile } = req.files;
 
-  const existsProduct = await productModel.findOne({title})
+  const existsProduct = await productModel.findOne({ title });
 
-if (existsProduct) {
-  deleteUploadedFile(image[0]);
-  deleteUploadedFile(productFile[0]);
-  return next(new ApiError(`Product already exists with same title: ${title}`, 400));
-}
+  if (existsProduct) {
+    deleteUploadedFile(image[0]);
+    deleteUploadedFile(productFile[0]);
+    return next(
+      new ApiError(`Product already exists with same title: ${title}`, 400)
+    );
+  }
 
   // Check if both files are uploaded
   if (!image || !productFile) {
@@ -203,9 +205,11 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
   }
 
   if (req.user.role === "student") {
-    console.log("====================================");
-    console.log("from student role");
-    console.log("====================================");
+    const totalProductsCount = await productModel.countDocuments({
+      students: { $in: [req.user._id] },
+    });
+    const totalPages = Math.ceil(totalProductsCount / limitNum);
+
     const documents = await productModel
       .find({
         students: { $in: [req.user._id] },
@@ -216,11 +220,10 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
       .limit(limitNum);
     res
       .status(200)
-      .json({ results: documents.length, page: pageNum, data: documents });
+      .json({totalPages, page: pageNum, results: documents.length, data: documents });
   } else if (req.user.role === "teacher") {
-    console.log("====================================");
-    console.log("from teacher role");
-    console.log("====================================");
+    const totalProductsCount = await productModel.countDocuments({ teacher: req.user._id });
+    const totalPages = Math.ceil(totalProductsCount / limitNum);
 
     const documents = await productModel
       .find({ teacher: req.user._id })
@@ -230,11 +233,10 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
       .limit(limitNum);
     res
       .status(200)
-      .json({ results: documents.length, page: pageNum, data: documents });
+      .json({totalPages, page: pageNum, results: documents.length, data: documents });
   } else {
-    console.log("====================================");
-    console.log("from rest roles");
-    console.log("====================================");
+    const totalProductsCount = await productModel.countDocuments(filter);
+    const totalPages = Math.ceil(totalProductsCount / limitNum);
 
     const documents = await productModel
       .find(filter)
@@ -244,7 +246,7 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
       .limit(limitNum);
     res
       .status(200)
-      .json({ results: documents.length, page: pageNum, data: documents });
+      .json({totalPages, page: pageNum, results: documents.length, data: documents });
   }
 });
 

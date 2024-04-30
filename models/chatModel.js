@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 
-
 const chatSchema = new mongoose.Schema({
   members: {
     type: [
@@ -17,6 +16,11 @@ const chatSchema = new mongoose.Schema({
       message: "Chat members field must have only 2 users",
     },
   },
+  status: {
+    type: String,
+    enum: ["open", "closed"],
+    default: "open"
+  }
 }, {timestamps:true});
 
 // Pre-save hook to set timestamps

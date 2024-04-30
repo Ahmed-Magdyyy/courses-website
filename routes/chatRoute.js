@@ -5,7 +5,9 @@ const {
   createChat,
   getUserChats,
   findChat,
-  findSpeceficChat,
+  findSpecificChat,
+  startSupportchat,
+  closeSupportChat,
 } = require("../controllers/chatController");
 
 const {
@@ -17,11 +19,21 @@ const {
 // applied on all routes
 Router.use(protect);
 
-Router.route("/").post(createChat).get(getUserChats);
+Router.route("/startSupportChat").post(
+  allowedTo("teacher", "student"),
+  startSupportchat
+);
 
-Router.route("/:chatId").get(findSpeceficChat)
+Router.route("/").get(getUserChats);
 
-Router.route("/users/:firstId/:secondId").get(findChat);
+Router.route("/:chatId")
+  .get(findSpecificChat)
+  .put(allowedTo("superAdmin","admin"), enabledControls("chat","support"), closeSupportChat);
 
+Router.route("/users/:firstId/:secondId").get(
+  allowedTo("superAdmin","admin"),
+  enabledControls("chat","support"),
+  findChat
+);
 
 module.exports = Router;

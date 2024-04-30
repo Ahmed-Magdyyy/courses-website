@@ -141,6 +141,9 @@ exports.getAssignments = asyncHandler(async (req, res, next) => {
   const skipNum = (pageNum - 1) * limit;
 
   if (req.user.role == "student") {
+    const totalAssignmentsCount = await assignmentModel.countDocuments({ student: req.user._id });
+    const totalPages = Math.ceil(totalAssignmentsCount / limitNum);
+
     const assignments = await assignmentModel
       .find({ student: req.user._id })
       .sort({ createdAt: -1 })
@@ -150,8 +153,16 @@ exports.getAssignments = asyncHandler(async (req, res, next) => {
       .limit(limitNum);
     res
       .status(200)
-      .json({ results: assignments.length, page: pageNum, assignments });
+      .json({
+        totalPages,
+        page: pageNum,
+        results: assignments.length,
+        assignments,
+      });
   } else if (req.user.role === "teacher") {
+    const totalAssignmentsCount = await assignmentModel.countDocuments({ teacher: req.user._id });
+    const totalPages = Math.ceil(totalAssignmentsCount / limitNum);
+
     const classes = await classModel
       .find({ teacher: req.user._id })
       .sort({ createdAt: -1 })
@@ -170,15 +181,30 @@ exports.getAssignments = asyncHandler(async (req, res, next) => {
       .limit(limitNum);
     res
       .status(200)
-      .json({ results: assignments.length, page: pageNum, assignments });
+      .json({
+        totalPages,
+        page: pageNum,
+        results: assignments.length,
+        assignments,
+      });
   } else {
+    const totalAssignmentsCount = await assignmentModel.countDocuments(query);
+    const totalPages = Math.ceil(totalAssignmentsCount / limitNum);
+
     const assignments = await assignmentModel
       .find(query)
       .sort({ createdAt: -1 })
       .populate("class", "-__v")
-      .populate("student", "_id name email phone");
+      .populate("student", "_id name email phone")
+      .skip(skipNum)
+      .limit(limitNum);
     res
       .status(200)
-      .json({ results: assignments.length, page: pageNum, assignments });
+      .json({
+        totalPages,
+        page: pageNum,
+        results: assignments.length,
+        assignments,
+      });
   }
 });

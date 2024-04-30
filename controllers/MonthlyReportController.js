@@ -35,15 +35,18 @@ exports.createReport = asyncHandler(async (req, res, next) => {
 exports.getReport = asyncHandler(async (req, res, next) => {
   let filter = {};
   const { page, limit, skip, ...query } = req.query;
-  console.log(query);
-  const pageNum = page * 1 || 1;
-  const limitNum = limit * 1 || 5;
-  const skipNum = (pageNum - 1) * limit;
-
+  
+  
   if (query) {
     filter = query;
   }
-
+  
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+  const totalPostsCount = await reportModel.countDocuments(filter);
+  const totalPages = Math.ceil(totalPostsCount / limitNum);
+  
   const reports = await reportModel
     .find(filter)
     .populate("teacher", "_id name")
@@ -54,5 +57,5 @@ exports.getReport = asyncHandler(async (req, res, next) => {
   if (!reports) {
     return next(new ApiError(`No document found for this id:${id}`, 404));
   }
-  res.status(200).json({ results: reports.length, page: pageNum, reports });
+  res.status(200).json({totalPages, page: pageNum, results: reports.length, reports });
 });
