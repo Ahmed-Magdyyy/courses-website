@@ -56,13 +56,16 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
 
     if (users.length > 0) {
       const user = users.find(
-        (user) => user.userId.toString() !== req.user._id.toString()
+        (user) => user.userId.toString() === receiver._id.toString()
       );
+      console.log("pppp")
+      console.log("user",user)
+      console.log("receiver._id.toString()",receiver._id.toString())
+      console.log("user.userId.toString()",user.userId.toString())
+      console.log("receiver._id.toString() == user.userId.toString()",receiver._id.toString() === user.userId.toString())
 
-      if (
-        user !== undefined &&
-        receiver._id.toString() == user.userId.toString()
-      ) {
+      if (user !== undefined) {
+        console.log("hhhhhhh")
         io.to(user.socketId).emit("notification", {
           userId,
           scope,

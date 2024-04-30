@@ -7,42 +7,51 @@ const userModel = require("../models/userModel");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 
-const courseNotify = async (array, user) => {
+const chatNotify = async (array, user) => {
   // Send notifications to added students
-  const adminToNotify = array;
+  var adminToNotify = array;
 
-  console.log("adminToNotify", adminToNotify);
-  let userId;
-  let socketID;
+  console.log("adminToNotifyyyyy", adminToNotify);
+  // var userId;
+  // var socketID;
   if (adminToNotify.socketId) {
-    // adminToNotify { id: '660fb37c7641db487a9582eb', count: 1 }
-    // adminToNotify {
-    //   userId: '660fb37c7641db487a9582eb',
-    //   socketId: 'iKvYUNkbXdG3X4wgAAAL'
-    // }
-    userId = adminToNotify.userId;
-    socketID = adminToNotify.socketId;
-    console.log("ONLINE userId:", userId);
+    let userID = adminToNotify.userId;
+    let socketID = adminToNotify.socketId;
+    console.log("ONLINE userId:", userID);
     console.log("ONLINE socketID:", socketID);
     console.log("USER USER USER:", user);
 
     const adminNotification = await Notification.create({
       scope: "chat",
-      userId,
+      userId: userID,
       message: `You have added to chat with user ${user}`,
     });
 
+    const { userId, scope, message, _id, createdAt } = adminNotification;
+
     const { io, users } = getIO();
     if (users && users.length > 0) {
-      io.to(socketID).emit("notification", adminNotification);
+      console.log(
+        "tryied to send online notification to:",
+        adminToNotify.userId,
+        adminToNotify.socketId
+      );
+      io.to(socketID).emit("notification", {
+        notificationID: _id,
+        scope,
+        notifiedAdmin: userId,
+        userNeededSupport: user,
+        message,
+        createdAt,
+      });
     }
   } else if (adminToNotify.id) {
-    userId = adminToNotify.id;
-    console.log("OFFLINE userId:", userId);
+    let userID = adminToNotify.id;
+    console.log("OFFLINE userId:", userID);
 
-    const adminNotification = await Notification.create({
+    await Notification.create({
       scope: "chat",
-      userId,
+      userId: userID,
       message: `You have added to chat with user ${req.user._id}`,
     });
   }
@@ -201,13 +210,13 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
 
       // Proceed with creating a new chat
       if (users && users.length > 0) {
-        courseNotify(selectedOnlineAdmin, req.user._id);
+        chatNotify(selectedOnlineAdmin, req.user._id);
         console.log(
           "selectedOnlineAdmin selectedOnlineAdmin",
           selectedOnlineAdmin
         );
       } else {
-        courseNotify(selectedofflineAdmin, req.user._id);
+        chatNotify(selectedofflineAdmin, req.user._id);
         console.log(
           "selectedofflineAdmin selectedofflineAdmin",
           selectedofflineAdmin
@@ -227,11 +236,12 @@ exports.getUserChats = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
   const { page, limit, skip } = req.query;
 
-
   const pageNum = page * 1 || 1;
   const limitNum = limit * 1 || 5;
   const skipNum = (pageNum - 1) * limit;
-  const totalPostsCount = await chatModel.countDocuments({ members: { $in: [userId] } });
+  const totalPostsCount = await chatModel.countDocuments({
+    members: { $in: [userId] },
+  });
   const totalPages = Math.ceil(totalPostsCount / limitNum);
 
   try {
@@ -246,7 +256,9 @@ exports.getUserChats = asyncHandler(async (req, res, next) => {
       return next(new ApiError(`No chats found`, 404));
     }
 
-    res.status(200).json({totalPages, page: pageNum, results: chats.length, chats });
+    res
+      .status(200)
+      .json({ totalPages, page: pageNum, results: chats.length, chats });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error });

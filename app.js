@@ -77,7 +77,7 @@ socketConfig.initSocketServer(server);
 
 // UnhandledRejections event handler (rejection outside express)
 process.on("unhandledRejection", (err) => {
-  console.error(`unhandledRejection Errors: ${err.name} | ${err.message}`);
+  console.error(`unhandledRejection Errors: ${err.name} | ${err.message} | ${err.stack}`);
   server.close(() => {
     console.log("server shutting down...");
     process.exit(1);
