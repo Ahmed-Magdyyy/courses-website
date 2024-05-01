@@ -8,6 +8,7 @@ const {
   findSpecificChat,
   startSupportchat,
   closeSupportChat,
+  studentTeacherChat
 } = require("../controllers/chatController");
 
 const {
@@ -22,6 +23,11 @@ Router.use(protect);
 Router.route("/startSupportChat").post(
   allowedTo("teacher", "student"),
   startSupportchat
+);
+
+Router.route("/studentTeacherChat/:classID").post(
+  allowedTo("student"),
+  studentTeacherChat
 );
 
 Router.route("/").get(getUserChats);

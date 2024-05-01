@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const ApiError = require("../utils/ApiError");
 const chatModel = require("../models/chatModel");
 const userModel = require("../models/userModel");
+const classModel = require("../models/classModel");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 
@@ -24,7 +25,7 @@ const chatNotify = async (array, user) => {
     const adminNotification = await Notification.create({
       scope: "chat",
       userId: userID,
-      message: `You have added to chat with user ${user}`,
+      message: `You have been added to chat with user ${user}`,
     });
 
     const { userId, scope, message, _id, createdAt } = adminNotification;
@@ -183,8 +184,8 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
 
     console.log("existingChat", existingChat);
 
-    if (existingChat && existingChat > 0) {
-      if (existingChat.status === "open") {
+    if (existingChat && existingChat.length > 0) {
+      if (existingChat[0].status === "open") {
         return next(new ApiError(`There is already an open support chat`, 400));
       } else {
         console.log("small else");
@@ -229,6 +230,89 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
+  if (req.user.role !== "student") {
+    return next(new ApiError(`Student only can start chat with teachers`, 403));
+  }
+  const { classID } = req.params;
+
+  const Class = await classModel.findById(classID);
+
+  if (!Class) {
+    return next(new ApiError(`No class found for this id: ${classID}`, 404));
+  }
+
+  if (Class.status !== "ended") {
+    return next(new ApiError(`Can't start chat unless class is ended`, 400));
+  }
+
+  const existInClass = Class.studentsEnrolled.includes(req.user.id);
+
+  if (existInClass) {
+    const existingChat = await chatModel.find({
+      members: {
+        $all: [req.user._id, Class.teacher],
+      },
+    });
+
+    if (existingChat && existingChat.length > 0) {
+      return next(
+        new ApiError(
+          `There is a chat with id: ${existingChat[0]._id} aready exists between Student: ${req.user._id} and Teacher: ${Class.teacher}`,
+          400
+        )
+      );
+    }
+
+    const chat = await chatModel.create({
+      members: [req.user._id, Class.teacher],
+    });
+
+    const populatedChat = await chat.populate("members", "_id name");
+
+    const AdminNotification = await Notification.create({
+      scope: "chat",
+      userId: Class.teacher.toString(),
+      message: `Student: ${req.user.name} sent you a message`,
+    });
+
+    console.log("AdminNotification:", AdminNotification)
+
+    // Emit notifications students
+    const { io, users } = getIO();
+    if (users.length > 0) {
+      const connectedTeacher = users.filter(
+        (user) => user.userId === Class.teacher.toString()
+      );
+
+      console.log("connectedTeacher:", connectedTeacher)
+
+      if (connectedTeacher && connectedTeacher.length > 0) {
+        // const { userId, scope, message, _id, createdAt } =
+        //   postOwnernotification;
+        io.to(connectedTeacher[0].socketId).emit("notification", {
+          scope: "chat",
+          chatID: populatedChat._id,
+          studentID : req.user._id,
+          teacherID : connectedTeacher[0].userId,
+          message: `Student: ${req.user.name} sent you a message`
+        });
+      }
+    }
+
+    res
+      .status(200)
+      .json({ message: "chat created successfully", populatedChat });
+  } else {
+    return next(
+      new ApiError(
+        `You cant start chat since you are not enrolled in this class.`,
+        400
+      )
+    );
   }
 });
 
