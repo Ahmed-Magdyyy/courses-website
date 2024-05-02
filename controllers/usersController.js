@@ -3,6 +3,7 @@ const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
 
 const usersModel = require("../models/userModel");
+const classModel = require("../models/classModel");
 const ApiError = require("../utils/ApiError");
 const createToken = require("../utils/createToken");
 const mongoose = require("mongoose");
@@ -319,3 +320,17 @@ exports.deleteLoggedUserData = asyncHandler(async (req, res, next) => {
 });
 
 //----- /User Routes -----
+
+exports.getTeacher_students = asyncHandler(async (req, res, next) => {
+  const teacher = req.params.teacher
+  const classesOfTeacher = await classModel.find({ teacher , status: "ended"});
+
+  const classesStudentss = classesOfTeacher.map((cls) =>
+    cls.studentsEnrolled.map((students) => students)
+  );
+  console.log("classesOfTeacher", classesOfTeacher);
+  console.log(
+    "classesStudentss",
+    Array.from(new Set(classesStudentss.flat().map((id) => id.toString())))
+  );
+});
