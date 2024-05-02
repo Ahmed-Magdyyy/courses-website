@@ -140,6 +140,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
             name: 1,
             email: 1,
             phone: 1,
+            role:1,
             classes: {
               $map: {
                 input: "$classes",
@@ -322,8 +323,8 @@ exports.deleteLoggedUserData = asyncHandler(async (req, res, next) => {
 //----- /User Routes -----
 
 exports.getTeacher_students = asyncHandler(async (req, res, next) => {
-  const teacher = req.params.teacher
-  const classesOfTeacher = await classModel.find({ teacher , status: "ended"});
+  const teacher = req.params.teacher;
+  const classesOfTeacher = await classModel.find({ teacher });
 
   const classesStudentss = classesOfTeacher.map((cls) =>
     cls.studentsEnrolled.map((students) => students)

@@ -17,7 +17,7 @@ const {
   updateLoggedUserData,
   deleteLoggedUserData,
   //----- /User's Routes -----
-  getTeacher_students
+  getTeacher_students,
 } = require("../controllers/usersController");
 
 // const {
@@ -49,17 +49,17 @@ Router.delete("/deleteLoggedUserData", deleteLoggedUserData);
 //----- /User Routes -----
 
 //----- Admin Routes -----
-Router.get("/classesOfTeacher/:teacher", getTeacher_students)
+Router.get(
+  "/studentsOfTeacher/:teacher",
+  getTeacher_students
+);
 
 Router.use(allowedTo("superAdmin", "admin"));
 Router.use(enabledControls("users"));
 
 Router.route("/").get(getUsers).post(createUser);
 
-Router.route("/:id")
-  .get(getUser)
-  .delete(deleteUser)
-  .put(updateUser);
+Router.route("/:id").get(getUser).delete(deleteUser).put(updateUser);
 
 Router.put("/changePassword/:id", updateUserPassword);
 
