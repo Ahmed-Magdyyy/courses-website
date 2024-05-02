@@ -49,12 +49,6 @@ const chatNotify = async (array, user) => {
   } else if (adminToNotify.id) {
     let userID = adminToNotify.id;
     console.log("OFFLINE userId:", userID);
-
-    await Notification.create({
-      scope: "chat",
-      userId: userID,
-      message: `You have added to chat with user ${req.user._id}`,
-    });
   }
 };
 
@@ -279,7 +273,7 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
       message: `Student: ${req.user.name} sent you a message`,
     });
 
-    console.log("AdminNotification:", AdminNotification)
+    console.log("AdminNotification:", AdminNotification);
 
     // Emit notifications students
     const { io, users } = getIO();
@@ -288,7 +282,7 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
         (user) => user.userId === Class.teacher.toString()
       );
 
-      console.log("connectedTeacher:", connectedTeacher)
+      console.log("connectedTeacher:", connectedTeacher);
 
       if (connectedTeacher && connectedTeacher.length > 0) {
         // const { userId, scope, message, _id, createdAt } =
@@ -296,9 +290,9 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
         io.to(connectedTeacher[0].socketId).emit("notification", {
           scope: "chat",
           chatID: populatedChat._id,
-          studentID : req.user._id,
-          teacherID : connectedTeacher[0].userId,
-          message: `Student: ${req.user.name} sent you a message`
+          studentID: req.user._id,
+          teacherID: connectedTeacher[0].userId,
+          message: `Student: ${req.user.name} sent you a message`,
         });
       }
     }
