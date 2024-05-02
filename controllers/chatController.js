@@ -185,6 +185,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         console.log("small else");
         const chat = await chatModel.create({
           members: [req.user._id, supportAdmin],
+          chatWith: "support",
         });
 
         const populatedChat = await chat.populate("members", "_id name");
@@ -199,6 +200,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
 
       const chat = await chatModel.create({
         members: [req.user._id, supportAdmin],
+        chatWith: "support",
       });
 
       const populatedChat = await chat.populate("members", "_id name");
@@ -254,15 +256,13 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
 
     if (existingChat && existingChat.length > 0) {
       return next(
-        new ApiError(
-          `There is a chat with id: ${existingChat[0]._id} aready exists between Student: ${req.user._id} and Teacher: ${Class.teacher}`,
-          400
-        )
+        new ApiError(`There is already a chat with this teacher`, 400)
       );
     }
 
     const chat = await chatModel.create({
       members: [req.user._id, Class.teacher],
+      chatWith: "teacher",
     });
 
     const populatedChat = await chat.populate("members", "_id name");
@@ -312,19 +312,19 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
 
 exports.getUserChats = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
-  const { page, limit, skip } = req.query;
+  const { page, limit, skip, ...query } = req.query;
+  const baseQuery = { members: { $in: [userId] }, ...query }; // Spread query properties here
 
   const pageNum = page * 1 || 1;
   const limitNum = limit * 1 || 5;
   const skipNum = (pageNum - 1) * limit;
-  const totalPostsCount = await chatModel.countDocuments({
-    members: { $in: [userId] },
-  });
+  const totalPostsCount = await chatModel.countDocuments(baseQuery);
+
   const totalPages = Math.ceil(totalPostsCount / limitNum);
 
   try {
     const chats = await chatModel
-      .find({ members: { $in: [userId] } })
+      .find(baseQuery)
       .sort({ createdAt: -1 })
       .skip(skipNum)
       .limit(limitNum)
@@ -395,6 +395,15 @@ exports.closeSupportChat = asyncHandler(async (req, res, next) => {
     const chat = await chatModel.findById(chatId);
 
     // console.log("chat", chat)
+
+    if (chat.chatWith == "teacher") {
+      return next(
+        new ApiError(
+          `Can't close a chat with teacher, Only chat with support can be closed.`,
+          400
+        )
+      );
+    }
 
     if (!chat) {
       return next(new ApiError(`Chat not found`, 404));

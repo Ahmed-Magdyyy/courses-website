@@ -7,7 +7,7 @@ const {
   getUser,
   createUser,
   deleteUser,
-  updateuser,
+  updateUser,
   updateUserPassword,
   //----- /Admin Routes -----
 
@@ -59,7 +59,7 @@ Router.route("/").get(getUsers).post(createUser);
 Router.route("/:id")
   .get(getUser)
   .delete(deleteUser)
-  .put(updateuser);
+  .put(updateUser);
 
 Router.put("/changePassword/:id", updateUserPassword);
 

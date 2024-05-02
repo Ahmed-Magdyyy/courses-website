@@ -20,6 +20,10 @@ const chatSchema = new mongoose.Schema({
     type: String,
     enum: ["open", "closed"],
     default: "open"
+  },
+  chatWith:{
+    type: String,
+    enum: ["support", "teacher"],
   }
 }, {timestamps:true});
 

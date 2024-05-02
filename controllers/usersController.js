@@ -208,7 +208,7 @@ exports.createUser = asyncHandler(async (req, res, next) => {
   res.status(201).json({ message: "Success", data: newDoc });
 });
 
-exports.updateuser = asyncHandler(async (req, res, next) => {
+exports.updateUser = asyncHandler(async (req, res, next) => {
   const { name, email, phone, remainingClasses, enabledControls } = req.body;
 
   const User = await usersModel.findByIdAndUpdate(
