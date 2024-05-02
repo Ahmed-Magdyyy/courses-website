@@ -23,7 +23,7 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
   if (!chat.members.includes(req.user._id)) {
     return next(
       new ApiError(
-        `You can't access this chat since you are not a party in it`,
+        `You can't access this chat since you are not a member in it`,
         401
       )
     );
@@ -58,14 +58,8 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
       const user = users.find(
         (user) => user.userId.toString() === receiver._id.toString()
       );
-      console.log("pppp")
-      console.log("user",user)
-      console.log("receiver._id.toString()",receiver._id.toString())
-      console.log("user.userId.toString()",user.userId.toString())
-      console.log("receiver._id.toString() == user.userId.toString()",receiver._id.toString() === user.userId.toString())
 
       if (user !== undefined) {
-        console.log("hhhhhhh")
         io.to(user.socketId).emit("notification", {
           userId,
           scope,

@@ -371,9 +371,8 @@ exports.findSpecificChat = asyncHandler(async (req, res, next) => {
   const { chatId } = req.params;
 
   try {
-    const chat = await chatModel
-      .findById(chatId)
-      .populate("members", "_id name role");
+    const chat = await chatModel.findById(chatId);
+    // .populate("members", "_id name role");
 
     if (!chat) {
       return next(
@@ -381,7 +380,18 @@ exports.findSpecificChat = asyncHandler(async (req, res, next) => {
       );
     }
 
-    res.status(200).json({ chat });
+    if (!chat.members.includes(req.user._id)) {
+      return next(
+        new ApiError(
+          `You can't access this chat since you are not a member in it`,
+          401
+        )
+      );
+    }
+
+    res
+      .status(200)
+      .json({ chat: await chat.populate("members", "_id name role") });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error });
