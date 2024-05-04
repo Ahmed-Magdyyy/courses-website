@@ -50,7 +50,7 @@ Router.delete("/deleteLoggedUserData", deleteLoggedUserData);
 
 //----- Admin Routes -----
 Router.get(
-  "/studentsOfTeacher/:teacher",
+  "/studentsOfTeacher",
   Router.use(allowedTo("teacher")),
   getTeacher_students
 );
