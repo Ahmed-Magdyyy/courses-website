@@ -14,6 +14,11 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
     .tz("Africa/Cairo")
     .format("YYYY-MM-DDTHH:mm:ss[Z]");
 
+  // Check if text field is empty
+  if (!text.trim()) {
+    return next(new ApiError("Message text cannot be empty", 400));
+  }
+
   const chat = await chatModel.findById(chatId);
 
   if (!chat) {
@@ -70,13 +75,11 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
       }
     }
 
-    res
-      .status(200)
-      .json({
-        message: `message sent successfully, and a notification was sent to user ${receiver._id}`,
-        messageSent: Message,
-        notification: { userId, scope, message, _id, createdAt },
-      });
+    res.status(200).json({
+      message: `message sent successfully, and a notification was sent to user ${receiver._id}`,
+      messageSent: Message,
+      notification: { userId, scope, message, _id, createdAt },
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
