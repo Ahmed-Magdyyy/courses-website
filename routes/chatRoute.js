@@ -8,7 +8,7 @@ const {
   findSpecificChat,
   startSupportchat,
   closeSupportChat,
-  studentTeacherChat
+  studentTeacherChat,
 } = require("../controllers/chatController");
 
 const {
@@ -30,15 +30,23 @@ Router.route("/studentTeacherChat/:classID").post(
   studentTeacherChat
 );
 
-Router.route("/").get(getUserChats);
+Router.route("/").get(
+  allowedTo("superAdmin", "admin", "teacher", "student"),
+  enabledControls("chat", "support"),
+  getUserChats
+);
 
 Router.route("/:chatId")
   .get(findSpecificChat)
-  .put(allowedTo("superAdmin","admin"), enabledControls("chat","support"), closeSupportChat);
+  .put(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("chat", "support"),
+    closeSupportChat
+  );
 
 Router.route("/users/:firstId/:secondId").get(
-  allowedTo("superAdmin","admin"),
-  enabledControls("chat","support"),
+  allowedTo("superAdmin", "admin"),
+  enabledControls("chat", "support"),
   findChat
 );
 
