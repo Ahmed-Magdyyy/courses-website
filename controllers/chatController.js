@@ -140,6 +140,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
 
     const { io, users } = getIO();
     if (users.length > 0) {
+      console.log("users from socket", users);
       console.log("onlineeee");
 
       const onlineSupportAdmins = users.filter((user) =>
