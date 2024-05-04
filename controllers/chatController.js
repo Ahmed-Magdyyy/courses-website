@@ -147,6 +147,11 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         supportIds.includes(user.userId)
       );
 
+      if(!onlineSupportAdmins || !onlineSupportAdmins.length >0){
+        return next(new ApiError(`no online support admins found`, 404));
+
+      }
+
       console.log("onlineSupportAdmins: ", onlineSupportAdmins);
 
       const onlineAdminWithLowestChatCount = onlineSupportAdmins.find(
