@@ -151,6 +151,9 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         supportAdmin = adminWithLowestChatCount.id;
         var selectedofflineAdmin = adminWithLowestChatCount;
 console.log("no online support admins found no online support admins found")  
+console.log("supportAdmin",supportAdmin)  
+console.log("selectedofflineAdmin",selectedofflineAdmin)  
+console.log("no online support admins found no online support admins found")  
         // return next(new ApiError(`no online support admins found`, 404));
 
       }
