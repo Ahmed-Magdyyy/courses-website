@@ -65,7 +65,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
   try {
     const supportAdmins = await userModel.find({
       role: "admin",
-      enabledControls: { $in: ["support"] },
+      enabledControls: { $in: ["messaging"] },
     });
 
     console.log("supportAdmins", supportAdmins);
@@ -81,7 +81,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       return next(
         new ApiError(
           req.user.role == "admin" &&
-            req.user.enabledControls.includes("support") &&
+            req.user.enabledControls.includes("messaging") &&
             `Can't start support chat since you are an Admin with Support control`,
           404
         )

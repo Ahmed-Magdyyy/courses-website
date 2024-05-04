@@ -32,7 +32,7 @@ Router.route("/studentTeacherChat/:classID").post(
 
 Router.route("/").get(
   allowedTo("superAdmin", "admin", "teacher", "student"),
-  enabledControls("chat", "support"),
+  enabledControls("messaging"),
   getUserChats
 );
 
@@ -40,13 +40,13 @@ Router.route("/:chatId")
   .get(findSpecificChat)
   .put(
     allowedTo("superAdmin", "admin"),
-    enabledControls("chat", "support"),
+    enabledControls("messaging"),
     closeSupportChat
   );
 
 Router.route("/users/:firstId/:secondId").get(
   allowedTo("superAdmin", "admin"),
-  enabledControls("chat", "support"),
+  enabledControls("messaging"),
   findChat
 );
 
