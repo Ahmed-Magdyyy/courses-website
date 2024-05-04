@@ -147,31 +147,34 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         supportIds.includes(user.userId)
       );
 
-      if(!onlineSupportAdmins || !onlineSupportAdmins.length >0){
+      if (!onlineSupportAdmins || !onlineSupportAdmins.length > 0) {
         supportAdmin = adminWithLowestChatCount.id;
         var selectedofflineAdmin = adminWithLowestChatCount;
-console.log("no online support admins found no online support admins found")  
-console.log("supportAdmin",supportAdmin)  
-console.log("selectedofflineAdmin",selectedofflineAdmin)  
-console.log("no online support admins found no online support admins found")  
+        console.log(
+          "no online support admins found no online support admins found"
+        );
+        console.log("supportAdmin", supportAdmin);
+        console.log("selectedofflineAdmin", selectedofflineAdmin);
+        console.log(
+          "no online support admins found no online support admins found"
+        );
         // return next(new ApiError(`no online support admins found`, 404));
+      } else {
+        console.log("onlineSupportAdmins: ", onlineSupportAdmins);
 
+        const onlineAdminWithLowestChatCount = onlineSupportAdmins.find(
+          (admin) => admin.userId === adminWithLowestChatCount.id
+        );
+
+        console.log(
+          "Online admin with lowest chat count:",
+          onlineAdminWithLowestChatCount
+        );
+        var selectedOnlineAdmin = onlineAdminWithLowestChatCount;
+        supportAdmin = onlineAdminWithLowestChatCount.userId;
+
+        console.log("Final supportAdmin:", supportAdmin);
       }
-
-      console.log("onlineSupportAdmins: ", onlineSupportAdmins);
-
-      const onlineAdminWithLowestChatCount = onlineSupportAdmins.find(
-        (admin) => admin.userId === adminWithLowestChatCount.id
-      );
-
-      console.log(
-        "Online admin with lowest chat count:",
-        onlineAdminWithLowestChatCount
-      );
-      var selectedOnlineAdmin = onlineAdminWithLowestChatCount;
-      supportAdmin = onlineAdminWithLowestChatCount.userId;
-
-      console.log("Final supportAdmin:", supportAdmin);
     } else {
       console.log("offlineeee");
       supportAdmin = adminWithLowestChatCount.id;
