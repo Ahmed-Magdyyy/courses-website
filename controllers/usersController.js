@@ -352,7 +352,7 @@ exports.deleteLoggedUserData = asyncHandler(async (req, res, next) => {
 //----- /User Routes -----
 
 exports.getTeacher_students = asyncHandler(async (req, res, next) => {
-  const teacher = req.params.teacher;
+  const teacher = req.user._id;
   const classesOfTeacher = await classModel.find({ teacher });
 
   const classesStudentss = classesOfTeacher.map((cls) =>
