@@ -43,6 +43,21 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
           name: 1,
           email: 1,
           phone: 1,
+          role: 1,
+          password: 1,
+          passwordChangedAT: 1,
+          passwordResetCode: 1,
+          passwordResetCodeExpire: 1,
+          passwordResetCodeVerified: 1,
+          enabledControls: 1,
+          account_status: 1,
+          active: 1,
+          courses: 1,
+          classes: 1,
+          products: 1,
+          remainingClasses: 1,
+          createdAt: 1,
+          updatedAt: 1,
           classes: {
             $map: {
               input: "$classes",
@@ -166,7 +181,8 @@ exports.getUser = asyncHandler(async (req, res, next) => {
                   status: "$$class.status",
                 },
               },
-            },          },
+            },
+          },
         },
         {
           $addFields: {
