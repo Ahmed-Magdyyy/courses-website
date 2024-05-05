@@ -368,5 +368,9 @@ exports.getTeacher_students = asyncHandler(async (req, res, next) => {
     Array.from(new Set(classesStudents.flat().map((id) => id.toString())))
   );
 
-  res.status(200).json({ message: true , studentsOfTeacher:classesStudents});
+  filteredStudents = Array.from(
+    new Set(classesStudents.flat().map((id) => id.toString()))
+  );
+
+  res.status(200).json({ message: true, studentsOfTeacher: filteredStudents });
 });
