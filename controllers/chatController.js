@@ -147,7 +147,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         supportIds.includes(user.userId)
       );
 
-      if (!onlineSupportAdmins || !onlineSupportAdmins.length > 0) {
+      if (!onlineSupportAdmins || onlineSupportAdmins.length == 0) {
         supportAdmin = adminWithLowestChatCount.id;
         var selectedofflineAdmin = adminWithLowestChatCount;
         console.log(
@@ -170,8 +170,15 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
           "Online admin with lowest chat count:",
           onlineAdminWithLowestChatCount
         );
-        var selectedOnlineAdmin = onlineAdminWithLowestChatCount;
-        supportAdmin = onlineAdminWithLowestChatCount.userId;
+
+        if (onlineAdminWithLowestChatCount) {
+          var selectedOnlineAdmin = onlineAdminWithLowestChatCount;
+          supportAdmin = onlineAdminWithLowestChatCount.userId;
+        } else {
+        supportAdmin = adminWithLowestChatCount.id;
+
+        }
+
 
         console.log("Final supportAdmin:", supportAdmin);
       }
@@ -440,7 +447,7 @@ exports.closeSupportChat = asyncHandler(async (req, res, next) => {
       chat.members.includes(req.user._id) && req.user.role === "admin"
     );
 
-    if (chat.members.includes(req.user._id) && req.user.role === "admin") {
+    if (chat.members.includes(req.user._id) && req.user.role === "admin" || req.user.role === "superAdmin") {
       if (chat.status === "closed") {
         return next(new ApiError(`Chat already closed`, 400));
       }
