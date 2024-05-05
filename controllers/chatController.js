@@ -428,6 +428,15 @@ exports.closeSupportChat = asyncHandler(async (req, res, next) => {
 
     // console.log("chat", chat)
 
+    if (!chat) {
+      return next(
+        new ApiError(
+          `No chat found`,
+          404
+        )
+      );
+    }
+
     if (chat.chatWith == "teacher") {
       return next(
         new ApiError(
