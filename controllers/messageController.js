@@ -34,6 +34,15 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
     );
   }
 
+  if (chat.status === "closed") {
+    return next(
+      new ApiError(
+        `Chat is closed! you can't send messages.`,
+        400
+      )
+    );
+  }
+
   const chatData = await chat.populate("members", "_id name role");
 
   const receiver = chatData.members.find(
