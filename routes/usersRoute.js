@@ -49,33 +49,16 @@ Router.delete("/deleteLoggedUserData", deleteLoggedUserData);
 //----- /User Routes -----
 
 //----- Admin Routes -----
+Router.get("/studentsOfTeacher", allowedTo("teacher"), getTeacher_students);
 
-Router.route("/")
-  .get(allowedTo("superAdmin", "admin"), enabledControls("users"), getUsers)
-  .post(allowedTo("superAdmin", "admin"), enabledControls("users"), createUser);
+Router.use(allowedTo("superAdmin", "admin"));
+Router.use(enabledControls("users"));
 
-Router.route("/:id")
-  .get(allowedTo("superAdmin", "admin"), enabledControls("users"), getUser)
-  .delete(
-    allowedTo("superAdmin", "admin"),
-    enabledControls("users"),
-    deleteUser
-  )
-  .put(allowedTo("superAdmin", "admin"), enabledControls("users"), updateUser);
+Router.route("/").get(getUsers).post(createUser);
 
-Router.put(
-  "/changePassword/:id",
-  allowedTo("superAdmin", "admin"),
-  enabledControls("users"),
-  updateUserPassword
-);
+Router.route("/:id").get(getUser).delete(deleteUser).put(updateUser);
+
+Router.put("/changePassword/:id", updateUserPassword);
 
 //----- /Admin Routes -----
-
-Router.get(
-  "/studentsOfTeacher",
-  Router.use(allowedTo("teacher")),
-  getTeacher_students
-);
-
 module.exports = Router;
