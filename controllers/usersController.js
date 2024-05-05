@@ -355,14 +355,18 @@ exports.getTeacher_students = asyncHandler(async (req, res, next) => {
   const teacher = req.user._id;
   const classesOfTeacher = await classModel.find({ teacher });
 
-  const classesStudentss = classesOfTeacher.map((cls) =>
+  if (!classesOfTeacher || classesOfTeacher.length === 0) {
+    return next(new ApiError(`No classes found for this teacher`, 404));
+  }
+
+  const classesStudents = classesOfTeacher.map((cls) =>
     cls.studentsEnrolled.map((students) => students)
   );
   console.log("classesOfTeacher", classesOfTeacher);
   console.log(
-    "classesStudentss",
-    Array.from(new Set(classesStudentss.flat().map((id) => id.toString())))
+    "classesStudents",
+    Array.from(new Set(classesStudents.flat().map((id) => id.toString())))
   );
 
-  res.status(200).json({message:true})
+  res.status(200).json({ message: true , studentsOfTeacher:classesStudents});
 });
