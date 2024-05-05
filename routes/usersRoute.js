@@ -41,8 +41,6 @@ const {
 // applied on all routes
 Router.use(protect);
 
-
-
 Router.get("/getLoggedUser", getLoggedUser, getUser);
 Router.put("/updateLoggedUserPassword", updateLoggedUserPassword);
 Router.put("/updateLoggedUserData", updateLoggedUserData);
@@ -52,15 +50,25 @@ Router.delete("/deleteLoggedUserData", deleteLoggedUserData);
 
 //----- Admin Routes -----
 
+Router.route("/")
+  .get(allowedTo("superAdmin", "admin"), enabledControls("users"), getUsers)
+  .post(allowedTo("superAdmin", "admin"), enabledControls("users"), createUser);
 
-Router.use(allowedTo("superAdmin", "admin"));
-Router.use(enabledControls("users"));
+Router.route("/:id")
+  .get(allowedTo("superAdmin", "admin"), enabledControls("users"), getUser)
+  .delete(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("users"),
+    deleteUser
+  )
+  .put(allowedTo("superAdmin", "admin"), enabledControls("users"), updateUser);
 
-Router.route("/").get(getUsers).post(createUser);
-
-Router.route("/:id").get(getUser).delete(deleteUser).put(updateUser);
-
-Router.put("/changePassword/:id", updateUserPassword);
+Router.put(
+  "/changePassword/:id",
+  allowedTo("superAdmin", "admin"),
+  enabledControls("users"),
+  updateUserPassword
+);
 
 //----- /Admin Routes -----
 
