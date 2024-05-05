@@ -41,11 +41,7 @@ const {
 // applied on all routes
 Router.use(protect);
 
-Router.get(
-  "/studentsOfTeacher",
-  Router.use(allowedTo("teacher")),
-  getTeacher_students
-);
+
 
 Router.get("/getLoggedUser", getLoggedUser, getUser);
 Router.put("/updateLoggedUserPassword", updateLoggedUserPassword);
@@ -68,5 +64,10 @@ Router.put("/changePassword/:id", updateUserPassword);
 
 //----- /Admin Routes -----
 
+Router.get(
+  "/studentsOfTeacher",
+  Router.use(allowedTo("teacher")),
+  getTeacher_students
+);
 
 module.exports = Router;
