@@ -55,14 +55,28 @@ Router.get(
   getTeacher_students
 );
 
-Router.use(allowedTo("superAdmin", "admin"));
-Router.use(enabledControls("users"));
+// Router.use(allowedTo("superAdmin", "admin"));
+// Router.use(enabledControls("users"));
 
-Router.route("/").get(getUsers).post(createUser);
+Router.route("/")
+  .get(allowedTo("superAdmin", "admin"), enabledControls("users"), getUsers)
+  .post(allowedTo("superAdmin", "admin"), enabledControls("users"), createUser);
 
-Router.route("/:id").get(getUser).delete(deleteUser).put(updateUser);
+Router.route("/:id")
+  .get(getUser)
+  .delete(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("users"),
+    deleteUser
+  )
+  .put(allowedTo("superAdmin", "admin"), enabledControls("users"), updateUser);
 
-Router.put("/changePassword/:id", updateUserPassword);
+Router.put(
+  "/changePassword/:id",
+  allowedTo("superAdmin", "admin"),
+  enabledControls("users"),
+  updateUserPassword
+);
 
 //----- /Admin Routes -----
 module.exports = Router;
