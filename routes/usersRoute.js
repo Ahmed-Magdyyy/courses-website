@@ -41,6 +41,12 @@ const {
 // applied on all routes
 Router.use(protect);
 
+Router.get(
+  "/studentsOfTeacher",
+  Router.use(allowedTo("teacher")),
+  getTeacher_students
+);
+
 Router.get("/getLoggedUser", getLoggedUser, getUser);
 Router.put("/updateLoggedUserPassword", updateLoggedUserPassword);
 Router.put("/updateLoggedUserData", updateLoggedUserData);
@@ -49,11 +55,7 @@ Router.delete("/deleteLoggedUserData", deleteLoggedUserData);
 //----- /User Routes -----
 
 //----- Admin Routes -----
-// Router.get(
-//   "/studentsOfTeacher",
-//   Router.use(allowedTo("teacher")),
-//   getTeacher_students
-// );
+
 
 Router.use(allowedTo("superAdmin", "admin"));
 Router.use(enabledControls("users"));
@@ -65,4 +67,6 @@ Router.route("/:id").get(getUser).delete(deleteUser).put(updateUser);
 Router.put("/changePassword/:id", updateUserPassword);
 
 //----- /Admin Routes -----
+
+
 module.exports = Router;
