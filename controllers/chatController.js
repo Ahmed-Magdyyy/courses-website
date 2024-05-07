@@ -12,15 +12,9 @@ const chatNotify = async (array, user) => {
   // Send notifications to added students
   var adminToNotify = array;
 
-  console.log("adminToNotifyyyyy", adminToNotify);
-  // var userId;
-  // var socketID;
   if (adminToNotify.socketId) {
     let userID = adminToNotify.userId;
     let socketID = adminToNotify.socketId;
-    console.log("ONLINE userId:", userID);
-    console.log("ONLINE socketID:", socketID);
-    console.log("USER USER USER:", user);
 
     const adminNotification = await Notification.create({
       scope: "chat",
@@ -90,13 +84,14 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
 
     // Check if there's any open support chat with any other admin
     const openChats = await chatModel.find({
+      chatWith: "support",
       status: "open",
       members: { $in: [req.user._id] },
     });
 
     console.log("openChats", openChats);
 
-    if (openChats.length > 0) {
+    if (openChats && openChats.length > 0) {
       return next(new ApiError(`There is already an open support chat`, 400));
     }
 
@@ -175,10 +170,8 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
           var selectedOnlineAdmin = onlineAdminWithLowestChatCount;
           supportAdmin = onlineAdminWithLowestChatCount.userId;
         } else {
-        supportAdmin = adminWithLowestChatCount.id;
-
+          supportAdmin = adminWithLowestChatCount.id;
         }
-
 
         console.log("Final supportAdmin:", supportAdmin);
       }
@@ -193,6 +186,8 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
     console.log("supportAdmin after ifs", supportAdmin);
 
     const existingChat = await chatModel.find({
+      chatWith: "support",
+      status: "open",
       members: {
         $all: [req.user._id, supportAdmin],
       },
@@ -201,25 +196,8 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
     console.log("existingChat", existingChat);
 
     if (existingChat && existingChat.length > 0) {
-      if (existingChat[0].status === "open") {
-        return next(new ApiError(`There is already an open support chat`, 400));
-      } else {
-        console.log("small else");
-        const chat = await chatModel.create({
-          members: [req.user._id, supportAdmin],
-          chatWith: "support",
-        });
-
-        const populatedChat = await chat.populate("members", "_id name");
-
-        // Proceed with creating a new chat
-        res
-          .status(200)
-          .json({ message: "chat created successfully", populatedChat });
-      }
+      return next(new ApiError(`There is already an open support chat`, 400));
     } else {
-      console.log("big else");
-
       const chat = await chatModel.create({
         members: [req.user._id, supportAdmin],
         chatWith: "support",
@@ -429,12 +407,7 @@ exports.closeSupportChat = asyncHandler(async (req, res, next) => {
     // console.log("chat", chat)
 
     if (!chat) {
-      return next(
-        new ApiError(
-          `No chat found`,
-          404
-        )
-      );
+      return next(new ApiError(`No chat found`, 404));
     }
 
     if (chat.chatWith == "teacher") {
@@ -456,7 +429,10 @@ exports.closeSupportChat = asyncHandler(async (req, res, next) => {
       chat.members.includes(req.user._id) && req.user.role === "admin"
     );
 
-    if (chat.members.includes(req.user._id) && req.user.role === "admin" || req.user.role === "superAdmin") {
+    if (
+      (chat.members.includes(req.user._id) && req.user.role === "admin") ||
+      req.user.role === "superAdmin"
+    ) {
       if (chat.status === "closed") {
         return next(new ApiError(`Chat already closed`, 400));
       }

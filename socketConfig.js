@@ -33,7 +33,7 @@ function initSocketServer(server) {
       console.log("users connected to socket", users);
     });
 
-    socket.on("sendMessage", ({ senderId, receiverId, text }) => {
+    socket.on("sendMessage", ({ senderId, receiverId, text, sentAt }) => {
       const user = getUser(receiverId);
 
       if (user == undefined || !user) {
@@ -43,22 +43,10 @@ function initSocketServer(server) {
 
       io.to(user.socketId).emit("getMessage", {
         senderId,
+        receiverId,
         text,
+        sentAt,
       });
-
-      const currentTime = moment()
-        .tz("Africa/Cairo")
-        .format("YYYY-MM-DDTHH:mm:ss[Z]");
-
-      // io.to(user.socketId).emit("notification", {
-      //   senderId,
-      //   isRead: false,
-      //   createdAt: currentTime,
-      // });
-
-      socket.on("broadcast", () =>(message)=>{
-        io.broadcast.emit(message)
-      })
     });
 
     socket.on("broadcast", (message) => {
@@ -73,7 +61,7 @@ function initSocketServer(server) {
     });
   });
 
-  return io.listen(3005)
+  return io.listen(3005);
 }
 
 function getIO() {

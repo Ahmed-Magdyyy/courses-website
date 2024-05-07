@@ -1,5 +1,7 @@
-const asyncHandler = require("express-async-handler");
+const fs = require("fs");
+const multer = require("multer");
 const moment = require("moment-timezone");
+const asyncHandler = require("express-async-handler");
 
 const messageModel = require("../models/messageModel");
 const chatModel = require("../models/chatModel");
@@ -7,25 +9,136 @@ const ApiError = require("../utils/ApiError");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 
+function deleteUploadedFile(file) {
+  if (file) {
+    const filePath = `${file.path}`;
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Error deleting image:", err);
+      } else {
+        console.log("Image deleted successfully:", file.path);
+      }
+    });
+  }
+}
+
+const multerStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/messages");
+  },
+  filename: function (req, file, cb) {
+    const ext = file.mimetype.split("/")[1];
+    const currentDate = moment.tz("Africa/Cairo").format("DDMMYYYY");
+    const currentTime = moment.tz("Africa/Cairo").format("HH-mm-ss");
+    const filename = `message-${currentDate}-${currentTime}-${Math.floor(
+      Math.random() * 1000000
+    )}.${ext}`;
+    cb(null, filename);
+  },
+});
+
+const multerfilter = function (req, file, cb) {
+  if (file.mimetype.startsWith("image") || file.mimetype.startsWith("video")) {
+    cb(null, true);
+  } else {
+    cb(new ApiError("Only images and videos are allowed", 400), false);
+  }
+};
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerfilter,
+  limits: {
+    files: 10, // Limit total number of files to 10
+  },
+}).array("media", 10); // Accept up to 10 media files
+
+exports.uploadPostMedia = (req, res, next) => {
+  upload(req, res, function (err) {
+    let mediaFiles = [];
+
+    // Check uploaded files
+    if (req.files) mediaFiles = req.files;
+
+    // Check the total number of files
+    if (mediaFiles.length > 10) {
+      // Delete uploaded files
+      mediaFiles.forEach((file) => deleteUploadedFile(file));
+      return next(new ApiError("Exceeded maximum number of files (10)", 400));
+    }
+
+    // Validate each file
+    mediaFiles.forEach((file) => {
+      if (
+        !file.mimetype.startsWith("image") &&
+        !file.mimetype.startsWith("video")
+      ) {
+        // Delete uploaded files
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+        return next(new ApiError("Only images and videos are allowed", 400));
+      }
+      // Check file size for videos
+      if (file.mimetype.startsWith("video") && file.size > 25 * 1024 * 1024) {
+        // Delete uploaded files
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+        return next(new ApiError("Video file size exceeds 25 MB", 400));
+      }
+      // Check file size for images
+      if (
+        file.mimetype.startsWith("image") &&
+        file.size > 5 * 1024 * 1024 // 5 MB limit for images
+      ) {
+        // Delete uploaded files
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+        return next(new ApiError("Image file size exceeds 5 MB", 400));
+      }
+      // Add file information to req.body.media
+      req.body.media = req.body.media || []; // Initialize req.body.media if it's undefined
+      req.body.media.push({
+        type: file.mimetype.startsWith("image") ? "image" : "video",
+        url: file.filename,
+      });
+    });
+
+    if (err) {
+      if (req.files) {
+        mediaFiles.forEach((file) => deleteUploadedFile(file));
+      }
+      return next(
+        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
+      );
+    }
+
+    next();
+  });
+};
+
 exports.createmessage = asyncHandler(async (req, res, next) => {
   const { chatId } = req.params;
   const { text } = req.body;
-  const currentTime = moment()
-    .tz("Africa/Cairo")
-    .format("YYYY-MM-DDTHH:mm:ss[Z]");
+  const media = req.body.media || [];
 
   // Check if text field is empty
   if (!text.trim()) {
+    if (req.files) {
+      req.files.forEach((file) => deleteUploadedFile(file));
+    }
     return next(new ApiError("Message text cannot be empty", 400));
   }
 
   const chat = await chatModel.findById(chatId);
 
   if (!chat) {
+    if (req.files) {
+      req.files.forEach((file) => deleteUploadedFile(file));
+    }
     return next(new ApiError(`No chat found for this chatid ${chatId}`, 404));
   }
 
   if (!chat.members.includes(req.user._id)) {
+    if (req.files) {
+      req.files.forEach((file) => deleteUploadedFile(file));
+    }
     return next(
       new ApiError(
         `You can't access this chat since you are not a member in it`,
@@ -35,12 +148,10 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
   }
 
   if (chat.status === "closed") {
-    return next(
-      new ApiError(
-        `Chat is closed! you can't send messages.`,
-        400
-      )
-    );
+    if (req.files) {
+      req.files.forEach((file) => deleteUploadedFile(file));
+    }
+    return next(new ApiError(`Chat is closed! you can't send messages.`, 400));
   }
 
   const chatData = await chat.populate("members", "_id name role");
@@ -54,6 +165,7 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
       chatId,
       senderId: req.user._id,
       text,
+      media,
     });
 
     // send offline notification to message receiver
@@ -81,16 +193,33 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
           _id,
           createdAt,
         });
+
+        io.to(user.socketId).emit("getMessage", {
+          senderId: Message.senderId,
+          receiverId: receiver,
+          text: Message.text,
+          sentAt: Message.createdAt,
+        });
+
+        // io.to(user.socketId).emit("getMessage", {
+        //   senderId: req.user._id,
+        //   receiverId: receiver._id,
+        //   text,
+        //   sentAt: Message.createdAt,
+        // });
       }
     }
 
     res.status(200).json({
       message: `message sent successfully, and a notification was sent to user ${receiver._id}`,
       messageSent: Message,
-      notification: { userId, scope, message, _id, createdAt },
+      // notification: { userId, scope, message, _id, createdAt },
     });
   } catch (error) {
     console.log(error);
+    if (req.files) {
+      req.files.forEach((file) => deleteUploadedFile(file));
+    }
     res.status(500).json({ error: error.message });
   }
 });

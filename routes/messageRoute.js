@@ -4,6 +4,7 @@ const Router = express.Router();
 const {
   createmessage,
   getMessages,
+  uploadPostMedia
 } = require("../controllers/messageController");
 
 const {
@@ -15,7 +16,7 @@ const {
 // applied on all routes
 Router.use(protect);
 
-Router.post("/:chatId", createmessage)
+Router.post("/:chatId",uploadPostMedia, createmessage)
   .get("/:chatId", getMessages)
 
 module.exports = Router;
