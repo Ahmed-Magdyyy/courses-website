@@ -521,3 +521,7 @@ exports.removeStudentsFromProduct = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
+
+exports.getStudentsOfProduct = asyncHandler(async (req, res, next) => {
+  const {productId} = req.params
+})

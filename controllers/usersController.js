@@ -11,7 +11,7 @@ const mongoose = require("mongoose");
 //----- Admin Routes -----
 
 exports.getUsers = asyncHandler(async (req, res, next) => {
-  let filter = { active: true };
+  let filter = {};
   const { page, limit, skip, ...query } = req.query;
 
   if (query && query.role) {
@@ -351,26 +351,52 @@ exports.deleteLoggedUserData = asyncHandler(async (req, res, next) => {
 
 //----- /User Routes -----
 
+
 exports.getTeacher_students = asyncHandler(async (req, res, next) => {
   const teacher = req.user._id;
-  const classesOfTeacher = await classModel.find({ teacher });
+  const { page, limit, ...query } = req.query;
+
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limitNum;
+
+  const classesOfTeacher = await classModel.find({ teacher }).populate("studentsEnrolled", "-__v");
 
   if (!classesOfTeacher || classesOfTeacher.length === 0) {
     return next(new ApiError(`No classes found for this teacher`, 404));
   }
 
-  const classesStudents = classesOfTeacher.map((cls) =>
-    cls.studentsEnrolled.map((students) => students)
-  );
-  console.log("classesOfTeacher", classesOfTeacher);
-  console.log(
-    "classesStudents",
-    Array.from(new Set(classesStudents.flat().map((id) => id.toString())))
-  );
+  let uniqueStudents = new Set(); // Initialize a set to store unique student IDs
+  let uniqueStudentsData = []; // Initialize an array to store unique student objects
 
-  filteredStudents = Array.from(
-    new Set(classesStudents.flat().map((id) => id.toString()))
-  );
+  classesOfTeacher.forEach(cls => {
+    cls.studentsEnrolled.forEach(student => {
+      // Check if the student ID is not already in the set
+      if (!uniqueStudents.has(student._id.toString())) {
+        uniqueStudents.add(student._id.toString()); // Add student ID to the set
+        uniqueStudentsData.push(student); // Push the student object to the array
+      }
+    });
+  });
 
-  res.status(200).json({ message: true, studentsOfTeacher: filteredStudents });
+  // Apply filtering based on query parameters
+  if (Object.keys(query).length > 0) {
+    uniqueStudentsData = uniqueStudentsData.filter(student => {
+      for (const key in query) {
+        if (student[key] !== query[key]) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  const totalUsersCount = uniqueStudentsData.length;
+
+  const totalPages = Math.ceil(totalUsersCount / limitNum);
+
+  const paginatedStudents = uniqueStudentsData.slice(skipNum, skipNum + limitNum);
+
+  res.status(200).json({ message: "Success", totalPages, page: pageNum, totalUsersCount, studentsOfTeacher: paginatedStudents });
 });
+
