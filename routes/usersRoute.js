@@ -49,7 +49,12 @@ Router.delete("/deleteLoggedUserData", deleteLoggedUserData);
 //----- /User Routes -----
 
 //----- Admin Routes -----
-Router.get("/studentsOfTeacher", allowedTo("teacher"), getTeacher_students);
+Router.get(
+  "/studentsOfTeacher",
+  allowedTo("superAdmin", "admin", "teacher"),
+  enabledControls("users"),
+  getTeacher_students
+);
 
 Router.use(allowedTo("superAdmin", "admin"));
 Router.use(enabledControls("users"));

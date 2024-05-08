@@ -351,7 +351,6 @@ exports.deleteLoggedUserData = asyncHandler(async (req, res, next) => {
 
 //----- /User Routes -----
 
-
 exports.getTeacher_students = asyncHandler(async (req, res, next) => {
   const teacher = req.user._id;
   const { page, limit, ...query } = req.query;
