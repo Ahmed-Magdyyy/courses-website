@@ -180,6 +180,8 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
     // Emit the notification to message receiver
     const { io, users } = getIO();
 
+    const populatedMessage = await Message.populate("senderId", "name role");
+
     if (users.length > 0) {
       const user = users.find(
         (user) => user.userId.toString() === receiver._id.toString()
@@ -194,24 +196,12 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
           createdAt,
         });
 
-        io.to(user.socketId).emit("getMessage", {
-          senderId: Message.senderId,
-          receiverId: receiver,
-          text: Message.text,
-          sentAt: Message.createdAt,
-        });
-
-        // io.to(user.socketId).emit("getMessage", {
-        //   senderId: req.user._id,
-        //   receiverId: receiver._id,
-        //   text,
-        //   sentAt: Message.createdAt,
-        // });
+        io.to(user.socketId).emit("getMessage", populatedMessage);
       }
     }
 
     res.status(200).json({
-      message: `message sent successfully, and a notification was sent to user ${receiver._id}`,
+      message: `Message sent successfully`,
       messageSent: Message,
       // notification: { userId, scope, message, _id, createdAt },
     });
