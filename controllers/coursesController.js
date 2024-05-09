@@ -172,7 +172,12 @@ exports.getAllCourses = asyncHandler(async (req, res, next) => {
       .populate("studentsEnrolled", "_id name email phone")
       .skip(skipNum)
       .limit(limitNum);
-    res.status(200).json({totalPages, page: pageNum, results: documents.length, data: documents });
+    res.status(200).json({
+      totalPages,
+      page: pageNum,
+      results: documents.length,
+      data: documents,
+    });
   } else {
     const totalCoursesCount = await coursesModel.countDocuments(filter);
     const totalPages = Math.ceil(totalCoursesCount / limitNum);
@@ -182,9 +187,12 @@ exports.getAllCourses = asyncHandler(async (req, res, next) => {
       .populate("studentsEnrolled", "_id name email phone")
       .skip(skipNum)
       .limit(limitNum);
-    res
-      .status(200)
-      .json({totalPages, page: pageNum, results: documents.length, data: documents });
+    res.status(200).json({
+      totalPages,
+      page: pageNum,
+      results: documents.length,
+      data: documents,
+    });
   }
 });
 
@@ -445,5 +453,53 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
     res.status(204).send("Document deleted successfully");
   } catch (error) {
     next(error);
+  }
+});
+
+exports.getStudentsOfCourse = asyncHandler(async (req, res, next) => {
+  const { courseId } = req.params;
+
+  const { page, limit, ...query } = req.query;
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+
+  try {
+    // Find the product by ID
+    const course = await coursesModel.findById(courseId);
+
+    if (!course) {
+      return next(new ApiError(`No course found for this id:${courseId}`, 404));
+    }
+
+    // Query students directly with pagination and filtering
+    const students = await coursesModel
+      .findById(courseId)
+      .select("studentsEnrolled")
+      .slice("studentsEnrolled", [skipNum, limitNum])
+      .populate({
+        path: "studentsEnrolled",
+        match: { ...query },
+        select: "-__v",
+      });
+
+    console.log("====================================");
+    console.log(students);
+    console.log("====================================");
+
+    // Calculate total pages based on total students count and limit
+    const totalStudentsCount = course.studentsEnrolled.length;
+    const totalPages = Math.ceil(totalStudentsCount / limitNum);
+
+    res.status(200).json({
+      message: "Success",
+      totalPages,
+      page: pageNum,
+      results: students.studentsEnrolled.length,
+      students: students.studentsEnrolled,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });

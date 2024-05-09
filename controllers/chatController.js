@@ -206,7 +206,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       const populatedChat = await chat.populate("members", "_id name");
 
       // Proceed with creating a new chat
-      if (users && users.length > 0) {
+      if (users && users.length > 0 && selectedOnlineAdmin) {
         chatNotify(selectedOnlineAdmin, req.user._id);
         console.log(
           "selectedOnlineAdmin selectedOnlineAdmin",

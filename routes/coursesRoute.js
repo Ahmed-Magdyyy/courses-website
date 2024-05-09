@@ -10,6 +10,7 @@ const {
   deleteCourse,
   addStudentsToCourse,
   removeStudentFromCourse,
+  getStudentsOfCourse
 } = require("../controllers/coursesController");
 
 const {
@@ -58,6 +59,12 @@ Router.route("/:id/removeStudents").put(
   allowedTo("superAdmin", "admin"),
   enabledControls("courses"),
   removeStudentFromCourse
+);
+
+Router.route("/courseStudents/:courseId").get(
+  allowedTo("superAdmin", "admin"),
+  enabledControls("courses"),
+  getStudentsOfCourse
 );
 
 module.exports = Router;

@@ -194,7 +194,7 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
 
 exports.getAllProducts = asyncHandler(async (req, res, next) => {
   let filter = {};
-  const { page, limit, skip, ...query } = req.query;
+  const { page, limit, ...query } = req.query;
 
   const pageNum = page * 1 || 1;
   const limitNum = limit * 1 || 5;
@@ -218,11 +218,16 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
       .select("-students")
       .skip(skipNum)
       .limit(limitNum);
-    res
-      .status(200)
-      .json({totalPages, page: pageNum, results: documents.length, data: documents });
+    res.status(200).json({
+      totalPages,
+      page: pageNum,
+      results: documents.length,
+      data: documents,
+    });
   } else if (req.user.role === "teacher") {
-    const totalProductsCount = await productModel.countDocuments({ teacher: req.user._id });
+    const totalProductsCount = await productModel.countDocuments({
+      teacher: req.user._id,
+    });
     const totalPages = Math.ceil(totalProductsCount / limitNum);
 
     const documents = await productModel
@@ -231,9 +236,12 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
       .populate("students", "_id name email phone")
       .skip(skipNum)
       .limit(limitNum);
-    res
-      .status(200)
-      .json({totalPages, page: pageNum, results: documents.length, data: documents });
+    res.status(200).json({
+      totalPages,
+      page: pageNum,
+      results: documents.length,
+      data: documents,
+    });
   } else {
     const totalProductsCount = await productModel.countDocuments(filter);
     const totalPages = Math.ceil(totalProductsCount / limitNum);
@@ -244,9 +252,12 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
       .populate("students", "_id name email phone")
       .skip(skipNum)
       .limit(limitNum);
-    res
-      .status(200)
-      .json({totalPages, page: pageNum, results: documents.length, data: documents });
+    res.status(200).json({
+      totalPages,
+      page: pageNum,
+      results: documents.length,
+      data: documents,
+    });
   }
 });
 
@@ -523,5 +534,51 @@ exports.removeStudentsFromProduct = asyncHandler(async (req, res, next) => {
 });
 
 exports.getStudentsOfProduct = asyncHandler(async (req, res, next) => {
-  const {productId} = req.params
-})
+  const { productId } = req.params;
+
+  const { page, limit, ...query } = req.query;
+  const pageNum = parseInt(page, 10) || 1;
+  const limitNum = parseInt(limit, 10) || 5;
+  const skipNum = (pageNum - 1) * limitNum;
+
+  try {
+    // Find the product by ID
+    const product = await productModel.findById(productId);
+
+    if (!product) {
+      return next(
+        new ApiError(`No product found for this id:${productId}`, 404)
+      );
+    }
+
+    // Query students directly with pagination and filtering
+    const students = await productModel
+      .findById(productId)
+      .select("students")
+      .slice("students", [skipNum, limitNum])
+      .populate({
+        path: "students",
+        match: { ...query },
+        select: "-__v",
+      });
+
+    console.log("====================================");
+    console.log(students);
+    console.log("====================================");
+
+    // Calculate total pages based on total students count and limit
+    const totalStudentsCount = product.students.length;
+    const totalPages = Math.ceil(totalStudentsCount / limitNum);
+
+    res.status(200).json({
+      message: "Success",
+      totalPages,
+      page: pageNum,
+      results: students.students.length,
+      students: students.students,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
