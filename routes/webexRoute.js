@@ -14,6 +14,7 @@ const {
 
 Router.route("/authorize").get(authorize)
 Router.route("/authorize/callback").get(callBack)
+Router.route("/createmeeting").post(createMeeting)
 
 
 module.exports = Router;

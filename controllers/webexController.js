@@ -1,42 +1,93 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/ApiError");
 const axios = require("axios");
+const moment = require("moment-timezone");
 
-// exports.authorize = () => {
-//   return `https://webexapis.com/v1/authorize?client_id=${process.env.WEBEX_CLIENT_ID}&response_type=code&redirect_uri=${process.env.WEBEX_REDIRECT_URI}&scope=${process.env.WEBEX_SCOPE_LIST}`;
-// };
-// exports.redirect = () => {
-//   return ``;
-// };
+let webex_access_token = "";
 
 exports.authorize = asyncHandler(async (req, res, next) => {
-  const webexAuthUrl = `https://webexapis.com/v1/authorize?client_id=C92232adad92d118df1315f2743475c8c7a3c62ff7dc623731aa9227c64bd67d6&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fv1%2Fwebex%2Fauthorize%2Fcallback&scope=guest-meeting%3Arw%20identity%3Agroups_read%20identity%3Agroups_rw%20identity%3Apeople_read%20identity%3Apeople_rw%20identity%3Atokens_read%20identity%3Atokens_write%20meeting%3Aadmin_config_read%20meeting%3Aadmin_config_write%20meeting%3Aadmin_participants_read%20meeting%3Aadmin_preferences_read%20meeting%3Aadmin_preferences_write%20meeting%3Aadmin_recordings_read%20meeting%3Aadmin_recordings_write%20meeting%3Aadmin_schedule_read%20meeting%3Aadmin_schedule_write%20meeting%3Aadmin_transcripts_read%20meeting%3Acontrols_read%20meeting%3Acontrols_write%20meeting%3Aparticipants_read%20meeting%3Aparticipants_write%20meeting%3Apreferences_read%20meeting%3Apreferences_write%20meeting%3Arecordings_read%20meeting%3Arecordings_write%20meeting%3Aschedules_read%20meeting%3Aschedules_write%20meeting%3Atranscripts_read%20spark%3Akms&state=set_state_here`;
+  const webexAuthUrl = `https://webexapis.com/v1/authorize?client_id=${process.env.WEBEX_CLIENT_ID}&response_type=code&redirect_uri=${process.env.WEBEX_REDIRECT_URI}&scope=${process.env.WEBEX_SCOPE_LIST}`;
   // console.log("webexAuthUrl", webexAuthUrl)
 
-
-  
-
   res.redirect(webexAuthUrl);
-})
+});
 
 exports.callBack = asyncHandler(async (req, res, next) => {
-const {code} = req.query
+  const { code } = req.query;
 
-const tokenResponse = await axios.post('https://webexapis.com/v1/access_token', {
-  client_id: process.env.WEBEX_CLIENT_ID,
-  client_secret: process.env.WEBEX_CLIENT_SECRET,
-  code: code,
-  grant_type: 'authorization_code',
-  redirect_uri: process.env.WEBEX_REDIRECT_URI
+  const tokenResponse = await axios.post(
+    "https://webexapis.com/v1/access_token",
+    {
+      client_id: process.env.WEBEX_CLIENT_ID,
+      client_secret: process.env.WEBEX_CLIENT_SECRET,
+      code: code,
+      grant_type: "authorization_code",
+      redirect_uri: process.env.WEBEX_REDIRECT_URI,
+    }
+  );
+
+  console.log("tokenResponse", tokenResponse.data);
+  const { access_token, expires_in, refresh_token } = tokenResponse.data;
+  webex_access_token = access_token;
+  res.status(200).json({ access_token, expires_in, refresh_token });
 });
 
-console.log("tokenResponse", tokenResponse)
+exports.createMeeting = asyncHandler(async (req, res, next) => {
+  const {
+    title,
+    duration,
+    start_date,
+    start_time,
+    end_date,
+    end_time,
+    hostEmail,
+  } = req.body;
 
+  // Combine start_date and start_time to form a datetime string
+  const datetimeString = `${start_date} ${start_time}`;
+  const endDatetimeString = `${end_date} ${end_time}`;
+
+  // Parse the datetime string with the specified format
+  const formattedDateTime = moment(datetimeString, "DD-MM-YYYY h:mm A");
+  const formattedEndDateTime = moment(endDatetimeString, "DD-MM-YYYY h:mm A");
+
+  // Format the datetime as needed
+  const formattedStartTime = formattedDateTime.format("YYYY-MM-DDTHH:mm:ss[Z]");
+  const formattedEndTime = formattedEndDateTime.format(
+    "YYYY-MM-DDTHH:mm:ss[Z]"
+  );
+
+  const meetingData = {
+    title: title,
+    start: new Date(formattedStartTime),
+    end: new Date(formattedEndTime),
+    // timezone: "Africa/Cairo",
+    hostEmail,
+  };
+
+  console.log("DATA:", meetingData);
+
+  const accessToken = req.headers.authorization.split(" ")[1];
+  console.log("accessToken", accessToken);
+
+try {
+    // Make a POST request to create the meeting
+    const response = await axios.post(
+      "https://webexapis.com/v1/meetings",
+      meetingData,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    console.log("response:", response.data);
+  
+    res.status(200).json("success");
+} catch (error) {
+  console.log("error", error.response.data)
+  res.status(500).json(error);
+
+}
 });
-
-// exports.authorizee = asyncHandler(async (req, res, next) => {
-//   return res.json(redirect(req.query.code));
-// });
-// exports.redirectt = asyncHandler(async (req, res, next) => {
-//   return res.json(redirect(req.query.code));
-// });

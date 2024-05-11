@@ -59,14 +59,12 @@ exports.createMeeting = async function (
       payload,
       { headers }
     );
-
     if (meetingResponse.status !== 201) {
       console.log("Unable to generate meeting link");
       return;
     }
 
     const response_data = meetingResponse.data;
-
     const content = {
       meeting_url: response_data.join_url,
       password: response_data.password,
