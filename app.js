@@ -25,6 +25,7 @@ const chatRoute = require("./routes/chatRoute");
 const messageRoute = require("./routes/messageRoute");
 const notificationRoute = require("./routes/notificationRoute");
 const socketConfig = require("./socketConfig");
+const webex = require("./routes/webexRoute");
 
 
 // middlewares
@@ -57,6 +58,7 @@ app.use("/api/v1/comments", commentsRoute);
 app.use("/api/v1/chat", chatRoute);
 app.use("/api/v1/messages", messageRoute);
 app.use("/api/v1/notifications", notificationRoute);
+app.use("/api/v1/webex", webex);
 
 
 app.all("*", (req, res, next) => {

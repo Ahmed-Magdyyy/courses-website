@@ -206,12 +206,15 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       const populatedChat = await chat.populate("members", "_id name");
 
       // Proceed with creating a new chat
-      if (users && users.length > 0 && selectedOnlineAdmin) {
-        chatNotify(selectedOnlineAdmin, req.user._id);
-        console.log(
-          "selectedOnlineAdmin selectedOnlineAdmin",
-          selectedOnlineAdmin
-        );
+      if (users && users.length > 0 ) {
+        if (selectedOnlineAdmin !== undefined) {
+          chatNotify(selectedOnlineAdmin, req.user._id);
+          console.log(
+            "selectedOnlineAdmin selectedOnlineAdmin",
+            selectedOnlineAdmin
+          );
+        }
+
       } else {
         chatNotify(selectedofflineAdmin, req.user._id);
         console.log(
@@ -221,7 +224,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       }
       res
         .status(200)
-        .json({ message: "chat created successfully", populatedChat });
+        .json({ message: "chat created successfully", chat: populatedChat });
     }
   } catch (error) {
     console.log(error);
