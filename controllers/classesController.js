@@ -206,14 +206,12 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
       .skip(skipNum)
       .limit(limitNum);
 
-    res
-      .status(200)
-      .json({
-        totalPages,
-        page: pageNum,
-        results: documents.length,
-        data: documents,
-      });
+    res.status(200).json({
+      totalPages,
+      page: pageNum,
+      results: documents.length,
+      data: documents,
+    });
   } else if (req.user.role === "teacher") {
     const totalClassesCount = await classModel.countDocuments({
       teacher: req.user._id,
@@ -230,14 +228,12 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
       .skip(skipNum)
       .limit(limitNum);
 
-    res
-      .status(200)
-      .json({
-        totalPages,
-        page: pageNum,
-        results: documents.length,
-        data: documents,
-      });
+    res.status(200).json({
+      totalPages,
+      page: pageNum,
+      results: documents.length,
+      data: documents,
+    });
   } else {
     const totalClassesCount = await classModel.countDocuments(filter);
     const totalPages = Math.ceil(totalClassesCount / limitNum);
@@ -252,14 +248,12 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
       .skip(skipNum)
       .limit(limitNum);
 
-    res
-      .status(200)
-      .json({
-        totalPages,
-        page: pageNum,
-        results: documents.length,
-        data: documents,
-      });
+    res.status(200).json({
+      totalPages,
+      page: pageNum,
+      results: documents.length,
+      data: documents,
+    });
   }
 });
 
