@@ -1,27 +1,25 @@
 const axios = require("axios");
 const moment = require("moment-timezone");
+const {matchZoomAccount} = require("./matchZoomMeeting");
 
-const account_id = process.env.Account_ID;
-const client_secret = process.env.Client_Secret;
-const client_ID = process.env.Client_ID;
 
 exports.createMeeting = async function (
   topic,
   duration,
   start_date,
-  start_time
+  start_time,
+  email
 ) {
+
+ const taecherEmail = matchZoomAccount(email)
+
   try {
     const authResponse = await axios.post(
-      `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${account_id}`,
+      `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${taecherEmail.accountID}`,
       {},
-      {
-        auth: {
-          username: client_ID,
-          password: client_secret,
-        },
-      }
+      matchZoomAccount(email)
     );
+
 
     if (authResponse.status !== 200) {
       console.log("Unable to get access token");
@@ -41,11 +39,12 @@ exports.createMeeting = async function (
     // Parse the datetime string with the specified format
     const formattedDateTime = moment(datetimeString, "DD-MM-YYYY h:mm A");
 
+    
     // Format the datetime as needed
     const formattedStartTime = formattedDateTime.format(
       "YYYY-MM-DDTHH:mm:ss[Z]"
     );
-
+console.log("formattedStartTime:", new Date(formattedStartTime))
     const payload = {
       topic: topic,
       duration: duration,
@@ -64,11 +63,13 @@ exports.createMeeting = async function (
       return;
     }
 
+    console.log("meetingResponse:",meetingResponse)
+
     const response_data = meetingResponse.data;
     const content = {
       meeting_url: response_data.join_url,
       password: response_data.password,
-      meetingTime: response_data.start_time,
+      meetingTime: moment(response_data.start_time).add(2, 'hours').toISOString(),
       meeting_uuid: response_data.uuid,
       meetingId: response_data.id,
       host_id: response_data.host_id,
@@ -86,18 +87,16 @@ exports.createMeeting = async function (
   }
 };
 
-exports.deleteMeeting = async function (meetingId) {
+exports.deleteMeeting = async function (meetingId,email) {
   try {
+
+ const taecherEmail = matchZoomAccount(email)
+
     // Authenticate with Zoom to get access token
     const authResponse = await axios.post(
-      `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${account_id}`,
+      `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${taecherEmail.accountID}`,
       {},
-      {
-        auth: {
-          username: client_ID,
-          password: client_secret,
-        },
-      }
+      matchZoomAccount(email)
     );
 
     if (authResponse.status !== 200) {

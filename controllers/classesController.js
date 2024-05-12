@@ -52,10 +52,11 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       req.body;
 
     // Check if the teacher exists
-    const teacherExists = await userModel.exists({ _id: teacher });
+    const teacherExists = await userModel.findOne({ _id: teacher });
     if (!teacherExists) {
       return res.status(400).json({ message: "Teacher not found" });
     }
+    console.log("teacherExists: teacherExists:", teacherExists.email)
 
     // Check if all students exist and have remaining classes greater than 0
     const invalidStudents = [];
@@ -79,7 +80,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
     }
 
     // Create a Zoom meeting
-    const meeting = await createMeeting(name, duration, start_date, start_time);
+    const meeting = await createMeeting(name, duration, start_date, start_time,teacherExists.email);
 
     // Create a new class document
     const classInfo = await classModel.create({
@@ -273,10 +274,10 @@ exports.getClass = asyncHandler(async (req, res, next) => {
 });
 
 exports.updateClass = asyncHandler(async (req, res, next) => {
-  const { name, teacher, status } = req.body;
+  const { name, status } = req.body;
   const document = await classModel.findByIdAndUpdate(
     req.params.id,
-    { name, teacher, status },
+    { name, status },
     {
       new: true,
     }
@@ -290,17 +291,21 @@ exports.updateClass = asyncHandler(async (req, res, next) => {
 
 exports.deleteClass = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const Document = await classModel.findOneAndDelete({ _id: id });
+  const Document = await classModel.findOne({ _id: id }).populate("teacher", "email");
   if (!Document) {
     return next(new ApiError(`No Class found for this id:${id}`, 404));
   }
+
+  const teacher = Document.teacher.email
 
   // Delete the Zoom meeting associated with the class
   const { zoomMeetingId } = Document;
   if (zoomMeetingId) {
     // Call deleteMeeting function and pass the meetingId
-    await deleteMeeting(zoomMeetingId);
+    await deleteMeeting(zoomMeetingId,teacher);
   }
+
+    await classModel.findOneAndDelete({ _id: id })  
 
   classNotify(
     Document.studentsEnrolled,
