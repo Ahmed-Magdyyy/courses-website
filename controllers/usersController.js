@@ -1,4 +1,3 @@
-const factory = require("./controllersFactory");
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
 
@@ -239,11 +238,29 @@ exports.createUser = asyncHandler(async (req, res, next) => {
 });
 
 exports.updateUser = asyncHandler(async (req, res, next) => {
-  const { name, email, phone, remainingClasses, enabledControls } = req.body;
+  const {
+    name,
+    email,
+    phone,
+    remainingClasses,
+    enabledControls,
+    zoom_account_id,
+    zoom_client_id,
+    zoom_client_Secret,
+  } = req.body;
 
   const User = await usersModel.findByIdAndUpdate(
     req.params.id,
-    { name, email, phone, remainingClasses, enabledControls },
+    {
+      name,
+      email,
+      phone,
+      remainingClasses,
+      enabledControls,
+      zoom_account_id,
+      zoom_client_id,
+      zoom_client_Secret,
+    },
     {
       new: true,
     }
@@ -359,7 +376,9 @@ exports.getTeacher_students = asyncHandler(async (req, res, next) => {
   const limitNum = limit * 1 || 5;
   const skipNum = (pageNum - 1) * limitNum;
 
-  const classesOfTeacher = await classModel.find({ teacher }).populate("studentsEnrolled", "-__v");
+  const classesOfTeacher = await classModel
+    .find({ teacher })
+    .populate("studentsEnrolled", "-__v");
 
   if (!classesOfTeacher || classesOfTeacher.length === 0) {
     return next(new ApiError(`No classes found for this teacher`, 404));
@@ -368,8 +387,8 @@ exports.getTeacher_students = asyncHandler(async (req, res, next) => {
   let uniqueStudents = new Set(); // Initialize a set to store unique student IDs
   let uniqueStudentsData = []; // Initialize an array to store unique student objects
 
-  classesOfTeacher.forEach(cls => {
-    cls.studentsEnrolled.forEach(student => {
+  classesOfTeacher.forEach((cls) => {
+    cls.studentsEnrolled.forEach((student) => {
       // Check if the student ID is not already in the set
       if (!uniqueStudents.has(student._id.toString())) {
         uniqueStudents.add(student._id.toString()); // Add student ID to the set
@@ -380,7 +399,7 @@ exports.getTeacher_students = asyncHandler(async (req, res, next) => {
 
   // Apply filtering based on query parameters
   if (Object.keys(query).length > 0) {
-    uniqueStudentsData = uniqueStudentsData.filter(student => {
+    uniqueStudentsData = uniqueStudentsData.filter((student) => {
       for (const key in query) {
         if (student[key] !== query[key]) {
           return false;
@@ -394,8 +413,16 @@ exports.getTeacher_students = asyncHandler(async (req, res, next) => {
 
   const totalPages = Math.ceil(totalUsersCount / limitNum);
 
-  const paginatedStudents = uniqueStudentsData.slice(skipNum, skipNum + limitNum);
+  const paginatedStudents = uniqueStudentsData.slice(
+    skipNum,
+    skipNum + limitNum
+  );
 
-  res.status(200).json({ message: "Success", totalPages, page: pageNum, totalUsersCount, studentsOfTeacher: paginatedStudents });
+  res.status(200).json({
+    message: "Success",
+    totalPages,
+    page: pageNum,
+    totalUsersCount,
+    studentsOfTeacher: paginatedStudents,
+  });
 });
-

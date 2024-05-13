@@ -56,7 +56,6 @@ exports.createClass = asyncHandler(async (req, res, next) => {
     if (!teacherExists) {
       return res.status(400).json({ message: "Teacher not found" });
     }
-    console.log("teacherExists: teacherExists:", teacherExists.email);
 
     // Check if all students exist and have remaining classes greater than 0
     const invalidStudents = [];
@@ -85,7 +84,9 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       duration,
       start_date,
       start_time,
-      teacherExists.email
+      teacherExists.zoom_account_id,
+      teacherExists.zoom_client_id,
+      teacherExists.zoom_client_Secret
     );
 
     // Create a new class document
@@ -297,20 +298,21 @@ exports.updateClass = asyncHandler(async (req, res, next) => {
 
 exports.deleteClass = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const Document = await classModel
-    .findOne({ _id: id })
-    .populate("teacher", "email");
+  const Document = await classModel.findOne({ _id: id }).populate("teacher");
   if (!Document) {
     return next(new ApiError(`No Class found for this id:${id}`, 404));
   }
-
-  const teacher = Document.teacher.email;
 
   // Delete the Zoom meeting associated with the class
   const { zoomMeetingId } = Document;
   if (zoomMeetingId) {
     // Call deleteMeeting function and pass the meetingId
-    await deleteMeeting(zoomMeetingId, teacher);
+    await deleteMeeting(
+      zoomMeetingId,
+      Document.teacher.zoom_account_id,
+      Document.teacher.zoom_client_id,
+      Document.teacher.zoom_client_Secret
+    );
   }
 
   await classModel.findOneAndDelete({ _id: id });

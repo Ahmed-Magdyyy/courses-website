@@ -66,6 +66,9 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    zoom_account_id: String,
+    zoom_client_id: String,
+    zoom_client_Secret: String,
   },
   { timestamps: true }
 );
