@@ -63,8 +63,6 @@ exports.createMeeting = async function (
       return;
     }
 
-    console.log("meetingResponse:", meetingResponse);
-
     const response_data = meetingResponse.data;
     const content = {
       meeting_url: response_data.join_url,
