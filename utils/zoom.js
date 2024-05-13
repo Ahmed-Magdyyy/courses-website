@@ -1,7 +1,6 @@
 const axios = require("axios");
 const moment = require("moment-timezone");
-const {matchZoomAccount} = require("./matchZoomMeeting");
-
+const { matchZoomAccount } = require("./matchZoomMeeting");
 
 exports.createMeeting = async function (
   topic,
@@ -10,8 +9,7 @@ exports.createMeeting = async function (
   start_time,
   email
 ) {
-
- const taecherEmail = matchZoomAccount(email)
+  const taecherEmail = matchZoomAccount(email);
 
   try {
     const authResponse = await axios.post(
@@ -19,7 +17,6 @@ exports.createMeeting = async function (
       {},
       matchZoomAccount(email)
     );
-
 
     if (authResponse.status !== 200) {
       console.log("Unable to get access token");
@@ -39,12 +36,11 @@ exports.createMeeting = async function (
     // Parse the datetime string with the specified format
     const formattedDateTime = moment(datetimeString, "DD-MM-YYYY h:mm A");
 
-    
     // Format the datetime as needed
     const formattedStartTime = formattedDateTime.format(
       "YYYY-MM-DDTHH:mm:ss[Z]"
     );
-console.log("formattedStartTime:", new Date(formattedStartTime))
+    console.log("formattedStartTime:", new Date(formattedStartTime));
     const payload = {
       topic: topic,
       duration: duration,
@@ -63,17 +59,19 @@ console.log("formattedStartTime:", new Date(formattedStartTime))
       return;
     }
 
-    console.log("meetingResponse:",meetingResponse)
+    console.log("meetingResponse:", meetingResponse);
 
     const response_data = meetingResponse.data;
     const content = {
       meeting_url: response_data.join_url,
       password: response_data.password,
-      meetingTime: moment(response_data.start_time).add(2, 'hours').toISOString(),
+      meetingTime: moment(response_data.start_time)
+        .add(2, "hours")
+        .toISOString(),
       meeting_uuid: response_data.uuid,
       meetingId: response_data.id,
       host_id: response_data.host_id,
-      host_email: response_data.host_email,      
+      host_email: response_data.host_email,
       topic: response_data.topic,
       duration: response_data.duration,
       message: "Success",
@@ -87,10 +85,9 @@ console.log("formattedStartTime:", new Date(formattedStartTime))
   }
 };
 
-exports.deleteMeeting = async function (meetingId,email) {
+exports.deleteMeeting = async function (meetingId, email) {
   try {
-
- const taecherEmail = matchZoomAccount(email)
+    const taecherEmail = matchZoomAccount(email);
 
     // Authenticate with Zoom to get access token
     const authResponse = await axios.post(
@@ -121,12 +118,12 @@ exports.deleteMeeting = async function (meetingId,email) {
 
     if (response.status !== 204) {
       console.log("Unable to delete meeting from Zoom");
-      return "Unable to delete meeting from Zoom"
+      return "Unable to delete meeting from Zoom";
     } else {
       console.log("Meeting deleted successfully from Zoom");
-      return "Meeting deleted successfully from Zoom"
+      return "Meeting deleted successfully from Zoom";
     }
   } catch (error) {
     console.error("Error deleting meeting from Zoom:", error.data);
   }
-}
+};
