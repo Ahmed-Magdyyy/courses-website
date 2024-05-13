@@ -12,6 +12,9 @@ exports.createMeeting = async function (
   const taecherEmail = matchZoomAccount(email);
 
   try {
+    console.log('====================================');
+    console.log(matchZoomAccount(email));
+    console.log('====================================');
     const authResponse = await axios.post(
       `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${taecherEmail.accountID}`,
       {},
