@@ -15,17 +15,7 @@ const commentSchema = new mongoose.Schema(
       ref: "user",
       required: true,
     },
-    media: [
-      {
-        _id: false,
-        type: {
-          type: String,
-          enum: ["image", "video"],
-          required: true,
-        },
-        url: { type: String, required: true },
-      },
-    ],
+    media: String,
     likes: {
       count: { type: Number, default: 0 },
       users: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
@@ -35,10 +25,9 @@ const commentSchema = new mongoose.Schema(
 );
 
 function setMediaURL(doc) {
-  if (doc.media && doc.media.length > 0) {
-    doc.media.forEach((mediaItem) => {
-      mediaItem.url = `${process.env.BASE_URL}/posts/comments/${mediaItem.url}`;
-    });
+  if (doc.media) {
+    const mediaURL = `${process.env.BASE_URL}/posts/comments/${doc.media}`;
+    doc.media = mediaURL;
   }
 }
 
