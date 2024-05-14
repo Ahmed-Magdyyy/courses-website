@@ -147,7 +147,6 @@ exports.createClass = asyncHandler(async (req, res, next) => {
 
       if (connectedTeacher) {
         const { userId, scope, message, _id, createdAt } = teacherNotification;
-        console.log("from blablabla");
         io.to(connectedTeacher.socketId).emit("notification", {
           userId,
           scope,
