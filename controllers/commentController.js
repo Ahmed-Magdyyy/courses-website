@@ -274,7 +274,6 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
       updateFields.content = content;
     }
 
-    console.log("req.body.media||", req.file)
 
     // Update post media if any
     if (req.file ) {
@@ -287,15 +286,13 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
     }
 
 
-    console.log("||updateFields||",updateFields);
     // Update the comment in the database
     const updatedComment = await commentsModel.findOneAndUpdate(
       { _id: id },
       { $set: updateFields },
       { new: true } // Return the updated document
     );
-    console.log("updatedComment", updatedComment._id);
-    console.log("updatedComment", updatedComment.content);
+
 
     res
       .status(200)

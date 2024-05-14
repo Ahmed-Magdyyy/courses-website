@@ -7,6 +7,7 @@ const userModel = require("../models/userModel");
 const classModel = require("../models/classModel");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
+const { request } = require("express");
 
 const chatNotify = async (array, user) => {
   // Send notifications to added students
@@ -321,12 +322,35 @@ exports.getUserChats = asyncHandler(async (req, res, next) => {
   const pageNum = page * 1 || 1;
   const limitNum = limit * 1 || 5;
   const skipNum = (pageNum - 1) * limit;
-  const totalPostsCount = await chatModel.countDocuments(baseQuery);
-
-  const totalPages = Math.ceil(totalPostsCount / limitNum);
 
   try {
-    const chats = await chatModel
+    if (req.user.role === 'superAdmin') {
+      const totalPostsCount = await chatModel.countDocuments();
+      const totalPages = Math.ceil(totalPostsCount / limitNum);
+    
+
+      const chats = await chatModel
+      .find({})
+      .sort({ createdAt: -1 })
+      .skip(skipNum)
+      .limit(limitNum)
+      .populate("members", "_id name role");
+
+    if (!chats) {
+      return next(new ApiError(`No chats found`, 404));
+    }
+
+    res
+      .status(200)
+      .json({ totalPages, page: pageNum, results: chats.length, chats });
+
+
+
+    } else {
+      const totalPostsCount = await chatModel.countDocuments(baseQuery);
+      const totalPages = Math.ceil(totalPostsCount / limitNum);
+    
+      const chats = await chatModel
       .find(baseQuery)
       .sort({ createdAt: -1 })
       .skip(skipNum)
@@ -340,6 +364,10 @@ exports.getUserChats = asyncHandler(async (req, res, next) => {
     res
       .status(200)
       .json({ totalPages, page: pageNum, results: chats.length, chats });
+
+    }
+
+
   } catch (error) {
     console.log(error);
     res.status(500).json({ error });
