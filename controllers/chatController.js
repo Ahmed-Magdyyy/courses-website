@@ -316,6 +316,7 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
 
 exports.getUserChats = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
+  let filter = {};
   const { page, limit, skip, ...query } = req.query;
   const baseQuery = { members: { $in: [userId] }, ...query }; // Spread query properties here
 
@@ -325,12 +326,16 @@ exports.getUserChats = asyncHandler(async (req, res, next) => {
 
   try {
     if (req.user.role === 'superAdmin') {
-      const totalPostsCount = await chatModel.countDocuments();
+      
+      if (query) {
+        filter = query;
+      }
+      
+      const totalPostsCount = await chatModel.countDocuments(filter);
       const totalPages = Math.ceil(totalPostsCount / limitNum);
-    
 
       const chats = await chatModel
-      .find({})
+      .find(filter)
       .sort({ createdAt: -1 })
       .skip(skipNum)
       .limit(limitNum)
