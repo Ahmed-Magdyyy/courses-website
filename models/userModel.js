@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const moment = require("moment-timezone");
+const crypto = require('crypto');
+const { encryptField } = require("../utils/encryption");
 
 const userSchema = new mongoose.Schema(
   {
@@ -66,9 +68,18 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    zoom_account_id: String,
-    zoom_client_id: String,
-    zoom_client_Secret: String,
+    zoom_account_id: {
+      type: String,
+      set: encryptField,
+    },
+    zoom_client_id: {
+      type: String,
+      set: encryptField,
+    },
+    zoom_client_Secret: {
+      type: String,
+      set: encryptField,
+    },
   },
   { timestamps: true }
 );
@@ -81,7 +92,6 @@ userSchema.methods.deductClassCredit = function () {
     return false; // Indicate that deduction failed due to insufficient remaining classes
   }
 };
-
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();

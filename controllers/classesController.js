@@ -6,6 +6,7 @@ const classModel = require("../models/classModel");
 const userModel = require("../models/userModel");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
+const { decryptField } = require("../utils/encryption");
 
 const classNotify = async (array, message) => {
   // Send notifications to added students
@@ -57,6 +58,11 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       return res.status(400).json({ message: "Teacher not found" });
     }
 
+     // Decrypt Zoom credentials
+     const decryptedZoomAccountId = decryptField(teacherExists.zoom_account_id);
+     const decryptedZoomClientId = decryptField(teacherExists.zoom_client_id);
+     const decryptedZoomClientSecret = decryptField(teacherExists.zoom_client_Secret);
+
     // Check if all students exist and have remaining classes greater than 0
     const invalidStudents = [];
 
@@ -84,9 +90,9 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       duration,
       start_date,
       start_time,
-      teacherExists.zoom_account_id,
-      teacherExists.zoom_client_id,
-      teacherExists.zoom_client_Secret
+      decryptedZoomAccountId,
+      decryptedZoomClientId,
+      decryptedZoomClientSecret
     );
 
     // Create a new class document
@@ -122,9 +128,6 @@ exports.createClass = asyncHandler(async (req, res, next) => {
         });
       })
     );
-
-    console.log("teacherNotification", teacherNotification);
-    console.log("studentsNotification", studentsNotification);
 
     // Emit notifications to teacher and students
     const { io, users } = getIO();
@@ -303,15 +306,20 @@ exports.deleteClass = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No Class found for this id:${id}`, 404));
   }
 
+  // Decrypt Zoom credentials
+  const decryptedZoomAccountId = decryptField(Document.teacher.zoom_account_id);
+  const decryptedZoomClientId = decryptField(Document.teacher.zoom_client_id);
+  const decryptedZoomClientSecret = decryptField(Document.teacher.zoom_client_Secret);
+
   // Delete the Zoom meeting associated with the class
   const { zoomMeetingId } = Document;
   if (zoomMeetingId) {
     // Call deleteMeeting function and pass the meetingId
     await deleteMeeting(
       zoomMeetingId,
-      Document.teacher.zoom_account_id,
-      Document.teacher.zoom_client_id,
-      Document.teacher.zoom_client_Secret
+      decryptedZoomAccountId,
+      decryptedZoomClientId,
+      decryptedZoomClientSecret
     );
   }
 
