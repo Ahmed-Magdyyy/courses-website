@@ -207,7 +207,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       const populatedChat = await chat.populate("members", "_id name");
 
       // Proceed with creating a new chat
-      if (users && users.length > 0 ) {
+      if (users && users.length > 0) {
         if (selectedOnlineAdmin !== undefined) {
           chatNotify(selectedOnlineAdmin, req.user._id);
           console.log(
@@ -215,7 +215,6 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
             selectedOnlineAdmin
           );
         }
-
       } else {
         chatNotify(selectedofflineAdmin, req.user._id);
         console.log(
@@ -325,54 +324,47 @@ exports.getUserChats = asyncHandler(async (req, res, next) => {
   const skipNum = (pageNum - 1) * limit;
 
   try {
-    if (req.user.role === 'superAdmin') {
-      
+    if (req.user.role === "superAdmin") {
       if (query) {
         filter = query;
       }
-      
+
       const totalPostsCount = await chatModel.countDocuments(filter);
       const totalPages = Math.ceil(totalPostsCount / limitNum);
 
       const chats = await chatModel
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skipNum)
-      .limit(limitNum)
-      .populate("members", "_id name role");
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skipNum)
+        .limit(limitNum)
+        .populate("members", "_id name role");
 
-    if (!chats) {
-      return next(new ApiError(`No chats found`, 404));
-    }
+      if (!chats) {
+        return next(new ApiError(`No chats found`, 404));
+      }
 
-    res
-      .status(200)
-      .json({ totalPages, page: pageNum, results: chats.length, chats });
-
-
-
+      res
+        .status(200)
+        .json({ totalPages, page: pageNum, results: chats.length, chats });
     } else {
       const totalPostsCount = await chatModel.countDocuments(baseQuery);
       const totalPages = Math.ceil(totalPostsCount / limitNum);
-    
+
       const chats = await chatModel
-      .find(baseQuery)
-      .sort({ createdAt: -1 })
-      .skip(skipNum)
-      .limit(limitNum)
-      .populate("members", "_id name role");
+        .find(baseQuery)
+        .sort({ createdAt: -1 })
+        .skip(skipNum)
+        .limit(limitNum)
+        .populate("members", "_id name role");
 
-    if (!chats) {
-      return next(new ApiError(`No chats found`, 404));
+      if (!chats) {
+        return next(new ApiError(`No chats found`, 404));
+      }
+
+      res
+        .status(200)
+        .json({ totalPages, page: pageNum, results: chats.length, chats });
     }
-
-    res
-      .status(200)
-      .json({ totalPages, page: pageNum, results: chats.length, chats });
-
-    }
-
-
   } catch (error) {
     console.log(error);
     res.status(500).json({ error });
