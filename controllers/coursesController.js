@@ -448,7 +448,7 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
       });
     }
 
-    courseNotify(studentIds, `Course: ${course.title} has been deleted`);
+    courseNotify(course.studentsEnrolled, `Course: ${course.title} has been deleted`);
 
     res.status(204).send("Document deleted successfully");
   } catch (error) {

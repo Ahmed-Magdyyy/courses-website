@@ -6,6 +6,7 @@ const classModel = require("../models/classModel");
 const ApiError = require("../utils/ApiError");
 const createToken = require("../utils/createToken");
 const mongoose = require("mongoose");
+const { encryptField, decryptField } = require("../utils/encryption");
 
 //----- Admin Routes -----
 
@@ -19,111 +20,120 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
     filter = { ...query, role: { $ne: "superAdmin" } };
   }
 
-  const pageNum = page * 1 || 1;
-  const limitNum = limit * 1 || 5;
-  const skipNum = (pageNum - 1) * limit;
   const totalPostsCount = await usersModel.countDocuments(filter);
-  const totalPages = Math.ceil(totalPostsCount / limitNum);
 
-  if (query.role === "teacher") {
-    const users = await usersModel.aggregate([
-      { $match: filter },
-      {
-        $lookup: {
-          from: "classes",
-          localField: "classes",
-          foreignField: "_id",
-          as: "classes",
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          email: 1,
-          phone: 1,
-          role: 1,
-          password: 1,
-          passwordChangedAT: 1,
-          passwordResetCode: 1,
-          passwordResetCodeExpire: 1,
-          passwordResetCodeVerified: 1,
-          enabledControls: 1,
-          account_status: 1,
-          active: 1,
-          courses: 1,
-          classes: 1,
-          products: 1,
-          remainingClasses: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          classes: {
-            $map: {
-              input: "$classes",
-              as: "class",
-              in: {
-                _id: "$$class._id",
-                start_date: "$$class.start_date",
-                start_time: "$$class.start_time",
-                status: "$$class.status",
-              },
-            },
-          },
-        },
-      },
-      {
-        $addFields: {
-          completedClasses: {
-            $size: {
-              $filter: {
-                input: "$classes",
-                as: "class",
-                cond: { $eq: ["$$class.status", "ended"] },
-              },
-            },
-          },
-          scheduledClasses: {
-            $size: {
-              $filter: {
-                input: "$classes",
-                as: "class",
-                cond: { $eq: ["$$class.status", "scheduled"] },
-              },
-            },
-          },
-          cancelledClasses: {
-            $size: {
-              $filter: {
-                input: "$classes",
-                as: "class",
-                cond: { $eq: ["$$class.status", "cancelled"] },
-              },
-            },
-          },
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $skip: skipNum,
-      },
-      {
-        $limit: limitNum,
-      },
-    ]);
+  let users;
+  if (limit && page) {
+    // Pagination logic
+    const pageNum = page * 1 || 1;
+    const limitNum = limit * 1 || 5;
+    const skipNum = (pageNum - 1) * limitNum;
+    const totalPages = Math.ceil(totalPostsCount / limitNum);
 
-    res.status(200).json({ results: users.length, page: pageNum, data: users });
+    if (query.role === "teacher") {
+      users = await usersModel.aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: "classes",
+            localField: "classes",
+            foreignField: "_id",
+            as: "classes",
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            email: 1,
+            phone: 1,
+            role: 1,
+            password: 1,
+            passwordChangedAT: 1,
+            passwordResetCode: 1,
+            passwordResetCodeExpire: 1,
+            passwordResetCodeVerified: 1,
+            enabledControls: 1,
+            account_status: 1,
+            active: 1,
+            courses: 1,
+            classes: 1,
+            products: 1,
+            remainingClasses: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            classes: {
+              $map: {
+                input: "$classes",
+                as: "class",
+                in: {
+                  _id: "$$class._id",
+                  start_date: "$$class.start_date",
+                  start_time: "$$class.start_time",
+                  status: "$$class.status",
+                },
+              },
+            },
+            // Decrypt Zoom-related fields for teachers
+            zoom_account_id: 1,
+            zoom_client_id: 1,
+            zoom_client_Secret: 1,
+          },
+        },
+        {
+          $addFields: {
+            completedClasses: {
+              $size: {
+                $filter: {
+                  input: "$classes",
+                  as: "class",
+                  cond: { $eq: ["$$class.status", "ended"] },
+                },
+              },
+            },
+            scheduledClasses: {
+              $size: {
+                $filter: {
+                  input: "$classes",
+                  as: "class",
+                  cond: { $eq: ["$$class.status", "scheduled"] },
+                },
+              },
+            },
+            cancelledClasses: {
+              $size: {
+                $filter: {
+                  input: "$classes",
+                  as: "class",
+                  cond: { $eq: ["$$class.status", "cancelled"] },
+                },
+              },
+            },
+          },
+        },
+        {
+          $sort: { createdAt: -1 },
+        },
+        {
+          $skip: skipNum,
+        },
+        {
+          $limit: limitNum,
+        },
+      ]);
+    } else {
+      users = await usersModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skipNum)
+        .limit(limitNum);
+    }
+
+    res.status(200).json({ totalPages, page: pageNum, results: users.length, data: users });
   } else {
-    const users = await usersModel
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skipNum)
-      .limit(limitNum);
-
-    res
-      .status(200)
-      .json({ totalPages, page: pageNum, results: users.length, data: users });
+    // Return all data without pagination
+    users = await usersModel.find(filter).sort({ createdAt: -1 });
+    res.status(200).json({ results: users.length, data: users });
   }
 });
 
@@ -169,6 +179,9 @@ exports.getUser = asyncHandler(async (req, res, next) => {
             remainingClasses: 1,
             createdAt: 1,
             updatedAt: 1,
+            zoom_account_id: 1,
+            zoom_client_Secret: 1,
+            zoom_client_id: 1,
             classes: {
               $map: {
                 input: "$classes",
@@ -249,7 +262,31 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
     zoom_client_Secret,
   } = req.body;
 
-  const User = await usersModel.findByIdAndUpdate(
+
+  let encrypted_zoom_account_id
+  let encrypted_zoom_client_id
+  let encrypted_zoom_client_Secret
+
+
+  if (zoom_account_id){
+    encrypted_zoom_account_id= encryptField(zoom_account_id)
+  }
+  if (zoom_client_id){
+    encrypted_zoom_client_id= encryptField(zoom_client_id)
+  }
+  if (zoom_client_Secret){
+    encrypted_zoom_client_Secret= encryptField(zoom_client_Secret)
+  }
+
+  const user= await usersModel.findById(req.params.id)
+
+  if (!user){
+    return next(new ApiError(`No User for this id:${req.params.id}`, 404));
+  }
+
+
+if(user.role=== "teacher"){
+  const updatedUser = await usersModel.findByIdAndUpdate(
     req.params.id,
     {
       name,
@@ -257,19 +294,40 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       phone,
       remainingClasses,
       enabledControls,
-      zoom_account_id,
-      zoom_client_id,
-      zoom_client_Secret,
+      zoom_account_id:encrypted_zoom_account_id,
+      zoom_client_id:encrypted_zoom_client_id,
+      zoom_client_Secret:encrypted_zoom_client_Secret,
     },
     {
       new: true,
     }
   );
 
-  if (!User) {
+  if (!updatedUser) {
     return next(new ApiError(`No User for this id:${req.params.id}`, 404));
   }
-  res.status(200).json({ data: User });
+  res.status(200).json({ data: updatedUser });
+} else {
+  const updatedUser = await usersModel.findByIdAndUpdate(
+    req.params.id,
+    {
+      name,
+      email,
+      phone,
+      remainingClasses,
+      enabledControls,
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!updatedUser) {
+    return next(new ApiError(`No User for this id:${req.params.id}`, 404));
+  }
+  res.status(200).json({ data: updatedUser });
+}
+
 });
 
 exports.updateUserPassword = asyncHandler(async (req, res, next) => {

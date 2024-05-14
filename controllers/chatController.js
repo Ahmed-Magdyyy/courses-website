@@ -7,7 +7,6 @@ const userModel = require("../models/userModel");
 const classModel = require("../models/classModel");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
-const { request } = require("express");
 
 const chatNotify = async (array, user) => {
   // Send notifications to added students

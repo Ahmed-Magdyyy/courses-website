@@ -20,3 +20,36 @@ function decryptField(encryptedValue) {
 }
 
 module.exports = { encryptField, decryptField };
+
+
+
+
+
+
+// --------------------------------------------------------
+
+
+// const crypto = require('crypto');
+
+// const algorithm = 'aes-256-cbc'; // AES encryption with 256-bit key in CBC mode
+// const encryptionKey = 'your-secret-key'; // Replace with your secret key
+// const iv = crypto.randomBytes(16); // Initialization Vector (IV) for AES CBC mode
+
+// // Encrypt a value
+// function encryptField(value) {
+//   const cipher = crypto.createCipheriv(algorithm, Buffer.from(encryptionKey), iv);
+//   let encrypted = cipher.update(value, 'utf8', 'hex');
+//   encrypted += cipher.final('hex');
+//   return iv.toString('hex') + ':' + encrypted;
+// }
+
+// // Decrypt an encrypted value
+// function decryptField(encryptedValue) {
+//   const parts = encryptedValue.split(':');
+//   const decipher = crypto.createDecipheriv(algorithm, Buffer.from(encryptionKey), Buffer.from(parts.shift(), 'hex'));
+//   let decrypted = decipher.update(Buffer.from(parts.join(':'), 'hex'));
+//   decrypted = Buffer.concat([decrypted, decipher.final()]);
+//   return decrypted.toString('utf8');
+// }
+
+// module.exports = { encryptField, decryptField };
