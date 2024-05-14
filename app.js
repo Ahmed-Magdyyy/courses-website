@@ -25,8 +25,6 @@ const chatRoute = require("./routes/chatRoute");
 const messageRoute = require("./routes/messageRoute");
 const notificationRoute = require("./routes/notificationRoute");
 const socketConfig = require("./socketConfig");
-const webex = require("./routes/webexRoute");
-
 
 // middlewares
 
@@ -58,12 +56,9 @@ app.use("/api/v1/comments", commentsRoute);
 app.use("/api/v1/chat", chatRoute);
 app.use("/api/v1/messages", messageRoute);
 app.use("/api/v1/notifications", notificationRoute);
-app.use("/api/v1/webex", webex);
-
 
 app.all("*", (req, res, next) => {
   next(new ApiError(`can't find this route: ${req.originalUrl}`, 400));
-
 });
 // Global error handling middleware
 app.use(globalError);
@@ -71,8 +66,6 @@ app.use(globalError);
 const server = app.listen(process.env.PORT, () =>
   console.log(`Example app listening on port ${PORT}!`)
 );
-
-
 
 // Initialize Socket.IO
 socketConfig.initSocketServer(server);
@@ -96,10 +89,11 @@ socketConfig.initSocketServer(server);
 //   });
 // }
 
-
 // UnhandledRejections event handler (rejection outside express)
 process.on("unhandledRejection", (err) => {
-  console.error(`unhandledRejection Errors: ${err.name} | ${err.message} | ${err.stack}`);
+  console.error(
+    `unhandledRejection Errors: ${err.name} | ${err.message} | ${err.stack}`
+  );
   server.close(() => {
     console.log("server shutting down...");
     process.exit(1);
