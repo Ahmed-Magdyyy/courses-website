@@ -411,6 +411,12 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No post found for this ${id}`, 404));
   }
 
+    if (post.media && post.media.length > 0) {
+      post.media.forEach((mediaItem) => {
+        mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
+      });
+    }
+
   res.status(200).json({ data: post });
 });
 
