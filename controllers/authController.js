@@ -224,7 +224,7 @@ exports.confirmEmail = asyncHandler(async (req, res, next) => {
     user.account_status = "confirmed";
     await user.save();
 
-    res.send("Email has been confirmed");
+    res.redirect("https://jawwid.netlify.app");
   } else {
     res.send({ message: "Email already confirmed" });
   }
