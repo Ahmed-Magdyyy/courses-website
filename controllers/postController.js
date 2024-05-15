@@ -135,19 +135,14 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 });
 
 exports.editPost = asyncHandler(async (req, res, next) => {
-// const { oldMedia} = req.body;
-  // console.log("TYPE:", Array.isArray(oldMedia));
-  // console.log("TYPE:", oldMedia);
-
 
   const { id } = req.params;
   const { content, oldMedia } = req.body;
   const updateFields = {};
 
-  console.log("====================================");
-  console.log("req.body:", req.body);
-  console.log("OLD MEDIA:", oldMedia);
-  console.log("====================================");
+  let ParsedOldMedia
+  if (oldMedia) ParsedOldMedia= JSON.parse(oldMedia)
+
   try {
     const post = await postsModel.findById(id);
 
@@ -183,30 +178,20 @@ exports.editPost = asyncHandler(async (req, res, next) => {
           url: file.filename,
         });
       });
-      if (oldMedia) {
-        updateFields.media = [...oldMedia, ...newFiles];
+      if (ParsedOldMedia) {
+        updateFields.media = [...ParsedOldMedia, ...newFiles];
       } else {
         updateFields.media = newFiles;
       }
     } else {
-      updateFields.media = oldMedia;
+      updateFields.media = ParsedOldMedia;
     }
 
-    console.log("====================================");
-    const olddata = oldMedia;
-    console.log("PARSED OLDMEDIA:", JSON.parse(oldMedia));
-    console.log("TYPE:", Array.isArray(oldMedia));
-    console.log(olddata);
-    console.log(
-      "OLD MEDIA 33:",
-      oldMedia.forEach((media) => console.log(media))
-    );
-    console.log("====================================");
 
     // Delete files that exist in post.media but not in oldMedia
-    if (oldMedia && oldMedia.length > 0) {
+    if (ParsedOldMedia && ParsedOldMedia.length > 0) {
       const mediaToDelete = post.media.filter((mediaItem) => {
-        return !oldMedia.find(
+        return !ParsedOldMedia.find(
           (oldMediaItem) => oldMediaItem.url === mediaItem.url
         );
       });
