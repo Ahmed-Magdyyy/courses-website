@@ -246,8 +246,6 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
 
     const comments = await commentModel.find({ post: id });
 
-    console.log("comments", comments);
-
     // Delete images associated with deleted comments
     for (const comment of comments) {
       if (comment.media && comment.media > 0) {
@@ -261,9 +259,6 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
     await commentModel.deleteMany({ post: id });
 
     // Delete media files associated with the post
-    console.log('====================================');
-    console.log("post.media:", post.media);
-    console.log('====================================');
     if (post.media && post.media.length > 0) {
       post.media.forEach((mediaItem) => {
         // Construct the file path and delete the file
