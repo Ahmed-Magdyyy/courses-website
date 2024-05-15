@@ -193,21 +193,21 @@ const olddata = oldMedia;
     console.log("OLD MEDIA 33:", oldMedia.forEach((media) => console.log(media)));
     console.log('====================================');
 
-    // Delete files that exist in post.media but not in oldMedia
-    if (oldMedia && oldMedia.length > 0) {
-      const mediaToDelete = post.media.filter((mediaItem) => {
-        return !oldMedia.find(
-          (oldMediaItem) => oldMediaItem.url === mediaItem.url
-        );
-      });
+    // // Delete files that exist in post.media but not in oldMedia
+    // if (oldMedia && oldMedia.length > 0) {
+    //   const mediaToDelete = post.media.filter((mediaItem) => {
+    //     return !oldMedia.find(
+    //       (oldMediaItem) => oldMediaItem.url === mediaItem.url
+    //     );
+    //   });
 
-      // Update media URLs
-      mediaToDelete.forEach((mediaItemToDelete) => {
-        // Construct the file path and delete the file
-        const filePath = `uploads/posts/${mediaItemToDelete.url}`;
-        deleteUploadedFile({ path: filePath });
-      });
-    }
+    //   // Update media URLs
+    //   mediaToDelete.forEach((mediaItemToDelete) => {
+    //     // Construct the file path and delete the file
+    //     const filePath = `uploads/posts/${mediaItemToDelete.url}`;
+    //     deleteUploadedFile({ path: filePath });
+    //   });
+    // }
 
     // Update post in the database
     const updatedPost = await postsModel.findOneAndUpdate(
