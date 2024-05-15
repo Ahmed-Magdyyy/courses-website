@@ -441,7 +441,7 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
 
     // Delete the associated image file
     if (course.image) {
-      const index = course.image.indexOf("courses");
+      const index = course.image.indexOf("courses/");
       const path = `uploads/${course.image.substring(index)}`;
       console.log("course.image:", course.image);
       console.log("PAAAAATH:", path);
