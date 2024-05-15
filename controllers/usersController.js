@@ -78,6 +78,7 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
             zoom_account_id: 1,
             zoom_client_id: 1,
             zoom_client_Secret: 1,
+            zoom_credentials: 1,
           },
         },
         {
@@ -184,6 +185,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
             zoom_account_id: 1,
             zoom_client_Secret: 1,
             zoom_client_id: 1,
+            zoom_credentials:1,
             classes: {
               $map: {
                 input: "$classes",
