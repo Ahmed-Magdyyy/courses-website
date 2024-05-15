@@ -139,10 +139,10 @@ exports.editPost = asyncHandler(async (req, res, next) => {
   const { content, oldMedia } = req.body;
   const updateFields = {};
 
-  console.log('====================================');
+  console.log("====================================");
   console.log("req.body:", req.body);
   console.log("OLD MEDIA:", oldMedia);
-  console.log('====================================');
+  console.log("====================================");
   try {
     const post = await postsModel.findById(id);
 
@@ -187,11 +187,14 @@ exports.editPost = asyncHandler(async (req, res, next) => {
       updateFields.media = oldMedia;
     }
 
-    console.log('====================================');
-const olddata = oldMedia;
+    console.log("====================================");
+    const olddata = oldMedia;
     console.log("OLD MEDIA 22:", olddata);
-    console.log("OLD MEDIA 33:", oldMedia.forEach((media) => console.log(media)));
-    console.log('====================================');
+    console.log(
+      "OLD MEDIA 33:",
+      oldMedia.forEach((media) => console.log(media))
+    );
+    console.log("====================================");
 
     // // Delete files that exist in post.media but not in oldMedia
     // if (oldMedia && oldMedia.length > 0) {
