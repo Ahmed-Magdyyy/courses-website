@@ -77,18 +77,17 @@ const userSchema = new mongoose.Schema(
     },
     zoom_client_id: {
       type: String,
-      // set: encryptField,
-      // get: decryptField,
       default: null,
 
     },
     zoom_client_Secret: {
       type: String,
-      // set: encryptField,
-      // get: decryptField,
       default: null,
-
     },
+    zoom_credentials:{
+      type: Boolean,
+      default: false,
+    }
   },
   { timestamps: true }
 );

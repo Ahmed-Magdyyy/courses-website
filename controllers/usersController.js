@@ -129,7 +129,9 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
         .limit(limitNum);
     }
 
-    res.status(200).json({ totalPages, page: pageNum, results: users.length, data: users });
+    res
+      .status(200)
+      .json({ totalPages, page: pageNum, results: users.length, data: users });
   } else {
     // Return all data without pagination
     users = await usersModel.find(filter).sort({ createdAt: -1 });
@@ -262,72 +264,88 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
     zoom_client_Secret,
   } = req.body;
 
+  const user = await usersModel.findById(req.params.id);
 
-  let encrypted_zoom_account_id
-  let encrypted_zoom_client_id
-  let encrypted_zoom_client_Secret
-
-
-  if (zoom_account_id){
-    encrypted_zoom_account_id= encryptField(zoom_account_id)
-  }
-  if (zoom_client_id){
-    encrypted_zoom_client_id= encryptField(zoom_client_id)
-  }
-  if (zoom_client_Secret){
-    encrypted_zoom_client_Secret= encryptField(zoom_client_Secret)
-  }
-
-  const user= await usersModel.findById(req.params.id)
-
-  if (!user){
+  if (!user) {
     return next(new ApiError(`No User for this id:${req.params.id}`, 404));
   }
 
+  if (user.role === "teacher") {
+    if(user.zoom_credentials === false) {
 
-if(user.role=== "teacher"){
-  const updatedUser = await usersModel.findByIdAndUpdate(
-    req.params.id,
-    {
-      name,
-      email,
-      phone,
-      remainingClasses,
-      enabledControls,
-      zoom_account_id:encrypted_zoom_account_id,
-      zoom_client_id:encrypted_zoom_client_id,
-      zoom_client_Secret:encrypted_zoom_client_Secret,
-    },
-    {
-      new: true,
+      let encrypted_zoom_account_id;
+      let encrypted_zoom_client_id;
+      let encrypted_zoom_client_Secret;
+  
+      if (zoom_account_id && zoom_account_id !== null) {
+        encrypted_zoom_account_id = encryptField(zoom_account_id);
+      }
+      if (zoom_client_id && zoom_client_id !== null) {
+        encrypted_zoom_client_id = encryptField(zoom_client_id);
+      }
+      if (zoom_client_Secret && zoom_client_Secret !== null) {
+        encrypted_zoom_client_Secret = encryptField(zoom_client_Secret);
+      }
+  
+      // Check if zoom credentials are provided and not null
+      const hasZoomCredentials =
+        zoom_account_id !== null &&
+        zoom_client_id !== null &&
+        zoom_client_Secret !== null;
+  
+      // Update zoom_credentials to true if zoom credentials are provided
+      const updatedFields = {
+        name,
+        email,
+        phone,
+        remainingClasses,
+        enabledControls,
+      };
+  
+      if (hasZoomCredentials) {
+        updatedFields.zoom_account_id = encrypted_zoom_account_id;
+        updatedFields.zoom_client_id = encrypted_zoom_client_id;
+        updatedFields.zoom_client_Secret = encrypted_zoom_client_Secret;
+        updatedFields.zoom_credentials = true;
+      }
+      const updatedUser = await usersModel.findByIdAndUpdate(
+        req.params.id,
+        updatedFields,
+        {
+          new: true,
+        }
+      );
+  
+      if (!updatedUser) {
+        return next(new ApiError(`No User for this id:${req.params.id}`, 404));
+      }
+      res.status(200).json({ data: updatedUser });
+  
+
+    } else {
+      return next(new ApiError(`Zoom credentials already provide. you can't change it`, 400));
+
     }
-  );
+  } else {
+    const updatedUser = await usersModel.findByIdAndUpdate(
+      req.params.id,
+      {
+        name,
+        email,
+        phone,
+        remainingClasses,
+        enabledControls,
+      },
+      {
+        new: true,
+      }
+    );
 
-  if (!updatedUser) {
-    return next(new ApiError(`No User for this id:${req.params.id}`, 404));
-  }
-  res.status(200).json({ data: updatedUser });
-} else {
-  const updatedUser = await usersModel.findByIdAndUpdate(
-    req.params.id,
-    {
-      name,
-      email,
-      phone,
-      remainingClasses,
-      enabledControls,
-    },
-    {
-      new: true,
+    if (!updatedUser) {
+      return next(new ApiError(`No User for this id:${req.params.id}`, 404));
     }
-  );
-
-  if (!updatedUser) {
-    return next(new ApiError(`No User for this id:${req.params.id}`, 404));
+    res.status(200).json({ data: updatedUser });
   }
-  res.status(200).json({ data: updatedUser });
-}
-
 });
 
 exports.updateUserPassword = asyncHandler(async (req, res, next) => {

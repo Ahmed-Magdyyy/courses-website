@@ -183,6 +183,22 @@ exports.editPost = asyncHandler(async (req, res, next) => {
       updateFields.media = oldMedia;
     }
 
+    // Delete files that exist in post.media but not in oldMedia
+    if (oldMedia && oldMedia.length > 0) {
+      const mediaToDelete = post.media.filter((mediaItem) => {
+        return !oldMedia.find(
+          (oldMediaItem) => oldMediaItem.url === mediaItem.url
+        );
+      });
+
+      // Update media URLs
+      mediaToDelete.forEach((mediaItemToDelete) => {
+        // Construct the file path and delete the file
+        const filePath = `uploads/posts/${mediaItemToDelete.url}`;
+        deleteUploadedFile({ path: filePath });
+      });
+    }
+
     // Update post in the database
     const updatedPost = await postsModel.findOneAndUpdate(
       { _id: id },
@@ -344,11 +360,11 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No post found for this ${id}`, 404));
   }
 
-    if (post.media && post.media.length > 0) {
-      post.media.forEach((mediaItem) => {
-        mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
-      });
-    }
+  if (post.media && post.media.length > 0) {
+    post.media.forEach((mediaItem) => {
+      mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
+    });
+  }
 
   res.status(200).json({ data: post });
 });
