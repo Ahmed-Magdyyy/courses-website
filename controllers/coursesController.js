@@ -443,14 +443,15 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
     if (course.image) {
       const index = course.image.indexOf("courses/");
       const path = `uploads/${course.image.substring(index)}`;
-      console.log("course.image:", course.image);
-      console.log("PAAAAATH:", path);
       deleteUploadedFile({
         path,
       });
     }
 
-    courseNotify(course.studentsEnrolled, `Course: ${course.title} has been deleted`);
+    courseNotify(
+      course.studentsEnrolled,
+      `Course: ${course.title} has been deleted`
+    );
 
     res.status(204).send("Document deleted successfully");
   } catch (error) {
