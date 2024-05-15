@@ -190,7 +190,7 @@ exports.editPost = asyncHandler(async (req, res, next) => {
     console.log("====================================");
     const olddata = oldMedia;
     console.log("TYPE:", Array.isArray(oldMedia));
-    console.log("OLD MEDIA 22:", olddata);
+    console.log(olddata);
     console.log(
       "OLD MEDIA 33:",
       oldMedia.forEach((media) => console.log(media))
