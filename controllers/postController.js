@@ -135,99 +135,105 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 });
 
 exports.editPost = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  const { content, oldMedia } = req.body;
-  const updateFields = {};
+const { oldMedia} = req.body;
+  console.log("TYPE:", Array.isArray(oldMedia));
 
-  console.log("====================================");
-  console.log("req.body:", req.body);
-  console.log("OLD MEDIA:", oldMedia);
-  console.log("====================================");
+
+  // const { id } = req.params;
+  // const { content, oldMedia } = req.body;
+  // const updateFields = {};
+
+  // console.log("====================================");
+  // console.log("req.body:", req.body);
+  // console.log("OLD MEDIA:", oldMedia);
+  // console.log("====================================");
   try {
-    const post = await postsModel.findById(id);
+  //   const post = await postsModel.findById(id);
 
-    if (!post) {
-      // Delete the uploaded media files if post not found
-      if (req.files) {
-        req.files.forEach((file) => deleteUploadedFile(file));
-      }
-      return next(new ApiError(`No post found for ${id}`, 404));
-    }
+  //   if (!post) {
+  //     // Delete the uploaded media files if post not found
+  //     if (req.files) {
+  //       req.files.forEach((file) => deleteUploadedFile(file));
+  //     }
+  //     return next(new ApiError(`No post found for ${id}`, 404));
+  //   }
 
-    if (
-      req.user._id.toString() !== post.author.toString() &&
-      req.user.role !== "superAdmin" &&
-      req.user.role !== "admin"
-    ) {
-      if (req.files) {
-        req.files.forEach((file) => deleteUploadedFile(file));
-      }
-      return next(new ApiError(`Only post author can edit the post.`, 403));
-    }
+  //   if (
+  //     req.user._id.toString() !== post.author.toString() &&
+  //     req.user.role !== "superAdmin" &&
+  //     req.user.role !== "admin"
+  //   ) {
+  //     if (req.files) {
+  //       req.files.forEach((file) => deleteUploadedFile(file));
+  //     }
+  //     return next(new ApiError(`Only post author can edit the post.`, 403));
+  //   }
 
-    // Update post content
-    if (content) {
-      updateFields.content = content;
-    }
+  //   // Update post content
+  //   if (content) {
+  //     updateFields.content = content;
+  //   }
 
-    let newFiles = [];
-    if (req.files && req.files.length > 0) {
-      req.files.forEach((file) => {
-        newFiles.push({
-          type: file.mimetype.startsWith("image") ? "image" : "video",
-          url: file.filename,
-        });
-      });
-      if (oldMedia) {
-        updateFields.media = [...oldMedia, ...newFiles];
-      } else {
-        updateFields.media = newFiles;
-      }
-    } else {
-      updateFields.media = oldMedia;
-    }
+  //   let newFiles = [];
+  //   if (req.files && req.files.length > 0) {
+  //     req.files.forEach((file) => {
+  //       newFiles.push({
+  //         type: file.mimetype.startsWith("image") ? "image" : "video",
+  //         url: file.filename,
+  //       });
+  //     });
+  //     if (oldMedia) {
+  //       updateFields.media = [...oldMedia, ...newFiles];
+  //     } else {
+  //       updateFields.media = newFiles;
+  //     }
+  //   } else {
+  //     updateFields.media = oldMedia;
+  //   }
 
-    console.log("====================================");
-    const olddata = oldMedia;
-    console.log("TYPE:", Array.isArray(oldMedia));
-    console.log(olddata);
-    console.log(
-      "OLD MEDIA 33:",
-      oldMedia.forEach((media) => console.log(media))
-    );
-    console.log("====================================");
+  //   console.log("====================================");
+  //   const olddata = oldMedia;
+  //   console.log("TYPE:", Array.isArray(oldMedia));
+  //   console.log(olddata);
+  //   console.log(
+  //     "OLD MEDIA 33:",
+  //     oldMedia.forEach((media) => console.log(media))
+  //   );
+  //   console.log("====================================");
 
-    // // Delete files that exist in post.media but not in oldMedia
-    // if (oldMedia && oldMedia.length > 0) {
-    //   const mediaToDelete = post.media.filter((mediaItem) => {
-    //     return !oldMedia.find(
-    //       (oldMediaItem) => oldMediaItem.url === mediaItem.url
-    //     );
-    //   });
+  //   // // Delete files that exist in post.media but not in oldMedia
+  //   // if (oldMedia && oldMedia.length > 0) {
+  //   //   const mediaToDelete = post.media.filter((mediaItem) => {
+  //   //     return !oldMedia.find(
+  //   //       (oldMediaItem) => oldMediaItem.url === mediaItem.url
+  //   //     );
+  //   //   });
 
-    //   // Update media URLs
-    //   mediaToDelete.forEach((mediaItemToDelete) => {
-    //     // Construct the file path and delete the file
-    //     const filePath = `uploads/posts/${mediaItemToDelete.url}`;
-    //     deleteUploadedFile({ path: filePath });
-    //   });
-    // }
+  //   //   // Update media URLs
+  //   //   mediaToDelete.forEach((mediaItemToDelete) => {
+  //   //     // Construct the file path and delete the file
+  //   //     const filePath = `uploads/posts/${mediaItemToDelete.url}`;
+  //   //     deleteUploadedFile({ path: filePath });
+  //   //   });
+  //   // }
 
-    // Update post in the database
-    const updatedPost = await postsModel.findOneAndUpdate(
-      { _id: id },
-      { $set: updateFields },
-      { new: true } // Return the updated document
-    );
+  //   // Update post in the database
+  //   const updatedPost = await postsModel.findOneAndUpdate(
+  //     { _id: id },
+  //     { $set: updateFields },
+  //     { new: true } // Return the updated document
+  //   );
 
-    const updatedPostWithMediaUrl = updatedPost.media.forEach((mediaItem) => {
-      mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
-    });
+  //   const updatedPostWithMediaUrl = updatedPost.media.forEach((mediaItem) => {
+  //     mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
+  //   });
 
-    res.status(200).json({
-      message: "Post updated successfully",
-      data: updatedPostWithMediaUrl,
-    });
+    // res.status(200).json({
+    //   message: "Post updated successfully",
+    //   data: updatedPostWithMediaUrl,
+    // });
+
+    res.status(200).json({message: true, oldMedia})
   } catch (error) {
     console.error("Error updating post:", error);
     // Delete the uploaded media files if post updating fails
