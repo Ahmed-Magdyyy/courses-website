@@ -135,13 +135,12 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 });
 
 exports.editPost = asyncHandler(async (req, res, next) => {
-
   const { id } = req.params;
   const { content, oldMedia } = req.body;
   const updateFields = {};
 
-  let ParsedOldMedia
-  if (oldMedia) ParsedOldMedia= JSON.parse(oldMedia)
+  let ParsedOldMedia;
+  if (oldMedia) ParsedOldMedia = JSON.parse(oldMedia);
 
   try {
     const post = await postsModel.findById(id);
@@ -186,7 +185,6 @@ exports.editPost = asyncHandler(async (req, res, next) => {
     } else {
       updateFields.media = ParsedOldMedia;
     }
-
 
     // Delete files that exist in post.media but not in oldMedia
     if (ParsedOldMedia && ParsedOldMedia.length > 0) {
