@@ -261,12 +261,14 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
     await commentModel.deleteMany({ post: id });
 
     // Delete media files associated with the post
+    console.log('====================================');
+    console.log("post.media:", post.media);
+    console.log('====================================');
     if (post.media && post.media.length > 0) {
       post.media.forEach((mediaItem) => {
-        const index = mediaItem.url.indexOf("posts");
-        const path = `uploads/${mediaItem.url.substring(index)}`;
-        console.log(path);
-        deleteUploadedFile({ path });
+        // Construct the file path and delete the file
+        const filePath = `uploads/posts/${mediaItem.url}`;
+        deleteUploadedFile({ path: filePath });
       });
     }
 
