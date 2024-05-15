@@ -178,7 +178,18 @@ exports.editPost = asyncHandler(async (req, res, next) => {
         });
       });
       if (ParsedOldMedia) {
-        updateFields.media = [...ParsedOldMedia, ...newFiles];
+        const allFiles = [...ParsedOldMedia, ...newFiles];
+        if (allFiles.length > 10) {
+          
+          if (req.files) {
+            req.files.forEach((file) => deleteUploadedFile(file));
+          }
+
+          return next(new ApiError(`Maximum number of media is 10, please delete some media files`, 400));
+          
+        } else {
+          updateFields.media = allFiles;
+        }
       } else {
         updateFields.media = newFiles;
       }
