@@ -190,7 +190,7 @@ exports.editPost = asyncHandler(async (req, res, next) => {
     console.log('====================================');
 const olddata = oldMedia;
     console.log("OLD MEDIA 22:", olddata);
-    console.log("OLD MEDIA 33:", ...olddata);
+    console.log("OLD MEDIA 33:", oldMedia.forEach((media) => console.log(media)));
     console.log('====================================');
 
     // Delete files that exist in post.media but not in oldMedia
