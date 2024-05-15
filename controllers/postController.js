@@ -186,6 +186,10 @@ exports.editPost = asyncHandler(async (req, res, next) => {
       updateFields.media = oldMedia;
     }
 
+    console.log('====================================');
+    console.log("OLD MEDIA 22:", oldMedia);
+    console.log('====================================');
+
     // Delete files that exist in post.media but not in oldMedia
     if (oldMedia && oldMedia.length > 0) {
       const mediaToDelete = post.media.filter((mediaItem) => {
