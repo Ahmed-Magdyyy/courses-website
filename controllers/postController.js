@@ -137,6 +137,7 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 exports.editPost = asyncHandler(async (req, res, next) => {
 const { oldMedia} = req.body;
   console.log("TYPE:", Array.isArray(oldMedia));
+  console.log("TYPE:", oldMedia);
 
 
   // const { id } = req.params;
