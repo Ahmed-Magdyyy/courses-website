@@ -194,6 +194,7 @@ exports.editPost = asyncHandler(async (req, res, next) => {
 
     console.log("====================================");
     const olddata = oldMedia;
+    console.log("PARSED OLDMEDIA:", JSON.parse(oldMedia));
     console.log("TYPE:", Array.isArray(oldMedia));
     console.log(olddata);
     console.log(
