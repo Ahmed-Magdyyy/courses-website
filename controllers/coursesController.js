@@ -443,6 +443,7 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
     if (course.image) {
       const index = course.image.indexOf("courses");
       const path = `uploads/${course.image.substring(index)}`;
+      console.log("course.image:", course.image);
       console.log("PAAAAATH:", path);
       deleteUploadedFile({
         path,
