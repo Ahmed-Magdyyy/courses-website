@@ -139,6 +139,9 @@ exports.editPost = asyncHandler(async (req, res, next) => {
   const { content, oldMedia } = req.body;
   const updateFields = {};
 
+  console.log('====================================');
+  console.log("OLD MEDIA:", oldMedia);
+  console.log('====================================');
   try {
     const post = await postsModel.findById(id);
 
