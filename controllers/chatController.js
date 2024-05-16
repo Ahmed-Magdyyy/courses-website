@@ -255,12 +255,21 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
       },
     });
 
-    if (existingChat && existingChat.length > 0) {
-      return next(
-        new ApiError(`There is already a chat with this teacher`, 400)
-      );
-    }
+    console.log("existingChat:", existingChat);
 
+    if (existingChat && existingChat.length > 0) {
+      // return next(
+      //   new ApiError(`There is already a chat with this teacher`, 400)
+      // );
+      res
+        .status(400)
+        .json({
+          message: "There is already a chat with this teacher",
+          chatId: existingChat[0]._id,
+        });
+      return;
+    }
+    console.log("hhhhhhhhhh");
     const chat = await chatModel.create({
       members: [req.user._id, Class.teacher],
       chatWith: "teacher",
@@ -406,7 +415,7 @@ exports.findSpecificChat = asyncHandler(async (req, res, next) => {
       );
     }
 
-    if (req.user.role !== "superAdmin"){
+    if (req.user.role !== "superAdmin") {
       if (!chat.members.includes(req.user._id)) {
         return next(
           new ApiError(
@@ -416,8 +425,6 @@ exports.findSpecificChat = asyncHandler(async (req, res, next) => {
         );
       }
     }
-
-
 
     res
       .status(200)
