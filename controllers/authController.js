@@ -406,7 +406,7 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
                   <a href="#" title="logo" target="_blank">
                     <img
                       width="250"
-                      src="#"
+                      src="https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png"
                       title="logo"
                       alt="logo"
                     />
