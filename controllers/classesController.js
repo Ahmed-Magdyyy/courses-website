@@ -8,13 +8,14 @@ const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 const { decryptField } = require("../utils/encryption");
 
-const classNotify = async (array, message) => {
+const classNotify = async (array, message,classId) => {
   // Send notifications to added students
   const studentsNotification = await Promise.all(
     array.map(async (studentId) => {
       return await Notification.create({
         scope: "class",
         userId: studentId,
+        relatedId: classId,
         message,
       });
     })
@@ -38,6 +39,7 @@ const classNotify = async (array, message) => {
         io.to(student.socketId).emit("notification", {
           userId,
           scope,
+          classId,
           message,
           _id,
           createdAt,
@@ -58,10 +60,12 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       return res.status(400).json({ message: "Teacher not found" });
     }
 
-     // Decrypt Zoom credentials
-     const decryptedZoomAccountId = decryptField(teacherExists.zoom_account_id);
-     const decryptedZoomClientId = decryptField(teacherExists.zoom_client_id);
-     const decryptedZoomClientSecret = decryptField(teacherExists.zoom_client_Secret);
+    // Decrypt Zoom credentials
+    const decryptedZoomAccountId = decryptField(teacherExists.zoom_account_id);
+    const decryptedZoomClientId = decryptField(teacherExists.zoom_client_id);
+    const decryptedZoomClientSecret = decryptField(
+      teacherExists.zoom_client_Secret
+    );
 
     // Check if all students exist and have remaining classes greater than 0
     const invalidStudents = [];
@@ -116,6 +120,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
     const teacherNotification = await Notification.create({
       scope: "class",
       userId: teacher,
+      relatedId: classInfo._id,
       message: `you have been assigned to class ${name}`,
     });
 
@@ -124,6 +129,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
         return await Notification.create({
           scope: "class",
           userId: studentId,
+          relatedId: classInfo._id,
           message: `You have been enrolled in a new class: ${name}`,
         });
       })
@@ -146,10 +152,11 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       );
 
       if (connectedTeacher) {
-        const { userId, scope, message, _id, createdAt } = teacherNotification;
+        const { userId, scope, message, relatedId, _id, createdAt } = teacherNotification;
         io.to(connectedTeacher.socketId).emit("notification", {
           userId,
           scope,
+          classId:relatedId,
           message,
           _id,
           createdAt,
@@ -308,7 +315,9 @@ exports.deleteClass = asyncHandler(async (req, res, next) => {
   // Decrypt Zoom credentials
   const decryptedZoomAccountId = decryptField(Document.teacher.zoom_account_id);
   const decryptedZoomClientId = decryptField(Document.teacher.zoom_client_id);
-  const decryptedZoomClientSecret = decryptField(Document.teacher.zoom_client_Secret);
+  const decryptedZoomClientSecret = decryptField(
+    Document.teacher.zoom_client_Secret
+  );
 
   // Delete the Zoom meeting associated with the class
   const { zoomMeetingId } = Document;
@@ -516,7 +525,7 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
     );
 
     // Emit notifications to students
-    classNotify(studentIds, `You have been enrolled in class: ${classes.name}`);
+    classNotify(studentIds, `You have been enrolled in class: ${classes.name}`,classId);
 
     res
       .status(200)
@@ -599,7 +608,8 @@ exports.removeStudentFromClass = asyncHandler(async (req, res, next) => {
     // Emit notifications to students
     classNotify(
       studentIds,
-      `You have been removed from class: ${classes.name}`
+      `You have been removed from class: ${classes.name}`,
+      classId
     );
 
     res

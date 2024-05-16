@@ -46,6 +46,7 @@ const productNotify = async (array, message,productId) => {
         io.to(student.socketId).emit("notification", {
           userId,
           scope,
+          productId,
           message,
           _id,
           createdAt,

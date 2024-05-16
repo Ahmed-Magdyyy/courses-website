@@ -104,10 +104,11 @@ const courseNotify = async (array, message,courseId) => {
       );
 
       if (studentNotification) {
-        const { userId, scope, message, _id, createdAt } = studentNotification;
+        const { userId, scope,relatedId, message, _id, createdAt } = studentNotification;
         io.to(student.socketId).emit("notification", {
           userId,
           scope,
+          courseId,
           message,
           _id,
           createdAt,
