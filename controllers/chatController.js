@@ -258,18 +258,11 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
     console.log("existingChat:", existingChat);
 
     if (existingChat && existingChat.length > 0) {
-      // return next(
-      //   new ApiError(`There is already a chat with this teacher`, 400)
-      // );
-      res
-        .status(400)
-        .json({
-          message: "There is already a chat with this teacher",
-          chatId: existingChat[0]._id,
-        });
-      return;
+      return res.status(400).json({
+        message: "There is already a chat with this teacher",
+        chatId: existingChat[0]._id,
+      });
     }
-    console.log("hhhhhhhhhh");
     const chat = await chatModel.create({
       members: [req.user._id, Class.teacher],
       chatWith: "teacher",
