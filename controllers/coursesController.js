@@ -75,19 +75,20 @@ exports.uploadCourseImage = (req, res, next) => {
   });
 };
 
-const courseNotify = async (array, message) => {
+const courseNotify = async (array, message,courseId) => {
   // Send notifications to added students
   const studentsNotification = await Promise.all(
     array.map(async (studentId) => {
       return await Notification.create({
         scope: "class",
         userId: studentId,
+        relatedId: courseId,
         message,
       });
     })
   );
 
-  console.log(studentsNotification);
+  console.log("studentsNotification:", studentsNotification);
 
   // Emit notifications students
   const { io, users } = getIO();
@@ -293,7 +294,8 @@ exports.addStudentsToCourse = asyncHandler(async (req, res, next) => {
 
     courseNotify(
       studentIds,
-      `You have been enrolled in course: ${course.title}`
+      `You have been enrolled in course: ${course.title}`,
+      courseId
     );
 
     res
@@ -354,7 +356,8 @@ exports.removeStudentFromCourse = asyncHandler(async (req, res, next) => {
 
     courseNotify(
       studentIds,
-      `You have been reomoved from course: ${course.title}`
+      `You have been reomoved from course: ${course.title}`,
+      courseId
     );
 
     res

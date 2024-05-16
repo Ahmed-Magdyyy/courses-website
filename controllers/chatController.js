@@ -407,14 +407,18 @@ exports.findSpecificChat = asyncHandler(async (req, res, next) => {
       );
     }
 
-    if (!chat.members.includes(req.user._id)) {
-      return next(
-        new ApiError(
-          `You can't access this chat since you are not a member in it`,
-          401
-        )
-      );
+    if (req.user.role !== "superAdmin"){
+      if (!chat.members.includes(req.user._id)) {
+        return next(
+          new ApiError(
+            `You can't access this chat since you are not a member in it`,
+            401
+          )
+        );
+      }
     }
+
+
 
     res
       .status(200)

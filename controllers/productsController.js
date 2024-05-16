@@ -11,17 +11,22 @@ const ApiError = require("../utils/ApiError");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 
-const productNotify = async (array, message) => {
+const productNotify = async (array, message,productId) => {
   // Send notifications to added students
   const studentsNotification = await Promise.all(
     array.map(async (studentId) => {
       return await Notification.create({
         scope: "product",
         userId: studentId,
+        relatedId: productId,
         message,
       });
     })
   );
+
+  console.log('====================================');
+  console.log("studentsNotifications: " + studentsNotification);
+  console.log('====================================');
 
   // Emit notifications students
   const { io, users } = getIO();
@@ -448,7 +453,7 @@ exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
       { new: true } // Return the updated document
     );
 
-    productNotify(studentIds, `You have access to product: ${product.title}`);
+    productNotify(studentIds, `You have access to product: ${product.title}`,productId);
 
     res
       .status(200)
@@ -521,7 +526,8 @@ exports.removeStudentsFromProduct = asyncHandler(async (req, res, next) => {
 
     productNotify(
       studentIds,
-      `Your access to product: ${product.title} have been removed`
+      `Your access to product: ${product.title} have been removed`,
+      productId
     );
 
     res

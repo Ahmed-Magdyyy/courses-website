@@ -170,12 +170,11 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
 
     // send offline notification to message receiver
     const notification = await Notification.create({
-      scope: "message",
+      scope: "chat",
       userId: receiver._id,
+      relatedId: chatId,
       message: `You got a new message from ${req.user.name} -${req.user.role}`,
     });
-
-    const { userId, scope, message, _id, createdAt } = notification;
 
     // Emit the notification to message receiver
     const { io, users } = getIO();
@@ -189,15 +188,37 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
 
       if (user !== undefined) {
         io.to(user.socketId).emit("notification", {
-          userId,
-          scope,
-          message,
-          _id,
-          createdAt,
+          userId: receiver._id,
+          chatId,
+          scope: "chat",
+          message: `You got a new message from ${req.user.name} -${req.user.role}`,
+          createdAt: moment()
+            .tz("Africa/Cairo")
+            .format("YYYY-MM-DDTHH:mm:ss[Z]"),
         });
 
         io.to(user.socketId).emit("getMessage", populatedMessage);
+      } else {
+        // send offline notification to message receiver
+        const notification = await Notification.create({
+          scope: "chat",
+          userId: receiver._id,
+          relatedId: chatId,
+          message: `You got a new message from ${req.user.name} -${req.user.role}`,
+        });
+
+        console.log("notification:", notification);
       }
+    } else {
+      // send offline notification to message receiver
+      const notification = await Notification.create({
+        scope: "chat",
+        userId: receiver._id,
+        relatedId: chatId,
+        message: `You got a new message from ${req.user.name} -${req.user.role}`,
+      });
+
+      console.log("notification:", notification);
     }
 
     res.status(200).json({

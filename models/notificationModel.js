@@ -12,6 +12,10 @@ const notificationSchema = new mongoose.Schema(
       type:String,
       default: "general"
     },
+    relatedId: {
+      type:String,
+      refPath: 'scope'
+    },
     message: {
       type: String,
       required: true,

@@ -114,7 +114,6 @@ exports.uploadCommentMedia = (req, res, next) => {
 exports.createComment = asyncHandler(async (req, res, next) => {
   const { postId } = req.params;
   const { content } = req.body;
-  console.log("req.file hhhh", req.file);
 
   try {
     const post = await postsModel.findById(postId);
@@ -142,10 +141,10 @@ exports.createComment = asyncHandler(async (req, res, next) => {
     const postOwner = post.author;
     const commentAuthor = await userModel.findById(comment.author);
 
-    // if (postOwner.toString() === commentAuthor.toString()) {
     const postOwnernotification = await Notification.create({
-      scope: "comment",
+      scope: "post",
       userId: postOwner.toString(),
+      relatedId: postId,
       message: `${commentAuthor.name} commented on your post.`,
     });
 
@@ -170,7 +169,6 @@ exports.createComment = asyncHandler(async (req, res, next) => {
         });
       }
     }
-    // }
 
     res
       .status(201)
@@ -274,17 +272,15 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
       updateFields.content = content;
     }
 
-
     // Update post media if any
-    if (req.file ) {
+    if (req.file) {
       updateFields.media = req.file.filename;
-      if (comment.media ) {
+      if (comment.media) {
         const index = comment.media.indexOf("posts/comments");
         const path = `uploads/${comment.media.substring(index)}`;
         deleteUploadedFile({ path });
+      }
     }
-    }
-
 
     // Update the comment in the database
     const updatedComment = await commentsModel.findOneAndUpdate(
@@ -292,7 +288,6 @@ exports.updateComment = asyncHandler(async (req, res, next) => {
       { $set: updateFields },
       { new: true } // Return the updated document
     );
-
 
     res
       .status(200)
@@ -333,11 +328,11 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
     });
 
     // Delete media files associated with the comment
-    if (comment.media ) {
-        const index = comment.media.indexOf("posts/comments");
-        const path = `uploads/${comment.media.substring(index)}`;
-        console.log(path);
-        deleteUploadedFile({ path });
+    if (comment.media) {
+      const index = comment.media.indexOf("posts/comments");
+      const path = `uploads/${comment.media.substring(index)}`;
+      console.log(path);
+      deleteUploadedFile({ path });
     }
 
     // Delete post document from DB
@@ -374,6 +369,37 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
         $inc: { "likes.count": 1 },
       };
       message = "You have successfully liked the comment";
+
+      const commentOwnernotification = await Notification.create({
+        scope: "comment",
+        userId: comment.author.toString(),
+        relatedId: id,
+        message: `${req.user.name} liked your comment.`,
+      });
+
+      // Emit notifications students
+      const { io, users } = getIO();
+      if (users.length > 0) {
+        const connectedCommentOwner = users.filter(
+          (user) => user.userId === comment.author.toString()
+        );
+
+        if (connectedCommentOwner) {
+          const { userId, scope, message, _id, createdAt } =
+            commentOwnernotification;
+          io.to(connectedCommentOwner[0].socketId).emit("notification", {
+            scope,
+            commentOwner: userId,
+            userLikedTheComment: req.user._id,
+            commentId: id,
+            message,
+            notificationId: _id,
+            createdAt,
+          });
+        }
+      }
+
+      console.log("commentOwnernotification", commentOwnernotification);
     } else {
       // User has liked the comment, so remove like
       updateOperation = {

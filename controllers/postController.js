@@ -6,6 +6,8 @@ const asyncHandler = require("express-async-handler");
 const postsModel = require("../models/postModel");
 const commentModel = require("../models/commentModel");
 const ApiError = require("../utils/ApiError");
+const Notification = require("../models/notificationModel");
+const { getIO } = require("../socketConfig");
 
 function deleteUploadedFile(file) {
   if (file) {
@@ -138,20 +140,12 @@ exports.editPost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { content, oldMedia } = req.body;
   const updateFields = {};
-  console.log("====================================");
-  console.log("oldMedia:", oldMedia);
-  console.log("parsed oldMedia:", JSON.parse(oldMedia));
-  console.log("====================================");
+
   let ParsedOldMedia;
   if (oldMedia) {
-    ParsedOldMedia = JSON.parse(oldMedia)
-    console.log("====================================");
-    console.log("ParsedOldMedia inside if:", ParsedOldMedia);
-    console.log("====================================");
-  };
-  console.log("====================================");
-  console.log("ParsedOldMedia:", ParsedOldMedia);
-  console.log("====================================");
+    ParsedOldMedia = JSON.parse(oldMedia);
+  }
+
   try {
     const post = await postsModel.findById(id);
 
@@ -418,6 +412,35 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
         $inc: { "likes.count": 1 },
       };
       message = "You liked the post";
+
+      const postOwnernotification = await Notification.create({
+        scope: "post",
+        userId: post.author.toString(),
+        relatedId: id,
+        message: `${req.user.name} liked your post.`,
+      });
+
+      // Emit notifications students
+      const { io, users } = getIO();
+      if (users.length > 0) {
+        const connectedPostOwner = users.filter(
+          (user) => user.userId === post.author.toString()
+        );
+
+        if (connectedPostOwner) {
+          const { userId, scope, message, _id, createdAt } =
+          postOwnernotification;
+          io.to(connectedPostOwner[0].socketId).emit("notification", {
+            scope,
+            postOwner: userId,
+            userLikedThePost: req.user._id,
+            postId: id,
+            message,
+            notificationId: _id,
+            createdAt,
+          });
+        }
+      }
     } else {
       // User has liked the post, so remove like
       updateOperation = {

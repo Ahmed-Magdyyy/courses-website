@@ -43,24 +43,6 @@ function setMediaURL(doc) {
   }
 }
 
-// postSchema.post("init", (doc) => {
-//   setMediaURL(doc);
-// });
-// postSchema.post("save", (doc) => {
-//   setMediaURL(doc);
-// });
-// postSchema.post(/find/, (doc) => {
-//   setMediaURL(doc);
-// });
-
-// postSchema.pre(/^find/, function (next) {
-//   console.log("this:", this)
-//   setMediaURL(this);
-//   next()
-// })
-
-
-
 postSchema.pre("save", function (next) {
   const currentTime = moment()
     .tz("Africa/Cairo")
