@@ -142,7 +142,10 @@ exports.editPost = asyncHandler(async (req, res, next) => {
   console.log("oldMedia:", oldMedia);
   console.log("====================================");
   let ParsedOldMedia;
-  if (oldMedia) ParsedOldMedia = JSON.parse(oldMedia);
+  if (oldMedia) {
+    ParsedOldMedia = JSON.parse(oldMedia)
+
+  };
   console.log("====================================");
   console.log("ParsedOldMedia:", ParsedOldMedia);
   console.log("====================================");
