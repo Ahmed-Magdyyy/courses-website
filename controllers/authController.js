@@ -28,6 +28,8 @@ exports.signup = asyncHandler(async (req, res, next) => {
     user.name.split(" ")[0].charAt(0).toUpperCase() +
     user.name.split(" ")[0].slice(1).toLocaleLowerCase();
 
+    let img ="https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png"
+
   let emailTamplate = `<!DOCTYPE html>
   <html lang="en-US">
     <head>
@@ -75,10 +77,10 @@ exports.signup = asyncHandler(async (req, res, next) => {
               </tr>
               <tr>
                 <td style="text-align: center">
-                  <a href="#" title="logo" target="_blank">
+                  <a href="https://jawwid.netlify.app" title="logo" target="_blank">
                     <img
                       width="250"
-                      src="#"
+                      src=${img}
                       title="logo"
                       alt="logo"
                     />
@@ -185,7 +187,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
                       margin: 0 0 0;
                     "
                   >
-                    &copy; <strong>www.jaweed.com</strong>
+                    &copy; <strong>https://jawwid.netlify.app</strong>
                   </p>
                 </td>
               </tr>
@@ -356,8 +358,6 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
     user.name.split(" ")[0].charAt(0).toUpperCase() +
     user.name.split(" ")[0].slice(1).toLocaleLowerCase();
 
-    let img ="https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png"
-
   let emailTamplate = `<!DOCTYPE html>
   <html lang="en-US">
     <head>
@@ -405,10 +405,10 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
               </tr>
               <tr>
                 <td style="text-align: center">
-                  <a href="https://jawwid.netlify.app" title="logo" target="_blank">
+                  <a href="#" title="logo" target="_blank">
                     <img
                       width="250"
-                      src=${img}
+                      src="#"
                       title="logo"
                       alt="logo"
                     />
