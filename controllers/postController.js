@@ -426,10 +426,12 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
         const connectedPostOwner = users.filter(
           (user) => user.userId === post.author.toString()
         );
-
+        console.log("====================================");
+        console.log(connectedPostOwner);
+        console.log("====================================");
         if (connectedPostOwner) {
           const { userId, scope, message, _id, createdAt } =
-          postOwnernotification;
+            postOwnernotification;
           io.to(connectedPostOwner[0].socketId).emit("notification", {
             scope,
             postOwner: userId,
