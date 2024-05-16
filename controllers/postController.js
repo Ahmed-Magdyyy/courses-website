@@ -138,12 +138,14 @@ exports.editPost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { content, oldMedia } = req.body;
   const updateFields = {};
-
+  console.log("====================================");
+  console.log("oldMedia:", oldMedia);
+  console.log("====================================");
   let ParsedOldMedia;
   if (oldMedia) ParsedOldMedia = JSON.parse(oldMedia);
-console.log('====================================');
-console.log("oldMedia:" , oldMedia);
-console.log('====================================');
+  console.log("====================================");
+  console.log("ParsedOldMedia:", ParsedOldMedia);
+  console.log("====================================");
   try {
     const post = await postsModel.findById(id);
 
@@ -182,13 +184,16 @@ console.log('====================================');
       if (ParsedOldMedia) {
         const allFiles = [...ParsedOldMedia, ...newFiles];
         if (allFiles.length > 10) {
-          
           if (req.files) {
             req.files.forEach((file) => deleteUploadedFile(file));
           }
 
-          return next(new ApiError(`Maximum number of media is 10, please delete some media files`, 400));
-          
+          return next(
+            new ApiError(
+              `Maximum number of media is 10, please delete some media files`,
+              400
+            )
+          );
         } else {
           updateFields.media = allFiles;
         }
