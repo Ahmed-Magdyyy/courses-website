@@ -141,7 +141,9 @@ exports.editPost = asyncHandler(async (req, res, next) => {
 
   let ParsedOldMedia;
   if (oldMedia) ParsedOldMedia = JSON.parse(oldMedia);
-
+console.log('====================================');
+console.log("oldMedia:" , oldMedia);
+console.log('====================================');
   try {
     const post = await postsModel.findById(id);
 
