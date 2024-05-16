@@ -208,15 +208,15 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
 
   if (req.user.role === "student") {
     const totalClassesCount = await classModel.countDocuments({
-      studentsEnrolled: { $in: [req.user._id] },
+      studentsEnrolled: { $in: [req.user._id] },...filter
     });
     const totalPages = Math.ceil(totalClassesCount / limitNum);
     const documents = await classModel
       .find({
-        studentsEnrolled: { $in: [req.user._id] },
+        studentsEnrolled: { $in: [req.user._id] },...filter
       })
       .sort({ createdAt: -1 })
-      .select("-studentsEnrolled")
+      .populate("studentsEnrolled", "_id name email phone")
       .populate("teacher", "_id name email phone")
       .populate("assignments", "-__v")
       .populate("attendance.student", "_id name email")
@@ -231,12 +231,12 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
     });
   } else if (req.user.role === "teacher") {
     const totalClassesCount = await classModel.countDocuments({
-      teacher: req.user._id,
+      teacher: req.user._id,...filter
     });
     const totalPages = Math.ceil(totalClassesCount / limitNum);
 
     const documents = await classModel
-      .find({ teacher: req.user._id })
+      .find({ teacher: req.user._id ,...filter})
       .sort({ createdAt: -1 })
       .populate("studentsEnrolled", "_id name email phone")
       .populate("teacher", "_id name email phone")
