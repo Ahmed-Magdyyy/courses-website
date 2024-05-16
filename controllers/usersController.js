@@ -185,7 +185,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
             zoom_account_id: 1,
             zoom_client_Secret: 1,
             zoom_client_id: 1,
-            zoom_credentials:1,
+            zoom_credentials: 1,
             classes: {
               $map: {
                 input: "$classes",
@@ -274,12 +274,11 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
   }
 
   if (user.role === "teacher") {
-    if(user.zoom_credentials === false) {
-
+    if (user.zoom_credentials === false) {
       let encrypted_zoom_account_id;
       let encrypted_zoom_client_id;
       let encrypted_zoom_client_Secret;
-  
+
       if (zoom_account_id && zoom_account_id !== null) {
         encrypted_zoom_account_id = encryptField(zoom_account_id);
       }
@@ -289,13 +288,13 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       if (zoom_client_Secret && zoom_client_Secret !== null) {
         encrypted_zoom_client_Secret = encryptField(zoom_client_Secret);
       }
-  
+
       // Check if zoom credentials are provided and not null
       const hasZoomCredentials =
         zoom_account_id !== null &&
         zoom_client_id !== null &&
         zoom_client_Secret !== null;
-  
+
       // Update zoom_credentials to true if zoom credentials are provided
       const updatedFields = {
         name,
@@ -305,7 +304,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
         remainingClasses,
         enabledControls,
       };
-  
+
       if (hasZoomCredentials) {
         updatedFields.zoom_account_id = encrypted_zoom_account_id;
         updatedFields.zoom_client_id = encrypted_zoom_client_id;
@@ -319,16 +318,37 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
           new: true,
         }
       );
-  
+
       if (!updatedUser) {
         return next(new ApiError(`No User for this id:${req.params.id}`, 404));
       }
       res.status(200).json({ data: updatedUser });
-  
+    } else if (user.zoom_credentials === true) {
+      if (!zoom_account_id && !zoom_client_id && !zoom_client_Secret) {
+        const updatedUser = await usersModel.findByIdAndUpdate(
+          req.params.id,
+          {
+            name,
+            email,
+            phone,
+            role,
+            remainingClasses,
+            enabledControls,
+          },
+          {
+            new: true,
+          }
+        );
+    
+        if (!updatedUser) {
+          return next(new ApiError(`No User for this id:${req.params.id}`, 404));
+        }
+        res.status(200).json({ data: updatedUser });
+    
+      }else {
+        return next(new ApiError(`Zoom credentials already provide. you can't change it`, 400));
 
-    } else {
-      return next(new ApiError(`Zoom credentials already provide. you can't change it`, 400));
-
+      }
     }
   } else {
     const updatedUser = await usersModel.findByIdAndUpdate(
