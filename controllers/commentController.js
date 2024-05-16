@@ -155,7 +155,7 @@ exports.createComment = asyncHandler(async (req, res, next) => {
         (user) => user.userId === postOwner.toString()
       );
 
-      if (connectedPostOwner) {
+      if (connectedPostOwner&& connectedPostOwner.length > 0 ) {
         const { userId, scope, message, _id, createdAt } =
           postOwnernotification;
         io.to(connectedPostOwner[0].socketId).emit("notification", {
@@ -384,7 +384,7 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
           (user) => user.userId === comment.author.toString()
         );
 
-        if (connectedCommentOwner) {
+        if (connectedCommentOwner && connectedCommentOwner.length > 0) {
           const { userId, scope, message, _id, createdAt } =
             commentOwnernotification;
           io.to(connectedCommentOwner[0].socketId).emit("notification", {
