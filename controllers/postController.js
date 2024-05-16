@@ -318,22 +318,22 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
     .find(filter)
     .populate("author", "_id name email phone role")
     .populate("likes.users", "_id name")
-    .populate({
-      path: "comments",
-      select: "-__v -post",
-      populate: {
-        path: "author",
-        select: "_id name",
-      },
-    })
-    .populate({
-      path: "comments",
-      select: "-__v -post",
-      populate: {
-        path: "likes.users",
-        select: "_id name",
-      },
-    })
+    // .populate({
+    //   path: "comments",
+    //   select: "-__v -post",
+    //   populate: {
+    //     path: "author",
+    //     select: "_id name",
+    //   },
+    // })
+    // .populate({
+    //   path: "comments",
+    //   select: "-__v -post",
+    //   populate: {
+    //     path: "likes.users",
+    //     select: "_id name",
+    //   },
+    // })
     .sort({ createdAt: -1 })
     .skip(skipNum)
     .limit(limitNum);

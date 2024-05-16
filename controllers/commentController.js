@@ -373,7 +373,7 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
       const commentOwnernotification = await Notification.create({
         scope: "comment",
         userId: comment.author.toString(),
-        relatedId: id,
+        relatedId: comment.post,
         message: `${req.user.name} liked your comment.`,
       });
 
@@ -392,6 +392,7 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
             commentOwner: userId,
             userLikedTheComment: req.user._id,
             commentId: id,
+            postId: comment.post,
             message,
             notificationId: _id,
             createdAt,

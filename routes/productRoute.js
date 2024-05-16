@@ -29,10 +29,18 @@ Router.route("/")
     uploadProductFiles,
     createProduct
   )
-  .get(allowedTo("superAdmin", "admin", "student"), getAllProducts);
+  .get(
+    allowedTo("superAdmin", "admin", "student"),
+    enabledControls("products"),
+    getAllProducts
+  );
 
 Router.route("/:id")
-  .get(allowedTo("superAdmin", "admin", "student"), getProduct)
+  .get(
+    allowedTo("superAdmin", "admin", "student"),
+    enabledControls("products"),
+    getProduct
+  )
   .put(
     allowedTo("superAdmin", "admin"),
     enabledControls("products"),

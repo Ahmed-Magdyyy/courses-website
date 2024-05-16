@@ -1,5 +1,4 @@
 const asyncHandler = require("express-async-handler");
-const mongoose = require("mongoose");
 
 const ApiError = require("../utils/ApiError");
 const chatModel = require("../models/chatModel");

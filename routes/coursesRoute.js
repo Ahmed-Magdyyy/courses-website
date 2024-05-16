@@ -10,7 +10,7 @@ const {
   deleteCourse,
   addStudentsToCourse,
   removeStudentFromCourse,
-  getStudentsOfCourse
+  getStudentsOfCourse,
 } = require("../controllers/coursesController");
 
 const {
@@ -36,7 +36,11 @@ Router.route("/")
   );
 
 Router.route("/:id")
-  .get(allowedTo("superAdmin", "admin", "student"), getCourse)
+  .get(
+    allowedTo("superAdmin", "admin", "student"),
+    enabledControls("courses"),
+    getCourse
+  )
   .put(
     allowedTo("superAdmin", "admin"),
     enabledControls("courses"),

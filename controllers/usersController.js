@@ -259,6 +259,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
     name,
     email,
     phone,
+    role,
     remainingClasses,
     enabledControls,
     zoom_account_id,
@@ -300,6 +301,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
         name,
         email,
         phone,
+        role,
         remainingClasses,
         enabledControls,
       };
@@ -335,6 +337,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
         name,
         email,
         phone,
+        role,
         remainingClasses,
         enabledControls,
       },
