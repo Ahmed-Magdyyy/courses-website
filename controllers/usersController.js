@@ -10,18 +10,155 @@ const { encryptField, decryptField } = require("../utils/encryption");
 
 //----- Admin Routes -----
 
+// exports.getUsers = asyncHandler(async (req, res, next) => {
+//   let filter = {};
+//   const { page, limit, skip, ...query } = req.query;
+
+//   if (query && query.role) {
+//     filter = query;
+//   } else {
+//     filter = { ...query, role: { $ne: "superAdmin" } };
+//   }
+
+//   const totalPostsCount = await usersModel.countDocuments(filter);
+// console.log("filter: " , filter)
+//   let users;
+//   if (limit && page) {
+//     // Pagination logic
+//     const pageNum = page * 1 || 1;
+//     const limitNum = limit * 1 || 5;
+//     const skipNum = (pageNum - 1) * limitNum;
+//     const totalPages = Math.ceil(totalPostsCount / limitNum);
+
+//     if (query.role === "teacher") {
+//       users = await usersModel.aggregate([
+//         { $match: filter },
+//         {
+//           $lookup: {
+//             from: "classes",
+//             localField: "classes",
+//             foreignField: "_id",
+//             as: "classes",
+//           },
+//         },
+//         {
+//           $project: {
+//             _id: 1,
+//             name: 1,
+//             email: 1,
+//             phone: 1,
+//             role: 1,
+//             password: 1,
+//             passwordChangedAT: 1,
+//             passwordResetCode: 1,
+//             passwordResetCodeExpire: 1,
+//             passwordResetCodeVerified: 1,
+//             enabledControls: 1,
+//             account_status: 1,
+//             active: 1,
+//             courses: 1,
+//             classes: 1,
+//             products: 1,
+//             remainingClasses: 1,
+//             createdAt: 1,
+//             updatedAt: 1,
+//             classes: {
+//               $map: {
+//                 input: "$classes",
+//                 as: "class",
+//                 in: {
+//                   _id: "$$class._id",
+//                   start_date: "$$class.start_date",
+//                   start_time: "$$class.start_time",
+//                   status: "$$class.status",
+//                 },
+//               },
+//             },
+//             // Decrypt Zoom-related fields for teachers
+//             zoom_account_id: 1,
+//             zoom_client_id: 1,
+//             zoom_client_Secret: 1,
+//             zoom_credentials: 1,
+//           },
+//         },
+//         {
+//           $addFields: {
+//             completedClasses: {
+//               $size: {
+//                 $filter: {
+//                   input: "$classes",
+//                   as: "class",
+//                   cond: { $eq: ["$$class.status", "ended"] },
+//                 },
+//               },
+//             },
+//             scheduledClasses: {
+//               $size: {
+//                 $filter: {
+//                   input: "$classes",
+//                   as: "class",
+//                   cond: { $eq: ["$$class.status", "scheduled"] },
+//                 },
+//               },
+//             },
+//             cancelledClasses: {
+//               $size: {
+//                 $filter: {
+//                   input: "$classes",
+//                   as: "class",
+//                   cond: { $eq: ["$$class.status", "cancelled"] },
+//                 },
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $sort: { createdAt: -1 },
+//         },
+//         {
+//           $skip: skipNum,
+//         },
+//         {
+//           $limit: limitNum,
+//         },
+//       ]);
+//     } else {
+//       users = await usersModel
+//         .find(filter)
+//         .sort({ createdAt: -1 })
+//         .skip(skipNum)
+//         .limit(limitNum);
+//     }
+
+//     res
+//       .status(200)
+//       .json({ totalPages, page: pageNum, results: users.length, data: users });
+//   } else {
+//     // Return all data without pagination
+//     users = await usersModel.find(filter).sort({ createdAt: -1 });
+//     res.status(200).json({ results: users.length, data: users });
+//   }
+// });
+
 exports.getUsers = asyncHandler(async (req, res, next) => {
   let filter = {};
   const { page, limit, skip, ...query } = req.query;
 
-  if (query && query.role) {
-    filter = query;
-  } else {
-    filter = { ...query, role: { $ne: "superAdmin" } };
+  // Modify the filter to support partial matches for string fields
+  Object.keys(query).forEach((key) => {
+    if (typeof query[key] === "string") {
+      filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+    } else {
+      filter[key] = query[key];
+    }
+  });
+
+  if (!query.role) {
+    filter.role = { $ne: "superAdmin" };
   }
 
   const totalPostsCount = await usersModel.countDocuments(filter);
-
+  console.log("filter: ", filter);
   let users;
   if (limit && page) {
     // Pagination logic
@@ -122,6 +259,22 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
           $limit: limitNum,
         },
       ]);
+
+      // Decrypt the specified fields
+      users.forEach((user) => {
+        if (user.zoom_account_id !== "" && user.zoom_account_id !== null) {
+          user.zoom_account_id = decryptField(user.zoom_account_id);
+        }
+        if (user.zoom_client_id !== "" && user.zoom_client_id !== null) {
+          user.zoom_client_id = decryptField(user.zoom_client_id);
+        }
+        if (
+          user.zoom_client_Secret !== "" &&
+          user.zoom_client_Secret !== null
+        ) {
+          user.zoom_client_Secret = decryptField(user.zoom_client_Secret);
+        }
+      });
     } else {
       users = await usersModel
         .find(filter)
@@ -233,6 +386,22 @@ exports.getUser = asyncHandler(async (req, res, next) => {
         },
       ]);
 
+      // Decrypt the specified fields
+      userData.forEach((user) => {
+        if (user.zoom_account_id !== "" && user.zoom_account_id !== null) {
+          user.zoom_account_id = decryptField(user.zoom_account_id);
+        }
+        if (user.zoom_client_id !== "" && user.zoom_client_id !== null) {
+          user.zoom_client_id = decryptField(user.zoom_client_id);
+        }
+        if (
+          user.zoom_client_Secret !== "" &&
+          user.zoom_client_Secret !== null
+        ) {
+          user.zoom_client_Secret = decryptField(user.zoom_client_Secret);
+        }
+      });
+
       res.status(200).json({ data: userData[0] });
     } else {
       res.status(200).json({ data: user });
@@ -274,43 +443,53 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
   }
 
   if (user.role === "teacher") {
+
     if (user.zoom_credentials === false) {
+      console.log("from false");
       let encrypted_zoom_account_id;
       let encrypted_zoom_client_id;
       let encrypted_zoom_client_Secret;
 
-      if (zoom_account_id && zoom_account_id !== null) {
-        encrypted_zoom_account_id = encryptField(zoom_account_id);
-      }
-      if (zoom_client_id && zoom_client_id !== null) {
-        encrypted_zoom_client_id = encryptField(zoom_client_id);
-      }
-      if (zoom_client_Secret && zoom_client_Secret !== null) {
-        encrypted_zoom_client_Secret = encryptField(zoom_client_Secret);
-      }
-
-      // Check if zoom credentials are provided and not null
-      const hasZoomCredentials =
-        zoom_account_id !== null &&
-        zoom_client_id !== null &&
-        zoom_client_Secret !== null;
-
-      // Update zoom_credentials to true if zoom credentials are provided
       const updatedFields = {
         name,
         email,
         phone,
         role,
-        remainingClasses,
-        enabledControls,
       };
 
-      if (hasZoomCredentials) {
+      if (
+        zoom_account_id &&
+        zoom_account_id !== null &&
+        zoom_account_id !== undefined &&
+        zoom_account_id !== ""
+      ) {
+        encrypted_zoom_account_id = encryptField(zoom_account_id);
         updatedFields.zoom_account_id = encrypted_zoom_account_id;
+        updatedFields.zoom_credentials = true;
+      }
+
+      if (
+        zoom_client_id &&
+        zoom_client_id !== null &&
+        zoom_client_id !== undefined &&
+        zoom_client_id !== ""
+      ) {
+        encrypted_zoom_client_id = encryptField(zoom_client_id);
         updatedFields.zoom_client_id = encrypted_zoom_client_id;
+        updatedFields.zoom_credentials = true;
+      }
+
+      if (
+        zoom_client_Secret &&
+        zoom_client_Secret !== null &&
+        zoom_client_Secret !== undefined &&
+        zoom_client_Secret !== ""
+      ) {
+        encrypted_zoom_client_Secret = encryptField(zoom_client_Secret);
         updatedFields.zoom_client_Secret = encrypted_zoom_client_Secret;
         updatedFields.zoom_credentials = true;
       }
+
       const updatedUser = await usersModel.findByIdAndUpdate(
         req.params.id,
         updatedFields,
@@ -324,31 +503,25 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       }
       res.status(200).json({ data: updatedUser });
     } else if (user.zoom_credentials === true) {
-      if (!zoom_account_id && !zoom_client_id && !zoom_client_Secret) {
-        const updatedUser = await usersModel.findByIdAndUpdate(
-          req.params.id,
-          {
-            name,
-            email,
-            phone,
-            role,
-            remainingClasses,
-            enabledControls,
-          },
-          {
-            new: true,
-          }
-        );
-    
-        if (!updatedUser) {
-          return next(new ApiError(`No User for this id:${req.params.id}`, 404));
-        }
-        res.status(200).json({ data: updatedUser });
-    
-      }else {
-        return next(new ApiError(`Zoom credentials already provide. you can't change it`, 400));
+      console.log("from true");
 
+      const updatedUser = await usersModel.findByIdAndUpdate(
+        req.params.id,
+        {
+          name,
+          email,
+          phone,
+          role,
+        },
+        {
+          new: true,
+        }
+      );
+
+      if (!updatedUser) {
+        return next(new ApiError(`No User for this id:${req.params.id}`, 404));
       }
+      res.status(200).json({ data: updatedUser });
     }
   } else {
     const updatedUser = await usersModel.findByIdAndUpdate(

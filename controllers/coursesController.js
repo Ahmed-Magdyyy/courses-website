@@ -75,7 +75,7 @@ exports.uploadCourseImage = (req, res, next) => {
   });
 };
 
-const courseNotify = async (array, message,courseId) => {
+const courseNotify = async (array, message, courseId) => {
   // Send notifications to added students
   const studentsNotification = await Promise.all(
     array.map(async (studentId) => {
@@ -104,7 +104,8 @@ const courseNotify = async (array, message,courseId) => {
       );
 
       if (studentNotification) {
-        const { userId, scope,relatedId, message, _id, createdAt } = studentNotification;
+        const { userId, scope, relatedId, message, _id, createdAt } =
+          studentNotification;
         io.to(student.socketId).emit("notification", {
           userId,
           scope,
@@ -157,9 +158,14 @@ exports.getAllCourses = asyncHandler(async (req, res, next) => {
   const limitNum = limit * 1 || 5;
   const skipNum = (pageNum - 1) * limit;
 
-  if (query) {
-    filter = query;
-  }
+  // Modify the filter to support partial matches for string fields
+  Object.keys(query).forEach((key) => {
+    if (typeof query[key] === "string") {
+      filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+    } else {
+      filter[key] = query[key];
+    }
+  });
 
   if (req.user.role === "student") {
     const totalCoursesCount = await coursesModel.countDocuments({

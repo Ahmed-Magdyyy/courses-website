@@ -206,9 +206,14 @@ exports.getAllProducts = asyncHandler(async (req, res, next) => {
   const limitNum = limit * 1 || 5;
   const skipNum = (pageNum - 1) * limit;
 
-  if (query) {
-    filter = query;
-  }
+  // Modify the filter to support partial matches for string fields
+  Object.keys(query).forEach((key) => {
+    if (typeof query[key] === "string") {
+      filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+    } else {
+      filter[key] = query[key];
+    }
+  });
 
   if (req.user.role === "student") {
     const totalProductsCount = await productModel.countDocuments({

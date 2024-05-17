@@ -325,9 +325,14 @@ exports.getUserChats = asyncHandler(async (req, res, next) => {
 
   try {
     if (req.user.role === "superAdmin") {
-      if (query) {
-        filter = query;
-      }
+      // Modify the filter to support partial matches for string fields
+      Object.keys(query).forEach((key) => {
+        if (typeof query[key] === "string") {
+          filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+        } else {
+          filter[key] = query[key];
+        }
+      });
 
       const totalPostsCount = await chatModel.countDocuments(filter);
       const totalPages = Math.ceil(totalPostsCount / limitNum);

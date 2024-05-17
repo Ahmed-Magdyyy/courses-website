@@ -8,7 +8,7 @@ const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 const { decryptField } = require("../utils/encryption");
 
-const classNotify = async (array, message,classId) => {
+const classNotify = async (array, message, classId) => {
   // Send notifications to added students
   const studentsNotification = await Promise.all(
     array.map(async (studentId) => {
@@ -152,11 +152,12 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       );
 
       if (connectedTeacher) {
-        const { userId, scope, message, relatedId, _id, createdAt } = teacherNotification;
+        const { userId, scope, message, relatedId, _id, createdAt } =
+          teacherNotification;
         io.to(connectedTeacher.socketId).emit("notification", {
           userId,
           scope,
-          classId:relatedId,
+          classId: relatedId,
           message,
           _id,
           createdAt,
@@ -202,18 +203,25 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
   const limitNum = limit * 1 || 5;
   const skipNum = (pageNum - 1) * limit;
 
-  if (query) {
-    filter = query;
-  }
+  // Modify the filter to support partial matches for string fields
+  Object.keys(query).forEach((key) => {
+    if (typeof query[key] === "string") {
+      filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+    } else {
+      filter[key] = query[key];
+    }
+  });
 
   if (req.user.role === "student") {
     const totalClassesCount = await classModel.countDocuments({
-      studentsEnrolled: { $in: [req.user._id] },...filter
+      studentsEnrolled: { $in: [req.user._id] },
+      ...filter,
     });
     const totalPages = Math.ceil(totalClassesCount / limitNum);
     const documents = await classModel
       .find({
-        studentsEnrolled: { $in: [req.user._id] },...filter
+        studentsEnrolled: { $in: [req.user._id] },
+        ...filter,
       })
       .sort({ createdAt: -1 })
       .populate("studentsEnrolled", "_id name email phone")
@@ -231,12 +239,13 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
     });
   } else if (req.user.role === "teacher") {
     const totalClassesCount = await classModel.countDocuments({
-      teacher: req.user._id,...filter
+      teacher: req.user._id,
+      ...filter,
     });
     const totalPages = Math.ceil(totalClassesCount / limitNum);
 
     const documents = await classModel
-      .find({ teacher: req.user._id ,...filter})
+      .find({ teacher: req.user._id, ...filter })
       .sort({ createdAt: -1 })
       .populate("studentsEnrolled", "_id name email phone")
       .populate("teacher", "_id name email phone")
@@ -256,7 +265,7 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
     const totalPages = Math.ceil(totalClassesCount / limitNum);
 
     const documents = await classModel
-      .find(filter)
+      .find({})
       .sort({ createdAt: -1 })
       .populate("studentsEnrolled", "_id name email phone")
       .populate("teacher", "_id name email phone")
@@ -264,6 +273,9 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
       .populate("attendance.student", "_id name email")
       .skip(skipNum)
       .limit(limitNum);
+
+      console.log("filter: " , filter)
+
 
     res.status(200).json({
       totalPages,
@@ -525,7 +537,11 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
     );
 
     // Emit notifications to students
-    classNotify(studentIds, `You have been enrolled in class: ${classes.name}`,classId);
+    classNotify(
+      studentIds,
+      `You have been enrolled in class: ${classes.name}`,
+      classId
+    );
 
     res
       .status(200)

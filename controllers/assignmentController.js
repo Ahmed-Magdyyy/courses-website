@@ -134,7 +134,16 @@ exports.submitAssignment = asyncHandler(async (req, res, next) => {
 });
 
 exports.getAssignments = asyncHandler(async (req, res, next) => {
+  let filter = {};
   const { page, limit, skip, ...query } = req.query;
+    // Modify the filter to support partial matches for string fields
+    Object.keys(query).forEach((key) => {
+      if (typeof query[key] === "string") {
+        filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+      } else {
+        filter[key] = query[key];
+      }
+    });
 
   const pageNum = page * 1 || 1;
   const limitNum = limit * 1 || 5;
@@ -188,11 +197,11 @@ exports.getAssignments = asyncHandler(async (req, res, next) => {
         assignments,
       });
   } else {
-    const totalAssignmentsCount = await assignmentModel.countDocuments(query);
+    const totalAssignmentsCount = await assignmentModel.countDocuments(filter);
     const totalPages = Math.ceil(totalAssignmentsCount / limitNum);
 
     const assignments = await assignmentModel
-      .find(query)
+      .find(filter)
       .sort({ createdAt: -1 })
       .populate("class", "-__v")
       .populate("student", "_id name email phone")
