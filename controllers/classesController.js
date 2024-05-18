@@ -145,11 +145,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       const connectedStudents = users.filter((user) =>
         students.includes(user.userId)
       );
-      console.log("connectedTeacher", connectedTeacher.socketId);
-      console.log(
-        "connectedStudents",
-        connectedStudents.map((student) => student.socketId)
-      );
+
 
       if (connectedTeacher) {
         const { userId, scope, message, relatedId, _id, createdAt } =
