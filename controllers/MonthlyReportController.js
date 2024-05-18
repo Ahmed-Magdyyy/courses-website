@@ -51,6 +51,7 @@ exports.getReport = asyncHandler(async (req, res, next) => {
     .find(filter)
     .populate("teacher", "_id name")
     .populate("student", "_id name email")
+    .sort({ createdAt: -1 })
     .skip(skipNum)
     .limit(limitNum);
 
