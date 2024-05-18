@@ -265,7 +265,7 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
     const totalPages = Math.ceil(totalClassesCount / limitNum);
 
     const documents = await classModel
-      .find({})
+      .find(filter)
       .sort({ createdAt: -1 })
       .populate("studentsEnrolled", "_id name email phone")
       .populate("teacher", "_id name email phone")
@@ -274,7 +274,6 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
       .skip(skipNum)
       .limit(limitNum);
 
-      console.log("filter: " , filter)
 
 
     res.status(200).json({
