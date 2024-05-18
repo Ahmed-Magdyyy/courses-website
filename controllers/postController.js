@@ -292,6 +292,7 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
 
     // Delete post document from DB
     await post.deleteOne();
+ await Notification.deleteMany({relatedId: post._id.toString()})
 
     res.status(204).send("Post deleted successfully");
   } catch (error) {

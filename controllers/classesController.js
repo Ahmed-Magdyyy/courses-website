@@ -64,7 +64,6 @@ exports.createClass = asyncHandler(async (req, res, next) => {
     let decryptedZoomClientId;
     let decryptedZoomClientSecret;
 
-
     // Decrypt Zoom credentials
     if (
       teacherExists.zoom_account_id !== "" &&
@@ -92,13 +91,14 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       teacherExists.zoom_client_Secret !== "" &&
       teacherExists.zoom_client_Secret !== null
     ) {
-      decryptedZoomClientSecret = decryptField(teacherExists.zoom_client_Secret);
+      decryptedZoomClientSecret = decryptField(
+        teacherExists.zoom_client_Secret
+      );
     } else {
       return next(
         new ApiError(`No zoom_client_Secret provided for this teacher`, 400)
       );
     }
-
 
     // Check if all students exist and have remaining classes greater than 0
     const invalidStudents = [];
@@ -539,6 +539,22 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
           404
         )
       );
+    }
+
+    // Filter students to identify those with remainingClasses > 0
+    const eligibleStudents = students.filter(
+      (student) => student.remainingClasses > 0
+    );
+    const ineligibleStudents = students.filter(
+      (student) => student.remainingClasses <= 0
+    );
+
+    if (ineligibleStudents.length > 0) {
+      return res.status(400).json({
+        message:
+          "Some students do not have enough remaining classes to be added to the class.",
+        ineligibleStudents: ineligibleStudents.map((student) => ({_id:student._id.toString(),name:student.name, email:student.email}))
+      });
     }
 
     // Remove all existing students from the class
