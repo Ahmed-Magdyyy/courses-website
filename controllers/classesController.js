@@ -60,12 +60,45 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       return res.status(400).json({ message: "Teacher not found" });
     }
 
+    let decryptedZoomAccountId;
+    let decryptedZoomClientId;
+    let decryptedZoomClientSecret;
+
+
     // Decrypt Zoom credentials
-    const decryptedZoomAccountId = decryptField(teacherExists.zoom_account_id);
-    const decryptedZoomClientId = decryptField(teacherExists.zoom_client_id);
-    const decryptedZoomClientSecret = decryptField(
-      teacherExists.zoom_client_Secret
-    );
+    if (
+      teacherExists.zoom_account_id !== "" &&
+      teacherExists.zoom_account_id !== null
+    ) {
+      decryptedZoomAccountId = decryptField(teacherExists.zoom_account_id);
+    } else {
+      return next(
+        new ApiError(`No zoom_account_id provided for this teacher`, 400)
+      );
+    }
+
+    if (
+      teacherExists.zoom_client_id !== "" &&
+      teacherExists.zoom_client_id !== null
+    ) {
+      decryptedZoomClientId = decryptField(teacherExists.zoom_client_id);
+    } else {
+      return next(
+        new ApiError(`No zoom_client_id provided for this teacher`, 400)
+      );
+    }
+
+    if (
+      teacherExists.zoom_client_Secret !== "" &&
+      teacherExists.zoom_client_Secret !== null
+    ) {
+      decryptedZoomClientSecret = decryptField(teacherExists.zoom_client_Secret);
+    } else {
+      return next(
+        new ApiError(`No zoom_client_Secret provided for this teacher`, 400)
+      );
+    }
+
 
     // Check if all students exist and have remaining classes greater than 0
     const invalidStudents = [];
@@ -145,7 +178,6 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       const connectedStudents = users.filter((user) =>
         students.includes(user.userId)
       );
-
 
       if (connectedTeacher) {
         const { userId, scope, message, relatedId, _id, createdAt } =
@@ -269,8 +301,6 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
       .populate("attendance.student", "_id name email")
       .skip(skipNum)
       .limit(limitNum);
-
-
 
     res.status(200).json({
       totalPages,

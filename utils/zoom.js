@@ -24,7 +24,7 @@ exports.createMeeting = async function (
 
     if (authResponse.status !== 200) {
       console.log("Unable to get access token");
-      return;
+      throw new Error("Unable to get access token")
     }
 
     const access_token = authResponse.data.access_token;
@@ -60,7 +60,7 @@ exports.createMeeting = async function (
     );
     if (meetingResponse.status !== 201) {
       console.log("Unable to generate meeting link");
-      return;
+      throw new Error("Unable to generate meeting link")
     }
 
     const response_data = meetingResponse.data;
@@ -109,7 +109,7 @@ exports.deleteMeeting = async function (
 
     if (authResponse.status !== 200) {
       console.log("Unable to get access token");
-      return;
+      throw new Error("Unable to get access token")
     }
 
     const access_token = authResponse.data.access_token;
@@ -129,7 +129,8 @@ exports.deleteMeeting = async function (
 
     if (response.status !== 204) {
       console.log("Unable to delete meeting from Zoom");
-      return "Unable to delete meeting from Zoom";
+      throw new Error("Unable to delete meeting from Zoom")
+
     } else {
       console.log("Meeting deleted successfully from Zoom");
       return "Meeting deleted successfully from Zoom";
