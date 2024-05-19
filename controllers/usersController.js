@@ -262,15 +262,24 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
 
       // Decrypt the specified fields
       users.forEach((user) => {
-        if (user.zoom_account_id !== "" && user.zoom_account_id !== null) {
+        if (
+          user.zoom_account_id !== "" &&
+          user.zoom_account_id !== null &&
+          user.zoom_account_id !== undefined
+        ) {
           user.zoom_account_id = decryptField(user.zoom_account_id);
         }
-        if (user.zoom_client_id !== "" && user.zoom_client_id !== null) {
+        if (
+          user.zoom_client_id !== "" &&
+          user.zoom_client_id !== null &&
+          user.zoom_client_id !== undefined
+        ) {
           user.zoom_client_id = decryptField(user.zoom_client_id);
         }
         if (
           user.zoom_client_Secret !== "" &&
-          user.zoom_client_Secret !== null
+          user.zoom_client_Secret !== null &&
+          user.zoom_client_Secret !== undefined
         ) {
           user.zoom_client_Secret = decryptField(user.zoom_client_Secret);
         }
@@ -412,6 +421,167 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   }
 });
 
+// exports.getUser = asyncHandler(async (req, res, next) => {
+//   const { id } = req.params;
+
+//   try {
+//     const user = await usersModel.findById(id);
+
+//     if (!user) {
+//       return next(new ApiError(`No user found for this id: ${id}`, 404));
+//     }
+
+//     if (user.role === "teacher") {
+//       const userData = await usersModel.aggregate([
+//         { $match: { _id: new mongoose.Types.ObjectId(id) } },
+//         {
+//           $lookup: {
+//             from: "classes",
+//             localField: "classes",
+//             foreignField: "_id",
+//             as: "classes",
+//           },
+//         },
+//         {
+//           $addFields: {
+//             monthYear: {
+//               $map: {
+//                 input: "$classes",
+//                 as: "class",
+//                 in: {
+//                   month: {
+//                     $month: {
+//                       $dateFromString: {
+//                         dateString: "$$class.start_date",
+//                         format: "%d/%m/%Y",
+//                       },
+//                     },
+//                   },
+//                   year: {
+//                     $year: {
+//                       $dateFromString: {
+//                         dateString: "$$class.start_date",
+//                         format: "%d/%m/%Y",
+//                       },
+//                     },
+//                   },
+//                   status: "$$class.status",
+//                 },
+//               },
+//             },
+//           },
+//         },
+//         { $unwind: "$monthYear" },
+//         {
+//           $group: {
+//             _id: {
+//               userId: "$_id",
+//               month: "$monthYear.month",
+//               year: "$monthYear.year",
+//               status: "$monthYear.status",
+//             },
+//             count: { $sum: 1 },
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               userId: "$_id.userId",
+//               month: "$_id.month",
+//               year: "$_id.year",
+//             },
+//             classesByStatus: {
+//               $push: {
+//                 status: "$_id.status",
+//                 count: "$count",
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: "$_id.userId",
+//             monthlyClasses: {
+//               $push: {
+//                 month: "$_id.month",
+//                 year: "$_id.year",
+//                 classesByStatus: "$classesByStatus",
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $lookup: {
+//             from: "users",
+//             localField: "_id",
+//             foreignField: "_id",
+//             as: "userDetails",
+//           },
+//         },
+//         { $unwind: "$userDetails" },
+//         {
+//           $addFields: {
+//             name: "$userDetails.name",
+//             email: "$userDetails.email",
+//             phone: "$userDetails.phone",
+//             role: "$userDetails.role",
+//             password: "$userDetails.password",
+//             passwordChangedAT: "$userDetails.passwordChangedAT",
+//             passwordResetCode: "$userDetails.passwordResetCode",
+//             passwordResetCodeExpire: "$userDetails.passwordResetCodeExpire",
+//             passwordResetCodeVerified: "$userDetails.passwordResetCodeVerified",
+//             enabledControls: "$userDetails.enabledControls",
+//             account_status: "$userDetails.account_status",
+//             active: "$userDetails.active",
+//             courses: "$userDetails.courses",
+//             products: "$userDetails.products",
+//             remainingClasses: "$userDetails.remainingClasses",
+//             createdAt: "$userDetails.createdAt",
+//             updatedAt: "$userDetails.updatedAt",
+//             zoom_account_id: "$userDetails.zoom_account_id",
+//             zoom_client_id: "$userDetails.zoom_client_id",
+//             zoom_client_Secret: "$userDetails.zoom_client_Secret",
+//             zoom_credentials: "$userDetails.zoom_credentials",
+//           },
+//         },
+//         { $project: { userDetails: 0 } },
+//       ]);
+
+//       // Decrypt the specified fields
+//       userData.forEach((user) => {
+//         if (
+//           user.zoom_account_id !== "" &&
+//           user.zoom_account_id !== null &&
+//           user.zoom_account_id !== undefined
+//         ) {
+//           user.zoom_account_id = decryptField(user.zoom_account_id);
+//         }
+//         if (
+//           user.zoom_client_id !== "" &&
+//           user.zoom_client_id !== null &&
+//           user.zoom_client_id !== undefined
+//         ) {
+//           user.zoom_client_id = decryptField(user.zoom_client_id);
+//         }
+//         if (
+//           user.zoom_client_Secret !== "" &&
+//           user.zoom_client_Secret !== null &&
+//           user.zoom_client_Secret !== undefined
+//         ) {
+//           user.zoom_client_Secret = decryptField(user.zoom_client_Secret);
+//         }
+//       });
+
+//       res.status(200).json({ data: userData[0] });
+//     } else {
+//       res.status(200).json({ data: user });
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
 exports.createUser = asyncHandler(async (req, res, next) => {
   if (req.body.role === "superAdmin") {
     return next(new ApiError(`Can't create a new super admin!`, 400));
@@ -443,7 +613,6 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
   }
 
   if (user.role === "teacher") {
-
     if (user.zoom_credentials === false) {
       console.log("from false");
       let encrypted_zoom_account_id;

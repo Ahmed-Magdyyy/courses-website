@@ -392,6 +392,8 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     });
   }
 
+  console.log("post noti", await Notification.find({relatedId:post._id}))
+
   res.status(200).json({ data: post });
 });
 
