@@ -78,7 +78,7 @@ socketConfig.initSocketServer(server);
 pingServer();
 
 // Ping the server every 14 minutes (14 * 60 * 1000 milliseconds)
-const pingInterval = 25 * 60 * 1000;
+const pingInterval = 20 * 60 * 1000;
 setInterval(pingServer, pingInterval);
 
 // Function to ping the server by hitting the specified API route
