@@ -24,9 +24,6 @@ const productNotify = async (array, message,productId) => {
     })
   );
 
-  console.log('====================================');
-  console.log("studentsNotifications: " + studentsNotification);
-  console.log('====================================');
 
   // Emit notifications students
   const { io, users } = getIO();
@@ -573,10 +570,6 @@ exports.getStudentsOfProduct = asyncHandler(async (req, res, next) => {
         match: { ...query },
         select: "-__v",
       });
-
-    console.log("====================================");
-    console.log(students);
-    console.log("====================================");
 
     // Calculate total pages based on total students count and limit
     const totalStudentsCount = product.students.length;

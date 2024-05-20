@@ -86,27 +86,27 @@ productSchema.pre("findOneAndDelete", async function (next) {
   }
 });
 
-// productSchema.pre("save", function (next) {
-//   const currentTime = moment()
-//     .tz("Africa/Cairo")
-//     .format("YYYY-MM-DDTHH:mm:ss[Z]");
+productSchema.pre("save", function (next) {
+  const currentTime = moment()
+    .tz("Africa/Cairo")
+    .format("YYYY-MM-DDTHH:mm:ss[Z]");
 
-//   this.createdAt = currentTime;
-//   this.updatedAt = currentTime;
+  this.createdAt = currentTime;
+  this.updatedAt = currentTime;
 
-//   next();
-// });
+  next();
+});
 
-// productSchema.pre("findOneAndUpdate", function () {
-//   this.updateOne(
-//     {},
-//     {
-//       $set: {
-//         updatedAt: moment().tz("Africa/Cairo").format("YYYY-MM-DDTHH:mm:ss[Z]"),
-//       },
-//     }
-//   );
-// });
+productSchema.pre("findOneAndUpdate", function () {
+  this.updateOne(
+    {},
+    {
+      $set: {
+        updatedAt: moment().tz("Africa/Cairo").format("YYYY-MM-DDTHH:mm:ss[Z]"),
+      },
+    }
+  );
+});
 
 const product = mongoose.model("product", productSchema);
 module.exports = product;

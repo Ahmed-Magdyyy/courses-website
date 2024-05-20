@@ -10,136 +10,6 @@ const { encryptField, decryptField } = require("../utils/encryption");
 
 //----- Admin Routes -----
 
-// exports.getUsers = asyncHandler(async (req, res, next) => {
-//   let filter = {};
-//   const { page, limit, skip, ...query } = req.query;
-
-//   if (query && query.role) {
-//     filter = query;
-//   } else {
-//     filter = { ...query, role: { $ne: "superAdmin" } };
-//   }
-
-//   const totalPostsCount = await usersModel.countDocuments(filter);
-// console.log("filter: " , filter)
-//   let users;
-//   if (limit && page) {
-//     // Pagination logic
-//     const pageNum = page * 1 || 1;
-//     const limitNum = limit * 1 || 5;
-//     const skipNum = (pageNum - 1) * limitNum;
-//     const totalPages = Math.ceil(totalPostsCount / limitNum);
-
-//     if (query.role === "teacher") {
-//       users = await usersModel.aggregate([
-//         { $match: filter },
-//         {
-//           $lookup: {
-//             from: "classes",
-//             localField: "classes",
-//             foreignField: "_id",
-//             as: "classes",
-//           },
-//         },
-//         {
-//           $project: {
-//             _id: 1,
-//             name: 1,
-//             email: 1,
-//             phone: 1,
-//             role: 1,
-//             password: 1,
-//             passwordChangedAT: 1,
-//             passwordResetCode: 1,
-//             passwordResetCodeExpire: 1,
-//             passwordResetCodeVerified: 1,
-//             enabledControls: 1,
-//             account_status: 1,
-//             active: 1,
-//             courses: 1,
-//             classes: 1,
-//             products: 1,
-//             remainingClasses: 1,
-//             createdAt: 1,
-//             updatedAt: 1,
-//             classes: {
-//               $map: {
-//                 input: "$classes",
-//                 as: "class",
-//                 in: {
-//                   _id: "$$class._id",
-//                   start_date: "$$class.start_date",
-//                   start_time: "$$class.start_time",
-//                   status: "$$class.status",
-//                 },
-//               },
-//             },
-//             // Decrypt Zoom-related fields for teachers
-//             zoom_account_id: 1,
-//             zoom_client_id: 1,
-//             zoom_client_Secret: 1,
-//             zoom_credentials: 1,
-//           },
-//         },
-//         {
-//           $addFields: {
-//             completedClasses: {
-//               $size: {
-//                 $filter: {
-//                   input: "$classes",
-//                   as: "class",
-//                   cond: { $eq: ["$$class.status", "ended"] },
-//                 },
-//               },
-//             },
-//             scheduledClasses: {
-//               $size: {
-//                 $filter: {
-//                   input: "$classes",
-//                   as: "class",
-//                   cond: { $eq: ["$$class.status", "scheduled"] },
-//                 },
-//               },
-//             },
-//             cancelledClasses: {
-//               $size: {
-//                 $filter: {
-//                   input: "$classes",
-//                   as: "class",
-//                   cond: { $eq: ["$$class.status", "cancelled"] },
-//                 },
-//               },
-//             },
-//           },
-//         },
-//         {
-//           $sort: { createdAt: -1 },
-//         },
-//         {
-//           $skip: skipNum,
-//         },
-//         {
-//           $limit: limitNum,
-//         },
-//       ]);
-//     } else {
-//       users = await usersModel
-//         .find(filter)
-//         .sort({ createdAt: -1 })
-//         .skip(skipNum)
-//         .limit(limitNum);
-//     }
-
-//     res
-//       .status(200)
-//       .json({ totalPages, page: pageNum, results: users.length, data: users });
-//   } else {
-//     // Return all data without pagination
-//     users = await usersModel.find(filter).sort({ createdAt: -1 });
-//     res.status(200).json({ results: users.length, data: users });
-//   }
-// });
-
 exports.getUsers = asyncHandler(async (req, res, next) => {
   let filter = {};
   const { page, limit, skip, ...query } = req.query;
@@ -301,6 +171,224 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
     res.status(200).json({ results: users.length, data: users });
   }
 });
+
+// exports.getUsers = asyncHandler(async (req, res, next) => {
+//   let filter = {};
+//   const { page, limit, skip, ...query } = req.query;
+
+//   // Modify the filter to support partial matches for string fields
+//   Object.keys(query).forEach((key) => {
+//     if (typeof query[key] === "string") {
+//       filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+//     } else {
+//       filter[key] = query[key];
+//     }
+//   });
+
+//   if (!query.role) {
+//     filter.role = { $ne: "superAdmin" };
+//   }
+
+//   const totalPostsCount = await usersModel.countDocuments(filter);
+//   console.log("filter: ", filter);
+//   let users;
+//   if (limit && page) {
+//     // Pagination logic
+//     const pageNum = page * 1 || 1;
+//     const limitNum = limit * 1 || 5;
+//     const skipNum = (pageNum - 1) * limitNum;
+//     const totalPages = Math.ceil(totalPostsCount / limitNum);
+
+//     if (query.role === "teacher") {
+//       users = await usersModel.aggregate([
+//         { $match: filter },
+//         {
+//           $lookup: {
+//             from: "classes",
+//             localField: "classes",
+//             foreignField: "_id",
+//             as: "classes",
+//           },
+//         },
+//         {
+//           $addFields: {
+//             classes: {
+//               $map: {
+//                 input: "$classes",
+//                 as: "class",
+//                 in: {
+//                   _id: "$$class._id",
+//                   start_date: "$$class.start_date",
+//                   start_time: "$$class.start_time",
+//                   status: "$$class.status",
+//                 },
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $addFields: {
+//             monthYear: {
+//               $map: {
+//                 input: "$classes",
+//                 as: "class",
+//                 in: {
+//                   month: {
+//                     $month: {
+//                       $dateFromString: {
+//                         dateString: "$$class.start_date",
+//                         format: "%d/%m/%Y",
+//                       },
+//                     },
+//                   },
+//                   year: {
+//                     $year: {
+//                       $dateFromString: {
+//                         dateString: "$$class.start_date",
+//                         format: "%d/%m/%Y",
+//                       },
+//                     },
+//                   },
+//                   status: "$$class.status",
+//                 },
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $unwind: "$monthYear",
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               userId: "$_id",
+//               month: "$monthYear.month",
+//               year: "$monthYear.year",
+//               status: "$monthYear.status",
+//             },
+//             count: { $sum: 1 },
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               userId: "$_id.userId",
+//               month: "$_id.month",
+//               year: "$_id.year",
+//             },
+//             classesByStatus: {
+//               $push: {
+//                 status: "$_id.status",
+//                 count: "$count",
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: "$_id.userId",
+//             monthlyClasses: {
+//               $push: {
+//                 month: "$_id.month",
+//                 year: "$_id.year",
+//                 classesByStatus: "$classesByStatus",
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $lookup: {
+//             from: "users", // Assuming "users" is the correct collection name
+//             localField: "_id",
+//             foreignField: "_id",
+//             as: "userDetails",
+//           },
+//         },
+//         {
+//           $unwind: "$userDetails",
+//         },
+//         {
+//           $addFields: {
+//             name: "$userDetails.name",
+//             email: "$userDetails.email",
+//             phone: "$userDetails.phone",
+//             role: "$userDetails.role",
+//             password: "$userDetails.password",
+//             passwordChangedAT: "$userDetails.passwordChangedAT",
+//             passwordResetCode: "$userDetails.passwordResetCode",
+//             passwordResetCodeExpire: "$userDetails.passwordResetCodeExpire",
+//             passwordResetCodeVerified: "$userDetails.passwordResetCodeVerified",
+//             enabledControls: "$userDetails.enabledControls",
+//             account_status: "$userDetails.account_status",
+//             active: "$userDetails.active",
+//             courses: "$userDetails.courses",
+//             products: "$userDetails.products",
+//             remainingClasses: "$userDetails.remainingClasses",
+//             createdAt: "$userDetails.createdAt",
+//             updatedAt: "$userDetails.updatedAt",
+//             zoom_account_id: "$userDetails.zoom_account_id",
+//             zoom_client_id: "$userDetails.zoom_client_id",
+//             zoom_client_Secret: "$userDetails.zoom_client_Secret",
+//             zoom_credentials: "$userDetails.zoom_credentials",
+//           },
+//         },
+//         {
+//           $project: {
+//             userDetails: 0, // Exclude the intermediate userDetails field
+//           },
+//         },
+//         {
+//           $sort: { createdAt: -1 },
+//         },
+//         {
+//           $skip: skipNum,
+//         },
+//         {
+//           $limit: limitNum,
+//         },
+//       ]);
+
+//       // Decrypt the specified fields
+//       users.forEach((user) => {
+//         if (
+//           user.zoom_account_id !== "" &&
+//           user.zoom_account_id !== null &&
+//           user.zoom_account_id !== undefined
+//         ) {
+//           user.zoom_account_id = decryptField(user.zoom_account_id);
+//         }
+//         if (
+//           user.zoom_client_id !== "" &&
+//           user.zoom_client_id !== null &&
+//           user.zoom_client_id !== undefined
+//         ) {
+//           user.zoom_client_id = decryptField(user.zoom_client_id);
+//         }
+//         if (
+//           user.zoom_client_Secret !== "" &&
+//           user.zoom_client_Secret !== null &&
+//           user.zoom_client_Secret !== undefined
+//         ) {
+//           user.zoom_client_Secret = decryptField(user.zoom_client_Secret);
+//         }
+//       });
+//     } else {
+//       users = await usersModel
+//         .find(filter)
+//         .sort({ createdAt: -1 })
+//         .skip(skipNum)
+//         .limit(limitNum);
+//     }
+
+//     res
+//       .status(200)
+//       .json({ totalPages, page: pageNum, results: users.length, data: users });
+//   } else {
+//     // Return all data without pagination
+//     users = await usersModel.find(filter).sort({ createdAt: -1 });
+//     res.status(200).json({ results: users.length, data: users });
+//   }
+// });
 
 exports.getUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;

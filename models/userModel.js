@@ -64,6 +64,12 @@ const userSchema = new mongoose.Schema(
         ref: "product",
       },
     ],
+    materials: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "material",
+      },
+    ],
     remainingClasses: {
       type: Number,
       default: 0,
