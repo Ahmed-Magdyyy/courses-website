@@ -58,9 +58,6 @@ const multerStorage = multer.diskStorage({
       const filename = `image-material-${uuidv4()}.${ext}`;
       cb(null, filename);
     } else if (file.mimetype === "application/pdf") {
-        console.log('====================================');
-        console.log(file);
-        console.log('====================================');
       // Generate unique filename for PowerPoint files
       const filename = `file-material-${uuidv4()}.pdf`;
       cb(null, filename);
