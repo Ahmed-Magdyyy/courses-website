@@ -156,11 +156,11 @@ exports.getAllMaterials = asyncHandler(async (req, res, next) => {
     }
   });
 
-  const totalMaterialsCount = await materialModel.countDocuments({});
+  const totalMaterialsCount = await materialModel.countDocuments(filter);
   const totalPages = Math.ceil(totalMaterialsCount / limitNum);
 
   const documents = await materialModel
-    .find({})
+    .find(filter)
     .sort({ createdAt: -1 })
     .skip(skipNum)
     .limit(limitNum);
