@@ -323,10 +323,6 @@ exports.deleteMaterial = asyncHandler(async (req, res, next) => {
     if (material.image) {
       const index = material.image.indexOf("materials");
       const path = `uploads/${material.image.substring(index)}`;
-      console.log('====================================');
-      console.log(material.image);
-      console.log(path);
-      console.log('====================================');
       deleteUploadedFile({
         fieldname: "image",
         path,
@@ -336,10 +332,6 @@ exports.deleteMaterial = asyncHandler(async (req, res, next) => {
 
       const index = material.materialFile.indexOf("materials");
       const path = `uploads/${material.materialFile.substring(index)}`;
-      console.log('====================================');
-      console.log(material.materialFile);
-      console.log(path);
-      console.log('====================================');
       deleteUploadedFile({
         fieldname: "materialFile",
         path,
