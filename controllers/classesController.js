@@ -49,12 +49,6 @@ const classNotify = async (array, message, classId) => {
   }
 };
 
-// Helper function to parse date and extract month and year
-function getMonthAndYear(dateStr) {
-  const [day, month, year] = dateStr.split("/");
-  return { month: parseInt(month, 10), year: parseInt(year, 10) };
-}
-
 exports.createClass = asyncHandler(async (req, res, next) => {
   try {
     const { name, duration, start_date, start_time, teacher, students } =
