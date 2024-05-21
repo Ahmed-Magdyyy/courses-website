@@ -49,6 +49,12 @@ const classNotify = async (array, message, classId) => {
   }
 };
 
+// Helper function to parse date and extract month and year
+function getMonthAndYear(dateStr) {
+  const [day, month, year] = dateStr.split("/");
+  return { month: parseInt(month, 10), year: parseInt(year, 10) };
+}
+
 exports.createClass = asyncHandler(async (req, res, next) => {
   try {
     const { name, duration, start_date, start_time, teacher, students } =
@@ -311,6 +317,51 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
   }
 });
 
+exports.getAllClassesByMonthYear = asyncHandler(async (req, res, next) => {
+  let filter = {};
+  const { month, year, ...query } = req.query;
+
+  // Modify the filter to support partial matches for string fields
+  Object.keys(query).forEach((key) => {
+    if (typeof query[key] === "string") {
+      filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+    } else {
+      filter[key] = query[key];
+    }
+  });
+  // Add month and year filtering to the filter object
+  if (month && year) {
+    const monthNum = parseInt(month, 10);
+    const yearNum = parseInt(year, 10);
+    filter.start_date = {
+      $regex: `${monthNum.toString().padStart(2, "0")}/${yearNum}`,
+    };
+  }
+
+  const role = req.user.role;
+  let baseFilter = {};
+
+  if (role === "student") {
+    baseFilter.studentsEnrolled = { $in: [req.user._id] };
+  } else if (role === "teacher") {
+    baseFilter.teacher = req.user._id;
+  }
+
+  const documents = await classModel
+    .find({ ...baseFilter, ...filter })
+    .sort({ createdAt: -1 })
+    .populate("studentsEnrolled", "_id name email phone")
+    .populate("teacher", "_id name email phone")
+    .populate("assignments", "-__v")
+    .populate("attendance.student", "_id name email")
+
+
+  res.status(200).json({
+    results: documents.length,
+    data: documents,
+  });
+});
+
 exports.getClass = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const document = await classModel
@@ -553,7 +604,11 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
       return res.status(400).json({
         message:
           "Some students do not have enough remaining classes to be added to the class.",
-        ineligibleStudents: ineligibleStudents.map((student) => ({_id:student._id.toString(),name:student.name, email:student.email}))
+        ineligibleStudents: ineligibleStudents.map((student) => ({
+          _id: student._id.toString(),
+          name: student.name,
+          email: student.email,
+        })),
       });
     }
 

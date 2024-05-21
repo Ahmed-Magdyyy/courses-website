@@ -12,6 +12,7 @@ const {
   classReport,
   cancelClass,
   zoomWebHook,
+  getAllClassesByMonthYear,
 } = require("../controllers/classesController");
 
 const {
@@ -30,10 +31,16 @@ Router.route("/")
     createClass
   )
   .get(
-    allowedTo("superAdmin", "admin","teacher","student"),
+    allowedTo("superAdmin", "admin", "teacher", "student"),
     enabledControls("classes"),
     getAllClasses
   );
+
+Router.route("/month-year").get(
+  allowedTo("superAdmin", "admin", "teacher", "student"),
+  enabledControls("classes"),
+  getAllClassesByMonthYear
+);
 
 Router.route("/:id")
   .get(getClass)
