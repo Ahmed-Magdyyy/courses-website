@@ -485,15 +485,24 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 
       // Decrypt the specified fields
       userData.forEach((user) => {
-        if (user.zoom_account_id !== "" && user.zoom_account_id !== null) {
+        if (
+          user.zoom_account_id !== "" &&
+          user.zoom_account_id !== null &&
+          user.zoom_account_id !== undefined
+        ) {
           user.zoom_account_id = decryptField(user.zoom_account_id);
         }
-        if (user.zoom_client_id !== "" && user.zoom_client_id !== null) {
+        if (
+          user.zoom_client_id !== "" &&
+          user.zoom_client_id !== null &&
+          user.zoom_client_id !== undefined
+        ) {
           user.zoom_client_id = decryptField(user.zoom_client_id);
         }
         if (
           user.zoom_client_Secret !== "" &&
-          user.zoom_client_Secret !== null
+          user.zoom_client_Secret !== null &&
+          user.zoom_client_Secret !== undefined
         ) {
           user.zoom_client_Secret = decryptField(user.zoom_client_Secret);
         }

@@ -5,6 +5,7 @@ const ApiError = require("../utils/ApiError");
 const classModel = require("../models/classModel");
 const userModel = require("../models/userModel");
 const Notification = require("../models/notificationModel");
+const sendEmail = require("../utils/sendEmails");
 const { getIO } = require("../socketConfig");
 const { decryptField } = require("../utils/encryption");
 
@@ -150,6 +151,391 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       })),
     });
 
+    // Send email to teacher
+    if (classInfo.teacher) {
+      let capitalizeFirstLetterOfName =
+        teacherExists.name.split(" ")[0].charAt(0).toUpperCase() +
+        teacherExists.name.split(" ")[0].slice(1).toLocaleLowerCase();
+
+      let img =
+        "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
+
+      let emailTamplate = `<!DOCTYPE html>
+      <html lang="en-US">
+        <head>
+          <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+          <title>Your remaining classes credit is running out</title>
+          <meta name="description" content="Your remaining classes credit is running out" />
+          <style type="text/css">
+            a:hover {
+              text-decoration: underline !important;
+            }
+          </style>
+        </head>
+      
+        <body
+          marginheight="0"
+          topmargin="0"
+          marginwidth="0"
+          style="margin: 0px; background-color: #f2f3f8"
+          leftmargin="0"
+        >
+          <!--100% body table-->
+          <table
+            cellspacing="0"
+            border="0"
+            cellpadding="0"
+            width="100%"
+            bgcolor="#f2f3f8"
+            style="
+              @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
+              font-family: 'Open Sans', sans-serif;
+            "
+          >
+            <tr>
+              <td>
+                <table
+                  style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
+                  width="100%"
+                  border="0"
+                  align="center"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td style="height: 80px">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center">
+                      <a
+                        href="https://learning.jawwid.com"
+                        title="logo"
+                        target="_blank"
+                      >
+                        <img width="250" src="${img}" title="logo" alt="logo" />
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="height: 20px">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <table
+                        width="95%"
+                        border="0"
+                        align="center"
+                        cellpadding="0"
+                        cellspacing="0"
+                        style="
+                          max-width: 670px;
+                          background: #fff;
+                          border-radius: 3px;
+                          text-align: center;
+                          -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                          -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                          box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                        "
+                      >
+                        <tr>
+                          <td style="height: 40px">&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 0 35px">
+                            <span
+                              style="
+                                display: inline-block;
+                                vertical-align: middle;
+                                margin: 29px 0 26px;
+                                border-bottom: 1px solid #cecece;
+                                width: 200px;
+                              "
+                            ></span>
+                            <p
+                              style="
+                                color: #455056;
+                                font-size: 17px;
+                                line-height: 24px;
+                                text-align: left;
+                              "
+                            >
+                              Hello ${capitalizeFirstLetterOfName},
+                            </p>
+                            <p
+                              style="
+                                color: #455056;
+                                font-size: 17px;
+                                line-height: 24px;
+                                text-align: left;
+                              "
+                            >
+                            We hope you are enjoying your time on Jawwid.<br>
+                            You have been assigned to be the teacher of class: ${classInfo.name}<br>
+                            Class will start on ${classInfo.start_date} at ${classInfo.start_time}<br>
+                            Meeting link: ${classInfo.classZoomLink}<br>
+                            Meeting password: ${classInfo.meetingPassword}
+                            <br>
+                            Please make sure to start the meeting on time.
+                          </p>
+                            
+      
+                            <br>
+                            <p
+                              style="
+                                margin-top: 3px;
+                                color: #455056;
+                                font-size: 17px;
+                                line-height: 2px;
+                                text-align: left;
+                              "
+                            >
+                              The Jawwid Team.
+                            </p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="height: 40px">&nbsp;</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+      
+                  <tr>
+                    <td style="height: 20px">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center">
+                      <p
+                        style="
+                          font-size: 14px;
+                          color: rgba(69, 80, 86, 0.7411764705882353);
+                          line-height: 18px;
+                          margin: 0 0 0;
+                        "
+                      >
+                        &copy; <strong>https://learning.jawwid.com</strong>
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="height: 80px">&nbsp;</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <!--/100% body table-->
+        </body>
+      </html>`;
+
+      try {
+        await sendEmail({
+          email: teacherExists.email,
+          subject: `${capitalizeFirstLetterOfName}, You have been assigned to class ${classInfo.name}`,
+          message: emailTamplate,
+        });
+        console.log("Email sent");
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    const populatedClass = await classInfo.populate(
+      "studentsEnrolled",
+      "name email phone"
+    );
+
+    // Send emails to students enrolled
+    if (populatedClass.studentsEnrolled) {
+      populatedClass.studentsEnrolled.forEach(async (student) => {
+        let capitalizeFirstLetterOfName =
+          student.name.split(" ")[0].charAt(0).toUpperCase() +
+          student.name.split(" ")[0].slice(1).toLocaleLowerCase();
+
+        let img =
+          "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
+
+        let emailTamplate = `<!DOCTYPE html>
+            <html lang="en-US">
+              <head>
+                <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+                <title>You have been added to class</title>
+                <meta name="description" content="You have been added to class" />
+                <style type="text/css">
+                  a:hover {
+                    text-decoration: underline !important;
+                  }
+                </style>
+              </head>
+            
+              <body
+                marginheight="0"
+                topmargin="0"
+                marginwidth="0"
+                style="margin: 0px; background-color: #f2f3f8"
+                leftmargin="0"
+              >
+                <!--100% body table-->
+                <table
+                  cellspacing="0"
+                  border="0"
+                  cellpadding="0"
+                  width="100%"
+                  bgcolor="#f2f3f8"
+                  style="
+                    @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
+                    font-family: 'Open Sans', sans-serif;
+                  "
+                >
+                  <tr>
+                    <td>
+                      <table
+                        style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
+                        width="100%"
+                        border="0"
+                        align="center"
+                        cellpadding="0"
+                        cellspacing="0"
+                      >
+                        <tr>
+                          <td style="height: 80px">&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td style="text-align: center">
+                            <a
+                              href="https://learning.jawwid.com"
+                              title="logo"
+                              target="_blank"
+                            >
+                              <img width="250" src="${img}" title="logo" alt="logo" />
+                            </a>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="height: 20px">&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <table
+                              width="95%"
+                              border="0"
+                              align="center"
+                              cellpadding="0"
+                              cellspacing="0"
+                              style="
+                                max-width: 670px;
+                                background: #fff;
+                                border-radius: 3px;
+                                text-align: center;
+                                -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                              "
+                            >
+                              <tr>
+                                <td style="height: 40px">&nbsp;</td>
+                              </tr>
+                              <tr>
+                                <td style="padding: 0 35px">
+                                  <span
+                                    style="
+                                      display: inline-block;
+                                      vertical-align: middle;
+                                      margin: 29px 0 26px;
+                                      border-bottom: 1px solid #cecece;
+                                      width: 200px;
+                                    "
+                                  ></span>
+                                  <p
+                                    style="
+                                      color: #455056;
+                                      font-size: 17px;
+                                      line-height: 24px;
+                                      text-align: left;
+                                    "
+                                  >
+                                    Hello ${capitalizeFirstLetterOfName},
+                                  </p>
+                                  <p
+                                    style="
+                                      color: #455056;
+                                      font-size: 17px;
+                                      line-height: 24px;
+                                      text-align: left;
+                                    "
+                                  >
+                                  We hope you are enjoying your time on Jawwid.<br>
+                                  You have been added to class: ${classInfo.name}<br>
+                                  Class will start on ${classInfo.start_date} at ${classInfo.start_time}<br>
+                                  Meeting link: ${classInfo.classZoomLink}<br>
+                                  Meeting password: ${classInfo.meetingPassword}
+                                  <br>
+                                  Please make sure to join the meeting on time.
+                            </p>
+                                  
+            
+                                  <br>
+                                  <p
+                                    style="
+                                      margin-top: 3px;
+                                      color: #455056;
+                                      font-size: 17px;
+                                      line-height: 2px;
+                                      text-align: left;
+                                    "
+                                  >
+                                    The Jawwid Team.
+                                  </p>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td style="height: 40px">&nbsp;</td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+            
+                        <tr>
+                          <td style="height: 20px">&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td style="text-align: center">
+                            <p
+                              style="
+                                font-size: 14px;
+                                color: rgba(69, 80, 86, 0.7411764705882353);
+                                line-height: 18px;
+                                margin: 0 0 0;
+                              "
+                            >
+                              &copy; <strong>https://learning.jawwid.com</strong>
+                            </p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="height: 80px">&nbsp;</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+                <!--/100% body table-->
+              </body>
+            </html>`;
+
+        try {
+          await sendEmail({
+            email: student.email,
+            subject: `${capitalizeFirstLetterOfName}, You have been added to class ${classInfo.name}`,
+            message: emailTamplate,
+          });
+          console.log("Email sent");
+        } catch (error) {
+          console.log(error);
+        }
+      });
+    }
+
     const teacherNotification = await Notification.create({
       scope: "class",
       userId: teacher,
@@ -246,6 +632,192 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
       ...filter,
     });
     const totalPages = Math.ceil(totalClassesCount / limitNum);
+
+    if (req.user.remainingClasses <= 2) {
+      let capitalizeFirstLetterOfName =
+        req.user.name.split(" ")[0].charAt(0).toUpperCase() +
+        req.user.name.split(" ")[0].slice(1).toLocaleLowerCase();
+
+      let img =
+        "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
+
+      let emailTamplate = `<!DOCTYPE html>
+      <html lang="en-US">
+        <head>
+          <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+          <title>Your remaining classes credit is running out</title>
+          <meta name="description" content="Your remaining classes credit is running out" />
+          <style type="text/css">
+            a:hover {
+              text-decoration: underline !important;
+            }
+          </style>
+        </head>
+      
+        <body
+          marginheight="0"
+          topmargin="0"
+          marginwidth="0"
+          style="margin: 0px; background-color: #f2f3f8"
+          leftmargin="0"
+        >
+          <!--100% body table-->
+          <table
+            cellspacing="0"
+            border="0"
+            cellpadding="0"
+            width="100%"
+            bgcolor="#f2f3f8"
+            style="
+              @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
+              font-family: 'Open Sans', sans-serif;
+            "
+          >
+            <tr>
+              <td>
+                <table
+                  style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
+                  width="100%"
+                  border="0"
+                  align="center"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td style="height: 80px">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center">
+                      <a
+                        href="https://learning.jawwid.com"
+                        title="logo"
+                        target="_blank"
+                      >
+                        <img width="250" src="${img}" title="logo" alt="logo" />
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="height: 20px">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <table
+                        width="95%"
+                        border="0"
+                        align="center"
+                        cellpadding="0"
+                        cellspacing="0"
+                        style="
+                          max-width: 670px;
+                          background: #fff;
+                          border-radius: 3px;
+                          text-align: center;
+                          -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                          -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                          box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                        "
+                      >
+                        <tr>
+                          <td style="height: 40px">&nbsp;</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 0 35px">
+                            <span
+                              style="
+                                display: inline-block;
+                                vertical-align: middle;
+                                margin: 29px 0 26px;
+                                border-bottom: 1px solid #cecece;
+                                width: 200px;
+                              "
+                            ></span>
+                            <p
+                              style="
+                                color: #455056;
+                                font-size: 17px;
+                                line-height: 24px;
+                                text-align: left;
+                              "
+                            >
+                              Hello ${capitalizeFirstLetterOfName},
+                            </p>
+                            <p
+                              style="
+                                color: #455056;
+                                font-size: 17px;
+                                line-height: 24px;
+                                text-align: left;
+                              "
+                            >
+                            We hope you are enjoying your time on Jawwid.<br>
+                            We want to remind you that your remaining classs credit is: <strong>${req.user.remainingClasses}</strong>. <br>Please make sure to renew your class package to continue enjoying our services and making progress towards your learning goals. <br>
+                            If you have any questions or need further assistance, feel free to reach out to our support team
+                            </p>
+                            
+      
+                            <br>
+                            <p
+                              style="
+                                margin-top: 3px;
+                                color: #455056;
+                                font-size: 17px;
+                                line-height: 2px;
+                                text-align: left;
+                              "
+                            >
+                              The Jawwid Team.
+                            </p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="height: 40px">&nbsp;</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+      
+                  <tr>
+                    <td style="height: 20px">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: center">
+                      <p
+                        style="
+                          font-size: 14px;
+                          color: rgba(69, 80, 86, 0.7411764705882353);
+                          line-height: 18px;
+                          margin: 0 0 0;
+                        "
+                      >
+                        &copy; <strong>https://learning.jawwid.com</strong>
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="height: 80px">&nbsp;</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <!--/100% body table-->
+        </body>
+      </html>
+      `;
+
+      try {
+        await sendEmail({
+          email: req.user.email,
+          subject: `${capitalizeFirstLetterOfName}, Your remaining classes credit is running out`,
+          message: emailTamplate,
+        });
+        console.log("Email sent");
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
     const documents = await classModel
       .find({
         studentsEnrolled: { $in: [req.user._id] },
@@ -347,8 +919,7 @@ exports.getAllClassesByMonthYear = asyncHandler(async (req, res, next) => {
     .populate("studentsEnrolled", "_id name email phone")
     .populate("teacher", "_id name email phone")
     .populate("assignments", "-__v")
-    .populate("attendance.student", "_id name email")
-
+    .populate("attendance.student", "_id name email");
 
   res.status(200).json({
     results: documents.length,
@@ -614,11 +1185,13 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
     );
 
     // Add the new student IDs to the studentsEnrolled array of the class
-    const updatedClass = await classModel.findOneAndUpdate(
-      { _id: classId },
-      { studentsEnrolled: studentIds },
-      { new: true }
-    );
+    const updatedClass = await classModel
+      .findOneAndUpdate(
+        { _id: classId },
+        { studentsEnrolled: studentIds },
+        { new: true }
+      )
+      .populate("studentsEnrolled", "name email phone");
 
     // Add the class ID to the classes array of each student
     await userModel.updateMany(
@@ -632,6 +1205,198 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
       `You have been enrolled in class: ${classes.name}`,
       classId
     );
+    console.log("updatedClass:", updatedClass)
+    // Send emails to students enrolled
+    if (updatedClass) {
+      updatedClass.studentsEnrolled.forEach(async (student) => {
+        let capitalizeFirstLetterOfName =
+          student.name.split(" ")[0].charAt(0).toUpperCase() +
+          student.name.split(" ")[0].slice(1).toLocaleLowerCase();
+
+        let img =
+          "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
+
+        let emailTamplate = `<!DOCTYPE html>
+                <html lang="en-US">
+                  <head>
+                    <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+                    <title>You have been added to class</title>
+                    <meta name="description" content="You have been added to class" />
+                    <style type="text/css">
+                      a:hover {
+                        text-decoration: underline !important;
+                      }
+                    </style>
+                  </head>
+                
+                  <body
+                    marginheight="0"
+                    topmargin="0"
+                    marginwidth="0"
+                    style="margin: 0px; background-color: #f2f3f8"
+                    leftmargin="0"
+                  >
+                    <!--100% body table-->
+                    <table
+                      cellspacing="0"
+                      border="0"
+                      cellpadding="0"
+                      width="100%"
+                      bgcolor="#f2f3f8"
+                      style="
+                        @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
+                        font-family: 'Open Sans', sans-serif;
+                      "
+                    >
+                      <tr>
+                        <td>
+                          <table
+                            style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
+                            width="100%"
+                            border="0"
+                            align="center"
+                            cellpadding="0"
+                            cellspacing="0"
+                          >
+                            <tr>
+                              <td style="height: 80px">&nbsp;</td>
+                            </tr>
+                            <tr>
+                              <td style="text-align: center">
+                                <a
+                                  href="https://learning.jawwid.com"
+                                  title="logo"
+                                  target="_blank"
+                                >
+                                  <img width="250" src="${img}" title="logo" alt="logo" />
+                                </a>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="height: 20px">&nbsp;</td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <table
+                                  width="95%"
+                                  border="0"
+                                  align="center"
+                                  cellpadding="0"
+                                  cellspacing="0"
+                                  style="
+                                    max-width: 670px;
+                                    background: #fff;
+                                    border-radius: 3px;
+                                    text-align: center;
+                                    -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                    -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                    box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                  "
+                                >
+                                  <tr>
+                                    <td style="height: 40px">&nbsp;</td>
+                                  </tr>
+                                  <tr>
+                                    <td style="padding: 0 35px">
+                                      <span
+                                        style="
+                                          display: inline-block;
+                                          vertical-align: middle;
+                                          margin: 29px 0 26px;
+                                          border-bottom: 1px solid #cecece;
+                                          width: 200px;
+                                        "
+                                      ></span>
+                                      <p
+                                        style="
+                                          color: #455056;
+                                          font-size: 17px;
+                                          line-height: 24px;
+                                          text-align: left;
+                                        "
+                                      >
+                                        Hello ${capitalizeFirstLetterOfName},
+                                      </p>
+                                      <p
+                                        style="
+                                          color: #455056;
+                                          font-size: 17px;
+                                          line-height: 24px;
+                                          text-align: left;
+                                        "
+                                      >
+                                      We hope you are enjoying your time on Jawwid.<br>
+                                      <br>
+                                      You have been added to class: ${updatedClass.name}<br>
+                                      Class will start on ${updatedClass.start_date} at ${updatedClass.start_time}<br>
+                                      Meeting link: ${updatedClass.classZoomLink}<br>
+                                      Meeting password: ${updatedClass.meetingPassword}
+                                      <br>
+                                      Please make sure to join the meeting on time.
+                                    </p>
+                                      
+                
+                                      <br>
+                                      <p
+                                        style="
+                                          margin-top: 3px;
+                                          color: #455056;
+                                          font-size: 17px;
+                                          line-height: 2px;
+                                          text-align: left;
+                                        "
+                                      >
+                                        The Jawwid Team.
+                                      </p>
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td style="height: 40px">&nbsp;</td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                
+                            <tr>
+                              <td style="height: 20px">&nbsp;</td>
+                            </tr>
+                            <tr>
+                              <td style="text-align: center">
+                                <p
+                                  style="
+                                    font-size: 14px;
+                                    color: rgba(69, 80, 86, 0.7411764705882353);
+                                    line-height: 18px;
+                                    margin: 0 0 0;
+                                  "
+                                >
+                                  &copy; <strong>https://learning.jawwid.com</strong>
+                                </p>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="height: 80px">&nbsp;</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                    <!--/100% body table-->
+                  </body>
+                </html>`;
+
+        try {
+          await sendEmail({
+            email: student.email,
+            subject: `${capitalizeFirstLetterOfName}, You have been added to class ${updatedClass.name}`,
+            message: emailTamplate,
+          });
+          console.log("Email sent");
+        } catch (error) {
+          console.log(error);
+        }
+      });
+    }
 
     res
       .status(200)
@@ -703,6 +1468,195 @@ exports.removeStudentFromClass = asyncHandler(async (req, res, next) => {
     classes.studentsEnrolled = classes.studentsEnrolled.filter(
       (id) => !studentIds.includes(id.toString())
     );
+
+    // Send emails to students removed from the class
+    if (students) {
+      students.forEach(async (student) => {
+        let capitalizeFirstLetterOfName =
+          student.name.split(" ")[0].charAt(0).toUpperCase() +
+          student.name.split(" ")[0].slice(1).toLocaleLowerCase();
+
+        let img =
+          "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
+
+        let emailTamplate = `<!DOCTYPE html>
+                    <html lang="en-US">
+                      <head>
+                        <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+                        <title>You have been removed from class</title>
+                        <meta name="description" content="You have been removed from class" />
+                        <style type="text/css">
+                          a:hover {
+                            text-decoration: underline !important;
+                          }
+                        </style>
+                      </head>
+                    
+                      <body
+                        marginheight="0"
+                        topmargin="0"
+                        marginwidth="0"
+                        style="margin: 0px; background-color: #f2f3f8"
+                        leftmargin="0"
+                      >
+                        <!--100% body table-->
+                        <table
+                          cellspacing="0"
+                          border="0"
+                          cellpadding="0"
+                          width="100%"
+                          bgcolor="#f2f3f8"
+                          style="
+                            @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
+                            font-family: 'Open Sans', sans-serif;
+                          "
+                        >
+                          <tr>
+                            <td>
+                              <table
+                                style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
+                                width="100%"
+                                border="0"
+                                align="center"
+                                cellpadding="0"
+                                cellspacing="0"
+                              >
+                                <tr>
+                                  <td style="height: 80px">&nbsp;</td>
+                                </tr>
+                                <tr>
+                                  <td style="text-align: center">
+                                    <a
+                                      href="https://learning.jawwid.com"
+                                      title="logo"
+                                      target="_blank"
+                                    >
+                                      <img width="250" src="${img}" title="logo" alt="logo" />
+                                    </a>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style="height: 20px">&nbsp;</td>
+                                </tr>
+                                <tr>
+                                  <td>
+                                    <table
+                                      width="95%"
+                                      border="0"
+                                      align="center"
+                                      cellpadding="0"
+                                      cellspacing="0"
+                                      style="
+                                        max-width: 670px;
+                                        background: #fff;
+                                        border-radius: 3px;
+                                        text-align: center;
+                                        -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                        -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                        box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                      "
+                                    >
+                                      <tr>
+                                        <td style="height: 40px">&nbsp;</td>
+                                      </tr>
+                                      <tr>
+                                        <td style="padding: 0 35px">
+                                          <span
+                                            style="
+                                              display: inline-block;
+                                              vertical-align: middle;
+                                              margin: 29px 0 26px;
+                                              border-bottom: 1px solid #cecece;
+                                              width: 200px;
+                                            "
+                                          ></span>
+                                          <p
+                                            style="
+                                              color: #455056;
+                                              font-size: 17px;
+                                              line-height: 24px;
+                                              text-align: left;
+                                            "
+                                          >
+                                            Hello ${capitalizeFirstLetterOfName},
+                                          </p>
+                                          <p
+                                            style="
+                                              color: #455056;
+                                              font-size: 17px;
+                                              line-height: 24px;
+                                              text-align: left;
+                                            "
+                                          >
+                                          We hope you are enjoying your time on Jawwid.<br>
+                                          <br>
+                                          We want to inform you that you have been removed from class: ${classes.name}<br>
+                                          <br>
+                                          If you have any questions or further information contact the support team.
+                                        </p>
+                                          
+                    
+                                          <br>
+                                          <p
+                                            style="
+                                              margin-top: 3px;
+                                              color: #455056;
+                                              font-size: 17px;
+                                              line-height: 2px;
+                                              text-align: left;
+                                            "
+                                          >
+                                            The Jawwid Team.
+                                          </p>
+                                        </td>
+                                      </tr>
+                                      <tr>
+                                        <td style="height: 40px">&nbsp;</td>
+                                      </tr>
+                                    </table>
+                                  </td>
+                                </tr>
+                    
+                                <tr>
+                                  <td style="height: 20px">&nbsp;</td>
+                                </tr>
+                                <tr>
+                                  <td style="text-align: center">
+                                    <p
+                                      style="
+                                        font-size: 14px;
+                                        color: rgba(69, 80, 86, 0.7411764705882353);
+                                        line-height: 18px;
+                                        margin: 0 0 0;
+                                      "
+                                    >
+                                      &copy; <strong>https://learning.jawwid.com</strong>
+                                    </p>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style="height: 80px">&nbsp;</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                        </table>
+                        <!--/100% body table-->
+                      </body>
+                    </html>`;
+
+        try {
+          await sendEmail({
+            email: student.email,
+            subject: `${capitalizeFirstLetterOfName}, You have been removed from class ${classes.name}`,
+            message: emailTamplate,
+          });
+          console.log("Email sent");
+        } catch (error) {
+          console.log(error);
+        }
+      });
+    }
 
     // Update the class document using findOneAndUpdate
     const updatedClass = await classModel.findOneAndUpdate(

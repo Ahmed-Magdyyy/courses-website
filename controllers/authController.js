@@ -3,7 +3,6 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/ApiError");
 
 const usersModel = require("../models/userModel");
-const coursesModel = require("../models/coursesModel");
 
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
