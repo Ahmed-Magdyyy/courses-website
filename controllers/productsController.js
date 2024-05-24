@@ -454,7 +454,194 @@ exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
       { _id: productId },
       { students: product.students },
       { new: true } // Return the updated document
-    );
+    ).populate("students", "_id name email phone");
+
+    if (updatedProduct) {
+      updatedProduct.students.forEach(async (student)=>{
+        let capitalizeFirstLetterOfName =
+        student.name.split(" ")[0].charAt(0).toUpperCase() +
+        student.name.split(" ")[0].slice(1).toLocaleLowerCase();
+
+      let img =
+        "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
+
+      let emailTamplate = `<!DOCTYPE html>
+              <html lang="en-US">
+                <head>
+                  <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+                  <title>You have access to product ${updatedProduct.title}</title>
+                  <meta name="description" content="You have access to product ${updatedProduct.title}" />
+                  <style type="text/css">
+                    a:hover {
+                      text-decoration: underline !important;
+                    }
+                  </style>
+                </head>
+              
+                <body
+                  marginheight="0"
+                  topmargin="0"
+                  marginwidth="0"
+                  style="margin: 0px; background-color: #f2f3f8"
+                  leftmargin="0"
+                >
+                  <!--100% body table-->
+                  <table
+                    cellspacing="0"
+                    border="0"
+                    cellpadding="0"
+                    width="100%"
+                    bgcolor="#f2f3f8"
+                    style="
+                      @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
+                      font-family: 'Open Sans', sans-serif;
+                    "
+                  >
+                    <tr>
+                      <td>
+                        <table
+                          style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
+                          width="100%"
+                          border="0"
+                          align="center"
+                          cellpadding="0"
+                          cellspacing="0"
+                        >
+                          <tr>
+                            <td style="height: 80px">&nbsp;</td>
+                          </tr>
+                          <tr>
+                            <td style="text-align: center">
+                              <a
+                                href="https://learning.jawwid.com"
+                                title="logo"
+                                target="_blank"
+                              >
+                                <img width="250" src="${img}" title="logo" alt="logo" />
+                              </a>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="height: 20px">&nbsp;</td>
+                          </tr>
+                          <tr>
+                            <td>
+                              <table
+                                width="95%"
+                                border="0"
+                                align="center"
+                                cellpadding="0"
+                                cellspacing="0"
+                                style="
+                                  max-width: 670px;
+                                  background: #fff;
+                                  border-radius: 3px;
+                                  text-align: center;
+                                  -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                  -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                  box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                                "
+                              >
+                                <tr>
+                                  <td style="height: 40px">&nbsp;</td>
+                                </tr>
+                                <tr>
+                                  <td style="padding: 0 35px">
+                                    <span
+                                      style="
+                                        display: inline-block;
+                                        vertical-align: middle;
+                                        margin: 29px 0 26px;
+                                        border-bottom: 1px solid #cecece;
+                                        width: 200px;
+                                      "
+                                    ></span>
+                                    <p
+                                      style="
+                                        color: #455056;
+                                        font-size: 17px;
+                                        line-height: 24px;
+                                        text-align: left;
+                                      "
+                                    >
+                                      Hello ${capitalizeFirstLetterOfName},
+                                    </p>
+                                    <p
+                                      style="
+                                        color: #455056;
+                                        font-size: 17px;
+                                        line-height: 24px;
+                                        text-align: left;
+                                      "
+                                    >
+                                    We hope you are enjoying your time on Jawwid.<br>
+                                    <br>
+                                    You have access to product: ${updatedProduct.title}<br>
+                                    Thank you for choosing Jawwid.
+                                  </p>
+                                    
+              
+                                    <br>
+                                    <p
+                                      style="
+                                        margin-top: 3px;
+                                        color: #455056;
+                                        font-size: 17px;
+                                        line-height: 2px;
+                                        text-align: left;
+                                      "
+                                    >
+                                      The Jawwid Team.
+                                    </p>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style="height: 40px">&nbsp;</td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+              
+                          <tr>
+                            <td style="height: 20px">&nbsp;</td>
+                          </tr>
+                          <tr>
+                            <td style="text-align: center">
+                              <p
+                                style="
+                                  font-size: 14px;
+                                  color: rgba(69, 80, 86, 0.7411764705882353);
+                                  line-height: 18px;
+                                  margin: 0 0 0;
+                                "
+                              >
+                                &copy; <strong>https://learning.jawwid.com</strong>
+                              </p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="height: 80px">&nbsp;</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                  <!--/100% body table-->
+                </body>
+              </html>`;
+
+      try {
+        await sendEmail({
+          email: student.email,
+          subject: `${capitalizeFirstLetterOfName},  You have access to product ${updatedProduct.title}`,
+          message: emailTamplate,
+        });
+        console.log("Email sent");
+      } catch (error) {
+        console.log(error);
+      }
+      })
+    }
 
     productNotify(studentIds, `You have access to product: ${product.title}`,productId);
 
