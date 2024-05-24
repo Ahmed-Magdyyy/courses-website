@@ -470,8 +470,8 @@ exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
               <html lang="en-US">
                 <head>
                   <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-                  <title>You have access to product ${updatedProduct.title}</title>
-                  <meta name="description" content="You have access to product ${updatedProduct.title}" />
+                  <title>You have access to product: ${updatedProduct.title}</title>
+                  <meta name="description" content="You have access to product: ${updatedProduct.title}" />
                   <style type="text/css">
                     a:hover {
                       text-decoration: underline !important;
@@ -634,7 +634,7 @@ exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
       try {
         await sendEmail({
           email: student.email,
-          subject: `${capitalizeFirstLetterOfName},  You have access to product ${updatedProduct.title}`,
+          subject: `${capitalizeFirstLetterOfName},  You have access to product: ${updatedProduct.title}`,
           message: emailTamplate,
         });
         console.log("Email sent");

@@ -479,7 +479,7 @@ exports.addStudentsToCourse = asyncHandler(async (req, res, next) => {
         try {
           await sendEmail({
             email: student.email,
-            subject: `${capitalizeFirstLetterOfName}, You have been added to course ${updatedCourse.title}`,
+            subject: `${capitalizeFirstLetterOfName}, You have been added to course: ${updatedCourse.title}`,
             message: emailTamplate,
           });
           console.log("Email sent");
