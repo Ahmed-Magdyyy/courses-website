@@ -76,7 +76,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
               </tr>
               <tr>
                 <td style="text-align: center">
-                  <a href="https://jawwid.netlify.app" title="logo" target="_blank">
+                  <a href="https://learning.jawwid.com" title="logo" target="_blank">
                     <img
                       width="250"
                       src=${img}
@@ -186,7 +186,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
                       margin: 0 0 0;
                     "
                   >
-                    &copy; <strong>https://jawwid.netlify.app</strong>
+                    &copy; <strong>https://learning.jawwid.com</strong>
                   </p>
                 </td>
               </tr>
@@ -225,7 +225,7 @@ exports.confirmEmail = asyncHandler(async (req, res, next) => {
     user.account_status = "confirmed";
     await user.save();
 
-    res.redirect("https://jawwid.netlify.app");
+    res.redirect("https://learning.jawwid.com/");
   } else {
     res.send({ message: "Email already confirmed" });
   }
@@ -407,7 +407,7 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
               </tr>
               <tr>
                 <td style="text-align: center">
-                  <a href="https://jawwid.netlify.app" title="logo" target="_blank">
+                  <a href="https://learning.jawwid.com" title="logo" target="_blank">
                     <img
                       width="250"
                       src=${img}
@@ -497,7 +497,7 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
                             margin: 0;
                           "
                         >
-                          Enter this code to complete the reset. Please note that this code is only valid for 20 min.
+                          Enter this code to complete the reset password process. Please note that this code is only valid for 20 min.
                           
                           Thanks for helping us keep your account secure.
                         </p>
@@ -523,7 +523,7 @@ exports.forgetPassword = asyncHandler(async (req, res, next) => {
                       margin: 0 0 0;
                     "
                   >
-                    &copy; <strong>Jaweed team</strong>
+                    &copy; <strong>https://learning.jawwid.com</strong>
                   </p>
                 </td>
               </tr>
