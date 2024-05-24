@@ -6,6 +6,7 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/ApiError");
 const coursesModel = require("../models/coursesModel");
 const userModel = require("../models/userModel");
+const sendEmail = require("../utils/sendEmails");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 
