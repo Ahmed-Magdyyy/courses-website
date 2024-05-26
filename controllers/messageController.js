@@ -16,7 +16,7 @@ function deleteUploadedFile(file) {
       if (err) {
         console.error("Error deleting image:", err);
       } else {
-        console.log("Image deleted successfully:", file.path);
+        console.log("Image deleted successfully:", filePath);
       }
     });
   }
@@ -123,7 +123,7 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
     if (req.files) {
       req.files.forEach((file) => deleteUploadedFile(file));
     }
-    return next(new ApiError("Message text cannot be empty", 400));
+    return next(new ApiError("Message text can't be empty", 400));
   }
 
   const chat = await chatModel.findById(chatId);
@@ -207,7 +207,6 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
           message: `You got a new message from ${req.user.name} -${req.user.role}`,
         });
 
-        console.log("notification:", notification);
       }
     } else {
       // send offline notification to message receiver
@@ -218,7 +217,6 @@ exports.createmessage = asyncHandler(async (req, res, next) => {
         message: `You got a new message from ${req.user.name} -${req.user.role}`,
       });
 
-      console.log("notification:", notification);
     }
 
     res.status(200).json({

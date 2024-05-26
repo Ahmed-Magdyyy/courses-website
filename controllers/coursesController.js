@@ -17,7 +17,7 @@ function deleteUploadedFile(file) {
       if (err) {
         console.error("Error deleting course image:", err);
       } else {
-        console.log("Course image deleted successfully:", file.path);
+        console.log("Course image deleted successfully:", filePath);
       }
     });
   }
@@ -88,8 +88,6 @@ const courseNotify = async (array, message, courseId) => {
       });
     })
   );
-
-  console.log("studentsNotification:", studentsNotification);
 
   // Emit notifications students
   const { io, users } = getIO();
@@ -685,10 +683,6 @@ exports.getStudentsOfCourse = asyncHandler(async (req, res, next) => {
         match: { ...query },
         select: "-__v",
       });
-
-    console.log("====================================");
-    console.log(students);
-    console.log("====================================");
 
     // Calculate total pages based on total students count and limit
     const totalStudentsCount = course.studentsEnrolled.length;

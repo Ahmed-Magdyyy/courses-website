@@ -28,7 +28,6 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
   }
 
   const totalPostsCount = await usersModel.countDocuments(filter);
-  console.log("filter: ", filter);
   let users;
   if (limit && page) {
     // Pagination logic
@@ -190,7 +189,6 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
 //   }
 
 //   const totalPostsCount = await usersModel.countDocuments(filter);
-//   console.log("filter: ", filter);
 //   let users;
 //   if (limit && page) {
 //     // Pagination logic
@@ -711,7 +709,6 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
 
   if (user.role === "teacher") {
     if (user.zoom_credentials === false) {
-      console.log("from false");
       let encrypted_zoom_account_id;
       let encrypted_zoom_client_id;
       let encrypted_zoom_client_Secret;
@@ -769,7 +766,6 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       }
       res.status(200).json({ data: updatedUser });
     } else if (user.zoom_credentials === true) {
-      console.log("from true");
 
       const updatedUser = await usersModel.findByIdAndUpdate(
         req.params.id,

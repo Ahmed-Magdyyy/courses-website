@@ -62,7 +62,7 @@ function deleteUploadedFile(file) {
       if (err) {
         console.error("Error deleting product image file:", err);
       } else {
-        console.log("Product image file deleted successfully:");
+        console.log("Product image file deleted successfully:" , filePath);
       }
     });
   }
@@ -73,7 +73,7 @@ function deleteUploadedFile(file) {
       if (err) {
         console.error("Error deleting product file:", err);
       } else {
-        console.log("Product file deleted successfully:");
+        console.log("Product file deleted successfully:", filePath);
       }
     });
   }

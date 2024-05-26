@@ -1008,17 +1008,9 @@ exports.classReport = asyncHandler(async (req, res, next) => {
   cls.comment = classComment;
   cls.status = "ended";
 
-  console.log("Attendance received:", attendance);
-
   // Update attendance based on the request body
   for (const attendanceEntry of attendance) {
     const { studentId, attended, comment } = attendanceEntry;
-    console.log(
-      "Processing attendance for student:",
-      studentId,
-      "Attended:",
-      attended
-    );
 
     // Find the corresponding attendance entry in the class document
     const existingAttendanceIndex = cls.attendance.findIndex(
@@ -1205,7 +1197,6 @@ exports.addStudentsToClass = asyncHandler(async (req, res, next) => {
       `You have been enrolled in class: ${classes.name}`,
       classId
     );
-    console.log("updatedClass:", updatedClass)
     // Send emails to students enrolled
     if (updatedClass) {
       updatedClass.studentsEnrolled.forEach(async (student) => {
