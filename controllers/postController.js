@@ -16,7 +16,7 @@ function deleteUploadedFile(file) {
       if (err) {
         console.error("Error deleting image:", err);
       } else {
-        console.log("Image deleted successfully:", file.path);
+        console.log("Image deleted successfully:", filePath);
       }
     });
   }
@@ -292,7 +292,7 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
 
     // Delete post document from DB
     await post.deleteOne();
- await Notification.deleteMany({relatedId: post._id.toString()})
+    await Notification.deleteMany({ relatedId: post._id.toString() });
 
     res.status(204).send("Post deleted successfully");
   } catch (error) {
@@ -391,8 +391,6 @@ exports.getPost = asyncHandler(async (req, res, next) => {
       mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
     });
   }
-
-  console.log("post noti", await Notification.find({relatedId:post._id}))
 
   res.status(200).json({ data: post });
 });

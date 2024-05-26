@@ -6,7 +6,6 @@ const PORT = process.env.PORT || 3000;
 const morgan = require("morgan");
 const cors = require("cors");
 const path = require("path");
-const https = require('https');
 
 const ApiError = require("./utils/ApiError");
 const globalError = require("./middlewares/errorMiddleware");

@@ -99,7 +99,6 @@ exports.uploadAssignmentFile = (req, res, next) => {
 exports.submitAssignment = asyncHandler(async (req, res, next) => {
   const { classId, studentId, assignmentFile } = req.body;
 
-  console.log(assignmentFile);
   try {
     const cls = await classModel.findOne({ _id: classId });
     if (!cls) {

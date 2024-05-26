@@ -25,11 +25,6 @@ const chatNotify = async (array, user) => {
 
     const { io, users } = getIO();
     if (users && users.length > 0) {
-      console.log(
-        "tryied to send online notification to:",
-        adminToNotify.userId,
-        adminToNotify.socketId
-      );
       io.to(socketID).emit("notification", {
         notificationID: _id,
         scope,
@@ -41,7 +36,6 @@ const chatNotify = async (array, user) => {
     }
   } else if (adminToNotify.id) {
     let userID = adminToNotify.id;
-    console.log("OFFLINE userId:", userID);
   }
 };
 
@@ -61,14 +55,11 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       enabledControls: { $in: ["messaging"] },
     });
 
-    console.log("supportAdmins", supportAdmins);
-
     if (!supportAdmins || supportAdmins.length === 0) {
       return next(new ApiError(`No support admins found`, 404));
     }
 
     const supportIds = supportAdmins.map((admin) => admin._id.toString());
-    console.log("supportIds", supportIds);
 
     if (supportIds.includes(req.user._id.toString())) {
       return next(
@@ -88,8 +79,6 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       members: { $in: [req.user._id] },
     });
 
-    console.log("openChats", openChats);
-
     if (openChats && openChats.length > 0) {
       return next(new ApiError(`There is already an open support chat`, 400));
     }
@@ -106,8 +95,6 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         return getChatCount(supportId);
       })
     );
-
-    console.log("supportIdsChatCount", supportIdsChatCount);
 
     const minChatCount = Math.min(
       ...supportIdsChatCount.map((admin) => admin.count)
@@ -128,15 +115,8 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       adminWithLowestChatCount = adminsWithMinChatCount[0];
     }
 
-    console.log("minChatCount:", minChatCount);
-    console.log("adminsWithMinChatCount:", adminsWithMinChatCount);
-    console.log("adminWithLowestChatCount:", adminWithLowestChatCount);
-
     const { io, users } = getIO();
     if (users.length > 0) {
-      console.log("users from socket", users);
-      console.log("onlineeee");
-
       const onlineSupportAdmins = users.filter((user) =>
         supportIds.includes(user.userId)
       );
@@ -144,25 +124,9 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       if (!onlineSupportAdmins || onlineSupportAdmins.length == 0) {
         supportAdmin = adminWithLowestChatCount.id;
         var selectedofflineAdmin = adminWithLowestChatCount;
-        console.log(
-          "no online support admins found no online support admins found"
-        );
-        console.log("supportAdmin", supportAdmin);
-        console.log("selectedofflineAdmin", selectedofflineAdmin);
-        console.log(
-          "no online support admins found no online support admins found"
-        );
-        // return next(new ApiError(`no online support admins found`, 404));
       } else {
-        console.log("onlineSupportAdmins: ", onlineSupportAdmins);
-
         const onlineAdminWithLowestChatCount = onlineSupportAdmins.find(
           (admin) => admin.userId === adminWithLowestChatCount.id
-        );
-
-        console.log(
-          "Online admin with lowest chat count:",
-          onlineAdminWithLowestChatCount
         );
 
         if (onlineAdminWithLowestChatCount) {
@@ -171,18 +135,11 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         } else {
           supportAdmin = adminWithLowestChatCount.id;
         }
-
-        console.log("Final supportAdmin:", supportAdmin);
       }
     } else {
-      console.log("offlineeee");
       supportAdmin = adminWithLowestChatCount.id;
       var selectedofflineAdmin = adminWithLowestChatCount;
-
-      console.log("Final supportAdmin:", supportAdmin);
     }
-
-    console.log("supportAdmin after ifs", supportAdmin);
 
     const existingChat = await chatModel.find({
       chatWith: "support",
@@ -191,8 +148,6 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         $all: [req.user._id, supportAdmin],
       },
     });
-
-    console.log("existingChat", existingChat);
 
     if (existingChat && existingChat.length > 0) {
       return next(new ApiError(`There is already an open support chat`, 400));
@@ -208,17 +163,9 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       if (users && users.length > 0) {
         if (selectedOnlineAdmin !== undefined) {
           chatNotify(selectedOnlineAdmin, req.user._id);
-          console.log(
-            "selectedOnlineAdmin selectedOnlineAdmin",
-            selectedOnlineAdmin
-          );
         }
       } else {
         chatNotify(selectedofflineAdmin, req.user._id);
-        console.log(
-          "selectedofflineAdmin selectedofflineAdmin",
-          selectedofflineAdmin
-        );
       }
       res
         .status(200)
@@ -255,8 +202,6 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
       },
     });
 
-    console.log("existingChat:", existingChat);
-
     if (existingChat && existingChat.length > 0) {
       return res.status(400).json({
         message: "There is already a chat with this teacher",
@@ -276,16 +221,12 @@ exports.studentTeacherChat = asyncHandler(async (req, res, next) => {
       message: `Student: ${req.user.name} sent you a message`,
     });
 
-    console.log("AdminNotification:", AdminNotification);
-
     // Emit notifications students
     const { io, users } = getIO();
     if (users.length > 0) {
       const connectedTeacher = users.filter(
         (user) => user.userId === Class.teacher.toString()
       );
-
-      console.log("connectedTeacher:", connectedTeacher);
 
       if (connectedTeacher && connectedTeacher.length > 0) {
         // const { userId, scope, message, _id, createdAt } =
@@ -439,8 +380,6 @@ exports.closeSupportChat = asyncHandler(async (req, res, next) => {
   try {
     const chat = await chatModel.findById(chatId);
 
-    // console.log("chat", chat)
-
     if (!chat) {
       return next(new ApiError(`No chat found`, 404));
     }
@@ -457,12 +396,6 @@ exports.closeSupportChat = asyncHandler(async (req, res, next) => {
     if (!chat) {
       return next(new ApiError(`Chat not found`, 404));
     }
-
-    console.log("req.user._id:", req.user._id);
-    console.log(chat.members);
-    console.log(
-      chat.members.includes(req.user._id) && req.user.role === "admin"
-    );
 
     if (
       (chat.members.includes(req.user._id) && req.user.role === "admin") ||

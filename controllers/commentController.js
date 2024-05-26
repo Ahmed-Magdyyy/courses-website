@@ -17,7 +17,7 @@ function deleteUploadedFile(file) {
       if (err) {
         console.error("Error deleting image:", err);
       } else {
-        console.log("Image deleted successfully:", file.path);
+        console.log("Image deleted successfully:", filePath);
       }
     });
   }
@@ -155,7 +155,7 @@ exports.createComment = asyncHandler(async (req, res, next) => {
         (user) => user.userId === postOwner.toString()
       );
 
-      if (connectedPostOwner&& connectedPostOwner.length > 0 ) {
+      if (connectedPostOwner && connectedPostOwner.length > 0) {
         const { userId, scope, message, _id, createdAt } =
           postOwnernotification;
         io.to(connectedPostOwner[0].socketId).emit("notification", {
@@ -331,7 +331,6 @@ exports.deleteComment = asyncHandler(async (req, res, next) => {
     if (comment.media) {
       const index = comment.media.indexOf("posts/comments");
       const path = `uploads/${comment.media.substring(index)}`;
-      console.log(path);
       deleteUploadedFile({ path });
     }
 
@@ -399,8 +398,6 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
           });
         }
       }
-
-      console.log("commentOwnernotification", commentOwnernotification);
     } else {
       // User has liked the comment, so remove like
       updateOperation = {

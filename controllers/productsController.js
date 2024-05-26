@@ -8,6 +8,7 @@ const asyncHandler = require("express-async-handler");
 const productModel = require("../models/productModel");
 const userModel = require("../models/userModel");
 const ApiError = require("../utils/ApiError");
+const sendEmail = require("../utils/sendEmails");
 const Notification = require("../models/notificationModel");
 const { getIO } = require("../socketConfig");
 
@@ -61,7 +62,7 @@ function deleteUploadedFile(file) {
       if (err) {
         console.error("Error deleting product image file:", err);
       } else {
-        console.log("Product image file deleted successfully:");
+        console.log("Product image file deleted successfully:" , filePath);
       }
     });
   }
@@ -72,7 +73,7 @@ function deleteUploadedFile(file) {
       if (err) {
         console.error("Error deleting product file:", err);
       } else {
-        console.log("Product file deleted successfully:");
+        console.log("Product file deleted successfully:", filePath);
       }
     });
   }
@@ -469,8 +470,8 @@ exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
               <html lang="en-US">
                 <head>
                   <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-                  <title>You have access to product ${updatedProduct.title}</title>
-                  <meta name="description" content="You have access to product ${updatedProduct.title}" />
+                  <title>You have access to product: ${updatedProduct.title}</title>
+                  <meta name="description" content="You have access to product: ${updatedProduct.title}" />
                   <style type="text/css">
                     a:hover {
                       text-decoration: underline !important;
@@ -633,7 +634,7 @@ exports.addStudentsToProduct = asyncHandler(async (req, res, next) => {
       try {
         await sendEmail({
           email: student.email,
-          subject: `${capitalizeFirstLetterOfName},  You have access to product ${updatedProduct.title}`,
+          subject: `${capitalizeFirstLetterOfName},  You have access to product: ${updatedProduct.title}`,
           message: emailTamplate,
         });
         console.log("Email sent");
