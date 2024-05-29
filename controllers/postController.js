@@ -78,19 +78,19 @@ exports.uploadPostMedia = (req, res, next) => {
         return next(new ApiError("Only images and videos are allowed", 400));
       }
       // Check file size for videos
-      if (file.mimetype.startsWith("video") && file.size > 25 * 1024 * 1024) {
+      if (file.mimetype.startsWith("video") && file.size > 50 * 1024 * 1024) {
         // Delete uploaded files
         mediaFiles.forEach((file) => deleteUploadedFile(file));
-        return next(new ApiError("Video file size exceeds 25 MB", 400));
+        return next(new ApiError("Video file size exceeds 50 MB", 400));
       }
       // Check file size for images
       if (
         file.mimetype.startsWith("image") &&
-        file.size > 5 * 1024 * 1024 // 5 MB limit for images
+        file.size > 10 * 1024 * 1024 // 10 MB limit for images
       ) {
         // Delete uploaded files
         mediaFiles.forEach((file) => deleteUploadedFile(file));
-        return next(new ApiError("Image file size exceeds 5 MB", 400));
+        return next(new ApiError("Image file size exceeds 10 MB", 400));
       }
       // Add file information to req.body.media
       req.body.media = req.body.media || []; // Initialize req.body.media if it's undefined

@@ -23,7 +23,7 @@ Router.use(
   allowedTo("superAdmin", "admin", "teacher", "student"),
   enabledControls("timeline")
 );
-
+ 
 Router.route("/").post(uploadPostMedia, createPost).get(getAllPosts);
 
 Router.route("/:id")
