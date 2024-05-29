@@ -34,18 +34,22 @@ function initSocketServer(server) {
 
     socket.on("sendMessage", ({ senderId, receiverId, text, sentAt }) => {
       const user = getUser(receiverId);
+      console.log("usrrrrr:", user)
+      console.log(user? true : false)
 
-      if (user == undefined || !user) {
-        io.emit("error", "error getting user id.");
-        return;
+      if (user) {
+      console.log("usrrrrr:", user)
+        io.to(user.socketId).emit("getMessage", {
+          senderId,
+          receiverId,
+          text,
+          sentAt,
+        });
+      } else {
+      console.log("usrrrrr:", "not connected to socket")
+
       }
 
-      io.to(user.socketId).emit("getMessage", {
-        senderId,
-        receiverId,
-        text,
-        sentAt,
-      });
     });
 
     socket.on("broadcast", (message) => {

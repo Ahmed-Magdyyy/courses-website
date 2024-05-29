@@ -10,167 +10,6 @@ const { encryptField, decryptField } = require("../utils/encryption");
 
 //----- Admin Routes -----
 
-exports.getUsers = asyncHandler(async (req, res, next) => {
-  let filter = {};
-  const { page, limit, skip, ...query } = req.query;
-
-  // Modify the filter to support partial matches for string fields
-  Object.keys(query).forEach((key) => {
-    if (typeof query[key] === "string") {
-      filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
-    } else {
-      filter[key] = query[key];
-    }
-  });
-
-  if (!query.role) {
-    filter.role = { $ne: "superAdmin" };
-  }
-
-  const totalPostsCount = await usersModel.countDocuments(filter);
-  let users;
-  if (limit && page) {
-    // Pagination logic
-    const pageNum = page * 1 || 1;
-    const limitNum = limit * 1 || 5;
-    const skipNum = (pageNum - 1) * limitNum;
-    const totalPages = Math.ceil(totalPostsCount / limitNum);
-
-    if (query.role === "teacher") {
-      users = await usersModel.aggregate([
-        { $match: filter },
-        {
-          $lookup: {
-            from: "classes",
-            localField: "classes",
-            foreignField: "_id",
-            as: "classes",
-          },
-        },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            email: 1,
-            phone: 1,
-            role: 1,
-            password: 1,
-            passwordChangedAT: 1,
-            passwordResetCode: 1,
-            passwordResetCodeExpire: 1,
-            passwordResetCodeVerified: 1,
-            enabledControls: 1,
-            account_status: 1,
-            active: 1,
-            courses: 1,
-            classes: 1,
-            products: 1,
-            remainingClasses: 1,
-            createdAt: 1,
-            updatedAt: 1,
-            classes: {
-              $map: {
-                input: "$classes",
-                as: "class",
-                in: {
-                  _id: "$$class._id",
-                  start_date: "$$class.start_date",
-                  start_time: "$$class.start_time",
-                  status: "$$class.status",
-                },
-              },
-            },
-            // Decrypt Zoom-related fields for teachers
-            zoom_account_id: 1,
-            zoom_client_id: 1,
-            zoom_client_Secret: 1,
-            zoom_credentials: 1,
-          },
-        },
-        {
-          $addFields: {
-            completedClasses: {
-              $size: {
-                $filter: {
-                  input: "$classes",
-                  as: "class",
-                  cond: { $eq: ["$$class.status", "ended"] },
-                },
-              },
-            },
-            scheduledClasses: {
-              $size: {
-                $filter: {
-                  input: "$classes",
-                  as: "class",
-                  cond: { $eq: ["$$class.status", "scheduled"] },
-                },
-              },
-            },
-            cancelledClasses: {
-              $size: {
-                $filter: {
-                  input: "$classes",
-                  as: "class",
-                  cond: { $eq: ["$$class.status", "cancelled"] },
-                },
-              },
-            },
-          },
-        },
-        {
-          $sort: { createdAt: -1 },
-        },
-        {
-          $skip: skipNum,
-        },
-        {
-          $limit: limitNum,
-        },
-      ]);
-
-      // Decrypt the specified fields
-      users.forEach((user) => {
-        if (
-          user.zoom_account_id !== "" &&
-          user.zoom_account_id !== null &&
-          user.zoom_account_id !== undefined
-        ) {
-          user.zoom_account_id = decryptField(user.zoom_account_id);
-        }
-        if (
-          user.zoom_client_id !== "" &&
-          user.zoom_client_id !== null &&
-          user.zoom_client_id !== undefined
-        ) {
-          user.zoom_client_id = decryptField(user.zoom_client_id);
-        }
-        if (
-          user.zoom_client_Secret !== "" &&
-          user.zoom_client_Secret !== null &&
-          user.zoom_client_Secret !== undefined
-        ) {
-          user.zoom_client_Secret = decryptField(user.zoom_client_Secret);
-        }
-      });
-    } else {
-      users = await usersModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skipNum)
-        .limit(limitNum);
-    }
-
-    res
-      .status(200)
-      .json({ totalPages, page: pageNum, results: users.length, data: users });
-  } else {
-    // Return all data without pagination
-    users = await usersModel.find(filter).sort({ createdAt: -1 });
-    res.status(200).json({ results: users.length, data: users });
-  }
-});
-
 // exports.getUsers = asyncHandler(async (req, res, next) => {
 //   let filter = {};
 //   const { page, limit, skip, ...query } = req.query;
@@ -209,7 +48,26 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
 //           },
 //         },
 //         {
-//           $addFields: {
+//           $project: {
+//             _id: 1,
+//             name: 1,
+//             email: 1,
+//             phone: 1,
+//             role: 1,
+//             password: 1,
+//             passwordChangedAT: 1,
+//             passwordResetCode: 1,
+//             passwordResetCodeExpire: 1,
+//             passwordResetCodeVerified: 1,
+//             enabledControls: 1,
+//             account_status: 1,
+//             active: 1,
+//             courses: 1,
+//             classes: 1,
+//             products: 1,
+//             remainingClasses: 1,
+//             createdAt: 1,
+//             updatedAt: 1,
 //             classes: {
 //               $map: {
 //                 input: "$classes",
@@ -222,117 +80,42 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
 //                 },
 //               },
 //             },
+//             // Decrypt Zoom-related fields for teachers
+//             zoom_account_id: 1,
+//             zoom_client_id: 1,
+//             zoom_client_Secret: 1,
+//             zoom_credentials: 1,
 //           },
 //         },
 //         {
 //           $addFields: {
-//             monthYear: {
-//               $map: {
-//                 input: "$classes",
-//                 as: "class",
-//                 in: {
-//                   month: {
-//                     $month: {
-//                       $dateFromString: {
-//                         dateString: "$$class.start_date",
-//                         format: "%d/%m/%Y",
-//                       },
-//                     },
-//                   },
-//                   year: {
-//                     $year: {
-//                       $dateFromString: {
-//                         dateString: "$$class.start_date",
-//                         format: "%d/%m/%Y",
-//                       },
-//                     },
-//                   },
-//                   status: "$$class.status",
+//             completedClasses: {
+//               $size: {
+//                 $filter: {
+//                   input: "$classes",
+//                   as: "class",
+//                   cond: { $eq: ["$$class.status", "ended"] },
 //                 },
 //               },
 //             },
-//           },
-//         },
-//         {
-//           $unwind: "$monthYear",
-//         },
-//         {
-//           $group: {
-//             _id: {
-//               userId: "$_id",
-//               month: "$monthYear.month",
-//               year: "$monthYear.year",
-//               status: "$monthYear.status",
-//             },
-//             count: { $sum: 1 },
-//           },
-//         },
-//         {
-//           $group: {
-//             _id: {
-//               userId: "$_id.userId",
-//               month: "$_id.month",
-//               year: "$_id.year",
-//             },
-//             classesByStatus: {
-//               $push: {
-//                 status: "$_id.status",
-//                 count: "$count",
+//             scheduledClasses: {
+//               $size: {
+//                 $filter: {
+//                   input: "$classes",
+//                   as: "class",
+//                   cond: { $eq: ["$$class.status", "scheduled"] },
+//                 },
 //               },
 //             },
-//           },
-//         },
-//         {
-//           $group: {
-//             _id: "$_id.userId",
-//             monthlyClasses: {
-//               $push: {
-//                 month: "$_id.month",
-//                 year: "$_id.year",
-//                 classesByStatus: "$classesByStatus",
+//             cancelledClasses: {
+//               $size: {
+//                 $filter: {
+//                   input: "$classes",
+//                   as: "class",
+//                   cond: { $eq: ["$$class.status", "cancelled"] },
+//                 },
 //               },
 //             },
-//           },
-//         },
-//         {
-//           $lookup: {
-//             from: "users", // Assuming "users" is the correct collection name
-//             localField: "_id",
-//             foreignField: "_id",
-//             as: "userDetails",
-//           },
-//         },
-//         {
-//           $unwind: "$userDetails",
-//         },
-//         {
-//           $addFields: {
-//             name: "$userDetails.name",
-//             email: "$userDetails.email",
-//             phone: "$userDetails.phone",
-//             role: "$userDetails.role",
-//             password: "$userDetails.password",
-//             passwordChangedAT: "$userDetails.passwordChangedAT",
-//             passwordResetCode: "$userDetails.passwordResetCode",
-//             passwordResetCodeExpire: "$userDetails.passwordResetCodeExpire",
-//             passwordResetCodeVerified: "$userDetails.passwordResetCodeVerified",
-//             enabledControls: "$userDetails.enabledControls",
-//             account_status: "$userDetails.account_status",
-//             active: "$userDetails.active",
-//             courses: "$userDetails.courses",
-//             products: "$userDetails.products",
-//             remainingClasses: "$userDetails.remainingClasses",
-//             createdAt: "$userDetails.createdAt",
-//             updatedAt: "$userDetails.updatedAt",
-//             zoom_account_id: "$userDetails.zoom_account_id",
-//             zoom_client_id: "$userDetails.zoom_client_id",
-//             zoom_client_Secret: "$userDetails.zoom_client_Secret",
-//             zoom_credentials: "$userDetails.zoom_credentials",
-//           },
-//         },
-//         {
-//           $project: {
-//             userDetails: 0, // Exclude the intermediate userDetails field
 //           },
 //         },
 //         {
@@ -388,19 +171,35 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
 //   }
 // });
 
-exports.getUser = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
+exports.getUsers = asyncHandler(async (req, res, next) => {
+  let filter = {};
+  const { page, limit, skip, ...query } = req.query;
 
-  try {
-    const user = await usersModel.findById(id);
-
-    if (!user) {
-      return next(new ApiError(`No user found for this id:${id}`, 404));
+  // Modify the filter to support partial matches for string fields
+  Object.keys(query).forEach((key) => {
+    if (typeof query[key] === "string") {
+      filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+    } else {
+      filter[key] = query[key];
     }
+  });
 
-    if (user.role === "teacher") {
-      const userData = await usersModel.aggregate([
-        { $match: { _id: new mongoose.Types.ObjectId(id) } },
+  if (!query.role) {
+    filter.role = { $ne: "superAdmin" };
+  }
+
+  const totalPostsCount = await usersModel.countDocuments(filter);
+  let users;
+  if (limit && page) {
+    // Pagination logic
+    const pageNum = page * 1 || 1;
+    const limitNum = limit * 1 || 5;
+    const skipNum = (pageNum - 1) * limitNum;
+    const totalPages = Math.ceil(totalPostsCount / limitNum);
+
+    if (query.role === "teacher") {
+      users = await usersModel.aggregate([
+        { $match: filter },
         {
           $lookup: {
             from: "classes",
@@ -410,79 +209,130 @@ exports.getUser = asyncHandler(async (req, res, next) => {
           },
         },
         {
-          $project: {
-            _id: 1,
-            name: 1,
-            email: 1,
-            phone: 1,
-            role: 1,
-            password: 1,
-            passwordChangedAT: 1,
-            passwordResetCode: 1,
-            passwordResetCodeExpire: 1,
-            passwordResetCodeVerified: 1,
-            enabledControls: 1,
-            account_status: 1,
-            active: 1,
-            courses: 1,
-            classes: 1,
-            products: 1,
-            remainingClasses: 1,
-            createdAt: 1,
-            updatedAt: 1,
-            zoom_account_id: 1,
-            zoom_client_Secret: 1,
-            zoom_client_id: 1,
-            zoom_credentials: 1,
-            classes: {
+          $addFields: {
+            monthYear: {
               $map: {
                 input: "$classes",
                 as: "class",
                 in: {
-                  _id: "$$class._id",
-                  start_date: "$$class.start_date",
-                  start_time: "$$class.start_time",
+                  month: {
+                    $month: {
+                      $dateFromString: {
+                        dateString: "$$class.start_date",
+                        format: "%d/%m/%Y",
+                      },
+                    },
+                  },
+                  year: {
+                    $year: {
+                      $dateFromString: {
+                        dateString: "$$class.start_date",
+                        format: "%d/%m/%Y",
+                      },
+                    },
+                  },
                   status: "$$class.status",
+                  classId: "$$class._id", // Add the class ID
                 },
+              },
+            },
+          },
+        },
+        { $unwind: { path: "$monthYear", preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: {
+              userId: "$_id",
+              month: "$monthYear.month",
+              year: "$monthYear.year",
+              status: "$monthYear.status",
+            },
+            count: { $sum: 1 },
+            classesId: { $push: "$monthYear.classId" }, // Collect class IDs
+          },
+        },
+        {
+          $group: {
+            _id: {
+              userId: "$_id.userId",
+              month: "$_id.month",
+              year: "$_id.year",
+            },
+            classesByStatus: {
+              $push: {
+                status: "$_id.status",
+                count: "$count",
+                classesId: "$classesId", // Include class IDs in classesByStatus
               },
             },
           },
         },
         {
-          $addFields: {
-            completedClasses: {
-              $size: {
-                $filter: {
-                  input: "$classes",
-                  as: "class",
-                  cond: { $eq: ["$$class.status", "ended"] },
-                },
-              },
-            },
-            scheduledClasses: {
-              $size: {
-                $filter: {
-                  input: "$classes",
-                  as: "class",
-                  cond: { $eq: ["$$class.status", "scheduled"] },
-                },
-              },
-            },
-            cancelledClasses: {
-              $size: {
-                $filter: {
-                  input: "$classes",
-                  as: "class",
-                  cond: { $eq: ["$$class.status", "cancelled"] },
-                },
+          $group: {
+            _id: "$_id.userId",
+            classes: {
+              $push: {
+                month: "$_id.month",
+                year: "$_id.year",
+                classesByStatus: "$classesByStatus",
               },
             },
           },
         },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "userDetails",
+          },
+        },
+        {
+          $unwind: "$userDetails",
+        },
+        {
+          $addFields: {
+            name: "$userDetails.name",
+            email: "$userDetails.email",
+            phone: "$userDetails.phone",
+            role: "$userDetails.role",
+            password: "$userDetails.password",
+            passwordChangedAT: "$userDetails.passwordChangedAT",
+            passwordResetCode: "$userDetails.passwordResetCode",
+            passwordResetCodeExpire: "$userDetails.passwordResetCodeExpire",
+            passwordResetCodeVerified: "$userDetails.passwordResetCodeVerified",
+            enabledControls: "$userDetails.enabledControls",
+            account_status: "$userDetails.account_status",
+            active: "$userDetails.active",
+            courses: "$userDetails.courses",
+            products: "$userDetails.products",
+            remainingClasses: "$userDetails.remainingClasses",
+            createdAt: "$userDetails.createdAt",
+            updatedAt: "$userDetails.updatedAt",
+            zoom_account_id: "$userDetails.zoom_account_id",
+            zoom_client_id: "$userDetails.zoom_client_id",
+            zoom_client_Secret: "$userDetails.zoom_client_Secret",
+            zoom_credentials: "$userDetails.zoom_credentials",
+          },
+        },
+        {
+          $project: {
+            userDetails: 0, // Exclude the intermediate userDetails field
+          },
+        },
+        {
+          $sort: { createdAt: -1 },
+        },
+        {
+          $skip: skipNum,
+        },
+        {
+          $limit: limitNum,
+        },
       ]);
 
       // Decrypt the specified fields
-      userData.forEach((user) => {
+      users.forEach((user) => {
         if (
           user.zoom_account_id !== "" &&
           user.zoom_account_id !== null &&
@@ -506,13 +356,28 @@ exports.getUser = asyncHandler(async (req, res, next) => {
         }
       });
 
-      res.status(200).json({ data: userData[0] });
+      // Additional check to ensure classes is an empty array if no classes found
+      for (let i = 0; i < users.length; i++) {
+        const teacherClasses = await classModel.find({ teacher: users[i]._id });
+        if (teacherClasses.length < 1) {
+          users[i].classes = [];
+        }
+      }
     } else {
-      res.status(200).json({ data: user });
+      users = await usersModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skipNum)
+        .limit(limitNum);
     }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal Server Error" });
+
+    res
+      .status(200)
+      .json({ totalPages, page: pageNum, results: users.length, data: users });
+  } else {
+    // Return all data without pagination
+    users = await usersModel.find(filter).sort({ createdAt: -1 });
+    res.status(200).json({ results: users.length, data: users });
   }
 });
 
@@ -523,7 +388,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 //     const user = await usersModel.findById(id);
 
 //     if (!user) {
-//       return next(new ApiError(`No user found for this id: ${id}`, 404));
+//       return next(new ApiError(`No user found for this id:${id}`, 404));
 //     }
 
 //     if (user.role === "teacher") {
@@ -538,108 +403,75 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 //           },
 //         },
 //         {
-//           $addFields: {
-//             monthYear: {
+//           $project: {
+//             _id: 1,
+//             name: 1,
+//             email: 1,
+//             phone: 1,
+//             role: 1,
+//             password: 1,
+//             passwordChangedAT: 1,
+//             passwordResetCode: 1,
+//             passwordResetCodeExpire: 1,
+//             passwordResetCodeVerified: 1,
+//             enabledControls: 1,
+//             account_status: 1,
+//             active: 1,
+//             courses: 1,
+//             classes: 1,
+//             products: 1,
+//             remainingClasses: 1,
+//             createdAt: 1,
+//             updatedAt: 1,
+//             zoom_account_id: 1,
+//             zoom_client_Secret: 1,
+//             zoom_client_id: 1,
+//             zoom_credentials: 1,
+//             classes: {
 //               $map: {
 //                 input: "$classes",
 //                 as: "class",
 //                 in: {
-//                   month: {
-//                     $month: {
-//                       $dateFromString: {
-//                         dateString: "$$class.start_date",
-//                         format: "%d/%m/%Y",
-//                       },
-//                     },
-//                   },
-//                   year: {
-//                     $year: {
-//                       $dateFromString: {
-//                         dateString: "$$class.start_date",
-//                         format: "%d/%m/%Y",
-//                       },
-//                     },
-//                   },
+//                   _id: "$$class._id",
+//                   start_date: "$$class.start_date",
+//                   start_time: "$$class.start_time",
 //                   status: "$$class.status",
 //                 },
 //               },
 //             },
 //           },
 //         },
-//         { $unwind: "$monthYear" },
-//         {
-//           $group: {
-//             _id: {
-//               userId: "$_id",
-//               month: "$monthYear.month",
-//               year: "$monthYear.year",
-//               status: "$monthYear.status",
-//             },
-//             count: { $sum: 1 },
-//           },
-//         },
-//         {
-//           $group: {
-//             _id: {
-//               userId: "$_id.userId",
-//               month: "$_id.month",
-//               year: "$_id.year",
-//             },
-//             classesByStatus: {
-//               $push: {
-//                 status: "$_id.status",
-//                 count: "$count",
-//               },
-//             },
-//           },
-//         },
-//         {
-//           $group: {
-//             _id: "$_id.userId",
-//             monthlyClasses: {
-//               $push: {
-//                 month: "$_id.month",
-//                 year: "$_id.year",
-//                 classesByStatus: "$classesByStatus",
-//               },
-//             },
-//           },
-//         },
-//         {
-//           $lookup: {
-//             from: "users",
-//             localField: "_id",
-//             foreignField: "_id",
-//             as: "userDetails",
-//           },
-//         },
-//         { $unwind: "$userDetails" },
 //         {
 //           $addFields: {
-//             name: "$userDetails.name",
-//             email: "$userDetails.email",
-//             phone: "$userDetails.phone",
-//             role: "$userDetails.role",
-//             password: "$userDetails.password",
-//             passwordChangedAT: "$userDetails.passwordChangedAT",
-//             passwordResetCode: "$userDetails.passwordResetCode",
-//             passwordResetCodeExpire: "$userDetails.passwordResetCodeExpire",
-//             passwordResetCodeVerified: "$userDetails.passwordResetCodeVerified",
-//             enabledControls: "$userDetails.enabledControls",
-//             account_status: "$userDetails.account_status",
-//             active: "$userDetails.active",
-//             courses: "$userDetails.courses",
-//             products: "$userDetails.products",
-//             remainingClasses: "$userDetails.remainingClasses",
-//             createdAt: "$userDetails.createdAt",
-//             updatedAt: "$userDetails.updatedAt",
-//             zoom_account_id: "$userDetails.zoom_account_id",
-//             zoom_client_id: "$userDetails.zoom_client_id",
-//             zoom_client_Secret: "$userDetails.zoom_client_Secret",
-//             zoom_credentials: "$userDetails.zoom_credentials",
+//             completedClasses: {
+//               $size: {
+//                 $filter: {
+//                   input: "$classes",
+//                   as: "class",
+//                   cond: { $eq: ["$$class.status", "ended"] },
+//                 },
+//               },
+//             },
+//             scheduledClasses: {
+//               $size: {
+//                 $filter: {
+//                   input: "$classes",
+//                   as: "class",
+//                   cond: { $eq: ["$$class.status", "scheduled"] },
+//                 },
+//               },
+//             },
+//             cancelledClasses: {
+//               $size: {
+//                 $filter: {
+//                   input: "$classes",
+//                   as: "class",
+//                   cond: { $eq: ["$$class.status", "cancelled"] },
+//                 },
+//               },
+//             },
 //           },
 //         },
-//         { $project: { userDetails: 0 } },
 //       ]);
 
 //       // Decrypt the specified fields
@@ -676,6 +508,180 @@ exports.getUser = asyncHandler(async (req, res, next) => {
 //     res.status(500).json({ message: "Internal Server Error" });
 //   }
 // });
+
+exports.getUser = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  try {
+    const user = await usersModel.findById(id);
+
+    if (!user) {
+      return next(new ApiError(`No user found for this id: ${id}`, 404));
+    }
+
+    if (user.role === "teacher") {
+      const userData = await usersModel.aggregate([
+        { $match: { _id: new mongoose.Types.ObjectId(id) } },
+        {
+          $lookup: {
+            from: "classes",
+            localField: "classes",
+            foreignField: "_id",
+            as: "classes",
+          },
+        },
+        {
+          $addFields: {
+            monthYear: {
+              $map: {
+                input: "$classes",
+                as: "class",
+                in: {
+                  month: {
+                    $month: {
+                      $dateFromString: {
+                        dateString: "$$class.start_date",
+                        format: "%d/%m/%Y",
+                      },
+                    },
+                  },
+                  year: {
+                    $year: {
+                      $dateFromString: {
+                        dateString: "$$class.start_date",
+                        format: "%d/%m/%Y",
+                      },
+                    },
+                  },
+                  status: "$$class.status",
+                  classId: "$$class._id", // Add class ID
+                },
+              },
+            },
+          },
+        },
+        { $unwind: { path: "$monthYear", preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: {
+              userId: "$_id",
+              month: "$monthYear.month",
+              year: "$monthYear.year",
+              status: "$monthYear.status",
+            },
+            count: { $sum: 1 },
+            classesId: { $push: "$monthYear.classId" }, // Collect class IDs
+          },
+        },
+        {
+          $group: {
+            _id: {
+              userId: "$_id.userId",
+              month: "$_id.month",
+              year: "$_id.year",
+            },
+            classesByStatus: {
+              $push: {
+                status: "$_id.status",
+                count: "$count",
+                classesId: "$classesId", // Include class IDs
+              },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$_id.userId",
+            classes: {
+              $push: {
+                month: "$_id.month",
+                year: "$_id.year",
+                classesByStatus: "$classesByStatus",
+              },
+            },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "userDetails",
+          },
+        },
+        { $unwind: "$userDetails" },
+        {
+          $addFields: {
+            name: "$userDetails.name",
+            email: "$userDetails.email",
+            phone: "$userDetails.phone",
+            role: "$userDetails.role",
+            password: "$userDetails.password",
+            passwordChangedAT: "$userDetails.passwordChangedAT",
+            passwordResetCode: "$userDetails.passwordResetCode",
+            passwordResetCodeExpire: "$userDetails.passwordResetCodeExpire",
+            passwordResetCodeVerified: "$userDetails.passwordResetCodeVerified",
+            enabledControls: "$userDetails.enabledControls",
+            account_status: "$userDetails.account_status",
+            active: "$userDetails.active",
+            courses: "$userDetails.courses",
+            products: "$userDetails.products",
+            remainingClasses: "$userDetails.remainingClasses",
+            createdAt: "$userDetails.createdAt",
+            updatedAt: "$userDetails.updatedAt",
+            zoom_account_id: "$userDetails.zoom_account_id",
+            zoom_client_id: "$userDetails.zoom_client_id",
+            zoom_client_Secret: "$userDetails.zoom_client_Secret",
+            zoom_credentials: "$userDetails.zoom_credentials",
+          },
+        },
+        { $project: { userDetails: 0, monthYear: 0 } }
+      ]);
+
+      if (userData.length === 0) {
+        return res.status(404).json({ message: 'No user data found in aggregation' });
+      }
+
+      const userResult = userData[0];
+
+      // Additional check to ensure classes is an empty array if no classes found
+      const teacherClasses = await classModel.find({ teacher: id });
+      if (teacherClasses.length < 1) {
+        userResult.classes = [];
+      }
+
+      // Decrypt the specified fields
+      if (
+        userResult.zoom_account_id !== "" &&
+        userResult.zoom_account_id !== null &&
+        userResult.zoom_account_id !== undefined
+      ) {
+        userResult.zoom_account_id = decryptField(userResult.zoom_account_id);
+      }
+      if (
+        userResult.zoom_client_id !== "" &&
+        userResult.zoom_client_id !== null &&
+        userResult.zoom_client_id !== undefined
+      ) {
+        userResult.zoom_client_id = decryptField(userResult.zoom_client_id);
+      }
+      if (
+        userResult.zoom_client_Secret !== "" &&
+        userResult.zoom_client_Secret !== null &&
+        userResult.zoom_client_Secret !== undefined
+      ) {
+        userResult.zoom_client_Secret = decryptField(userResult.zoom_client_Secret);
+      }
+
+      res.status(200).json({ data: userResult });
+    } else {
+      res.status(200).json({ data: user });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 exports.createUser = asyncHandler(async (req, res, next) => {
   if (req.body.role === "superAdmin") {
