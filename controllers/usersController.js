@@ -10,167 +10,6 @@ const { encryptField, decryptField } = require("../utils/encryption");
 
 //----- Admin Routes -----
 
-// exports.getUsers = asyncHandler(async (req, res, next) => {
-//   let filter = {};
-//   const { page, limit, skip, ...query } = req.query;
-
-//   // Modify the filter to support partial matches for string fields
-//   Object.keys(query).forEach((key) => {
-//     if (typeof query[key] === "string") {
-//       filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
-//     } else {
-//       filter[key] = query[key];
-//     }
-//   });
-
-//   if (!query.role) {
-//     filter.role = { $ne: "superAdmin" };
-//   }
-
-//   const totalPostsCount = await usersModel.countDocuments(filter);
-//   let users;
-//   if (limit && page) {
-//     // Pagination logic
-//     const pageNum = page * 1 || 1;
-//     const limitNum = limit * 1 || 5;
-//     const skipNum = (pageNum - 1) * limitNum;
-//     const totalPages = Math.ceil(totalPostsCount / limitNum);
-
-//     if (query.role === "teacher") {
-//       users = await usersModel.aggregate([
-//         { $match: filter },
-//         {
-//           $lookup: {
-//             from: "classes",
-//             localField: "classes",
-//             foreignField: "_id",
-//             as: "classes",
-//           },
-//         },
-//         {
-//           $project: {
-//             _id: 1,
-//             name: 1,
-//             email: 1,
-//             phone: 1,
-//             role: 1,
-//             password: 1,
-//             passwordChangedAT: 1,
-//             passwordResetCode: 1,
-//             passwordResetCodeExpire: 1,
-//             passwordResetCodeVerified: 1,
-//             enabledControls: 1,
-//             account_status: 1,
-//             active: 1,
-//             courses: 1,
-//             classes: 1,
-//             products: 1,
-//             remainingClasses: 1,
-//             createdAt: 1,
-//             updatedAt: 1,
-//             classes: {
-//               $map: {
-//                 input: "$classes",
-//                 as: "class",
-//                 in: {
-//                   _id: "$$class._id",
-//                   start_date: "$$class.start_date",
-//                   start_time: "$$class.start_time",
-//                   status: "$$class.status",
-//                 },
-//               },
-//             },
-//             // Decrypt Zoom-related fields for teachers
-//             zoom_account_id: 1,
-//             zoom_client_id: 1,
-//             zoom_client_Secret: 1,
-//             zoom_credentials: 1,
-//           },
-//         },
-//         {
-//           $addFields: {
-//             completedClasses: {
-//               $size: {
-//                 $filter: {
-//                   input: "$classes",
-//                   as: "class",
-//                   cond: { $eq: ["$$class.status", "ended"] },
-//                 },
-//               },
-//             },
-//             scheduledClasses: {
-//               $size: {
-//                 $filter: {
-//                   input: "$classes",
-//                   as: "class",
-//                   cond: { $eq: ["$$class.status", "scheduled"] },
-//                 },
-//               },
-//             },
-//             cancelledClasses: {
-//               $size: {
-//                 $filter: {
-//                   input: "$classes",
-//                   as: "class",
-//                   cond: { $eq: ["$$class.status", "cancelled"] },
-//                 },
-//               },
-//             },
-//           },
-//         },
-//         {
-//           $sort: { createdAt: -1 },
-//         },
-//         {
-//           $skip: skipNum,
-//         },
-//         {
-//           $limit: limitNum,
-//         },
-//       ]);
-
-//       // Decrypt the specified fields
-//       users.forEach((user) => {
-//         if (
-//           user.zoom_account_id !== "" &&
-//           user.zoom_account_id !== null &&
-//           user.zoom_account_id !== undefined
-//         ) {
-//           user.zoom_account_id = decryptField(user.zoom_account_id);
-//         }
-//         if (
-//           user.zoom_client_id !== "" &&
-//           user.zoom_client_id !== null &&
-//           user.zoom_client_id !== undefined
-//         ) {
-//           user.zoom_client_id = decryptField(user.zoom_client_id);
-//         }
-//         if (
-//           user.zoom_client_Secret !== "" &&
-//           user.zoom_client_Secret !== null &&
-//           user.zoom_client_Secret !== undefined
-//         ) {
-//           user.zoom_client_Secret = decryptField(user.zoom_client_Secret);
-//         }
-//       });
-//     } else {
-//       users = await usersModel
-//         .find(filter)
-//         .sort({ createdAt: -1 })
-//         .skip(skipNum)
-//         .limit(limitNum);
-//     }
-
-//     res
-//       .status(200)
-//       .json({ totalPages, page: pageNum, results: users.length, data: users });
-//   } else {
-//     // Return all data without pagination
-//     users = await usersModel.find(filter).sort({ createdAt: -1 });
-//     res.status(200).json({ results: users.length, data: users });
-//   }
-// });
-
 exports.getUsers = asyncHandler(async (req, res, next) => {
   let filter = {};
   const { page, limit, skip, ...query } = req.query;
@@ -248,7 +87,7 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
               status: "$monthYear.status",
             },
             count: { $sum: 1 },
-            classesId: { $push: "$monthYear.classId" }, // Collect class IDs
+            classIds: { $push: "$monthYear.classId" }, // Collect class IDs
           },
         },
         {
@@ -262,7 +101,35 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
               $push: {
                 status: "$_id.status",
                 count: "$count",
-                classesId: "$classesId", // Include class IDs in classesByStatus
+                classIds: "$classIds", // Include class IDs in classesByStatus
+              },
+            },
+          },
+        },
+        {
+          $addFields: {
+            classesByStatus: {
+              $filter: {
+                input: {
+                  $map: {
+                    input: ["ended", "scheduled", "cancelled"],
+                    as: "status",
+                    in: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$classesByStatus",
+                            as: "classStatus",
+                            cond: { $eq: ["$$classStatus.status", "$$status"] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                },
+                as: "classStatus",
+                cond: { $ne: ["$$classStatus", null] }, // Filter out null values
               },
             },
           },
@@ -381,134 +248,6 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
   }
 });
 
-// exports.getUser = asyncHandler(async (req, res, next) => {
-//   const { id } = req.params;
-
-//   try {
-//     const user = await usersModel.findById(id);
-
-//     if (!user) {
-//       return next(new ApiError(`No user found for this id:${id}`, 404));
-//     }
-
-//     if (user.role === "teacher") {
-//       const userData = await usersModel.aggregate([
-//         { $match: { _id: new mongoose.Types.ObjectId(id) } },
-//         {
-//           $lookup: {
-//             from: "classes",
-//             localField: "classes",
-//             foreignField: "_id",
-//             as: "classes",
-//           },
-//         },
-//         {
-//           $project: {
-//             _id: 1,
-//             name: 1,
-//             email: 1,
-//             phone: 1,
-//             role: 1,
-//             password: 1,
-//             passwordChangedAT: 1,
-//             passwordResetCode: 1,
-//             passwordResetCodeExpire: 1,
-//             passwordResetCodeVerified: 1,
-//             enabledControls: 1,
-//             account_status: 1,
-//             active: 1,
-//             courses: 1,
-//             classes: 1,
-//             products: 1,
-//             remainingClasses: 1,
-//             createdAt: 1,
-//             updatedAt: 1,
-//             zoom_account_id: 1,
-//             zoom_client_Secret: 1,
-//             zoom_client_id: 1,
-//             zoom_credentials: 1,
-//             classes: {
-//               $map: {
-//                 input: "$classes",
-//                 as: "class",
-//                 in: {
-//                   _id: "$$class._id",
-//                   start_date: "$$class.start_date",
-//                   start_time: "$$class.start_time",
-//                   status: "$$class.status",
-//                 },
-//               },
-//             },
-//           },
-//         },
-//         {
-//           $addFields: {
-//             completedClasses: {
-//               $size: {
-//                 $filter: {
-//                   input: "$classes",
-//                   as: "class",
-//                   cond: { $eq: ["$$class.status", "ended"] },
-//                 },
-//               },
-//             },
-//             scheduledClasses: {
-//               $size: {
-//                 $filter: {
-//                   input: "$classes",
-//                   as: "class",
-//                   cond: { $eq: ["$$class.status", "scheduled"] },
-//                 },
-//               },
-//             },
-//             cancelledClasses: {
-//               $size: {
-//                 $filter: {
-//                   input: "$classes",
-//                   as: "class",
-//                   cond: { $eq: ["$$class.status", "cancelled"] },
-//                 },
-//               },
-//             },
-//           },
-//         },
-//       ]);
-
-//       // Decrypt the specified fields
-//       userData.forEach((user) => {
-//         if (
-//           user.zoom_account_id !== "" &&
-//           user.zoom_account_id !== null &&
-//           user.zoom_account_id !== undefined
-//         ) {
-//           user.zoom_account_id = decryptField(user.zoom_account_id);
-//         }
-//         if (
-//           user.zoom_client_id !== "" &&
-//           user.zoom_client_id !== null &&
-//           user.zoom_client_id !== undefined
-//         ) {
-//           user.zoom_client_id = decryptField(user.zoom_client_id);
-//         }
-//         if (
-//           user.zoom_client_Secret !== "" &&
-//           user.zoom_client_Secret !== null &&
-//           user.zoom_client_Secret !== undefined
-//         ) {
-//           user.zoom_client_Secret = decryptField(user.zoom_client_Secret);
-//         }
-//       });
-
-//       res.status(200).json({ data: userData[0] });
-//     } else {
-//       res.status(200).json({ data: user });
-//     }
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Internal Server Error" });
-//   }
-// });
-
 exports.getUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
@@ -585,6 +324,34 @@ exports.getUser = asyncHandler(async (req, res, next) => {
                 status: "$_id.status",
                 count: "$count",
                 classesId: "$classesId", // Include class IDs
+              },
+            },
+          },
+        },
+        {
+          $addFields: {
+            classesByStatus: {
+              $filter: {
+                input: {
+                  $map: {
+                    input: ["ended", "scheduled", "cancelled"],
+                    as: "status",
+                    in: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$classesByStatus",
+                            as: "classStatus",
+                            cond: { $eq: ["$$classStatus.status", "$$status"] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                },
+                as: "classStatus",
+                cond: { $ne: ["$$classStatus", null] }, // Filter out null values
               },
             },
           },
