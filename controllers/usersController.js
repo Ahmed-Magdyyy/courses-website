@@ -14,10 +14,9 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
   let filter = {};
   const { page, limit, skip, ...query } = req.query;
 
-  // Modify the filter to support partial matches for string fields
   Object.keys(query).forEach((key) => {
     if (typeof query[key] === "string") {
-      filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+      filter[key] = { $regex: query[key], $options: "i" };
     } else {
       filter[key] = query[key];
     }

@@ -1,8 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const moment = require("moment-timezone");
-const crypto = require('crypto');
-const { encryptField, decryptField } = require("../utils/encryption");
 
 const userSchema = new mongoose.Schema(
   {
@@ -76,8 +74,6 @@ const userSchema = new mongoose.Schema(
     },
     zoom_account_id: {
       type: String,
-      // set: encryptField,
-      // get: decryptField,
       default: null,
 
     },

@@ -20,16 +20,6 @@ const {
   getTeacher_students,
 } = require("../controllers/usersController");
 
-// const {
-//   getUserValidator,
-//   createUserValidator,
-//   deleteUserValidator,
-//   updateUserValidator,
-//   changeUserPasswordValidator,
-//   updateLoggedUserDataValidator,
-//   updateLoggedUserPasswordValidator
-// } = require("../utils/validators/userValidator");
-
 const {
   protect,
   allowedTo,
@@ -66,4 +56,5 @@ Router.route("/:id").get(getUser).delete(deleteUser).put(updateUser);
 Router.put("/changePassword/:id", updateUserPassword);
 
 //----- /Admin Routes -----
+
 module.exports = Router;

@@ -11,21 +11,10 @@ const ApiError = require("./utils/ApiError");
 const globalError = require("./middlewares/errorMiddleware");
 const dbConnection = require("./config/database");
 
-const authRoute = require("./routes/authRoute");
-const usersRoute = require("./routes/usersRoute");
-const coursesRoute = require("./routes/coursesRoute");
-const classRoute = require("./routes/classRoute");
-const productRoute = require("./routes/productRoute");
-const materialRoute = require("./routes/materialRoute");
-const zoomRoute = require("./routes/zoomCallBackRoute");
-const assignmentRoute = require("./routes/asignmentRoute");
-const reportRoute = require("./routes/MonthlyReportRoute");
-const postsRoute = require("./routes/postsRoute");
-const commentsRoute = require("./routes/commentsRoute");
-const chatRoute = require("./routes/chatRoute");
-const messageRoute = require("./routes/messageRoute");
-const notificationRoute = require("./routes/notificationRoute");
 const socketConfig = require("./socketConfig");
+
+// Routes
+const mountRoutes = require("./routes");
 
 // middlewares
 
@@ -44,20 +33,7 @@ if (process.env.NODE_ENV === "development") {
 dbConnection();
 
 // Mount Routes
-app.use("/api/v1/auth", authRoute);
-app.use("/api/v1/users", usersRoute);
-app.use("/api/v1/courses", coursesRoute);
-app.use("/api/v1/classes", classRoute);
-app.use("/api/v1/products", productRoute);
-app.use("/api/v1/materials", materialRoute);
-app.use("/api/v1/zoom", zoomRoute);
-app.use("/api/v1/assignments", assignmentRoute);
-app.use("/api/v1/reports", reportRoute);
-app.use("/api/v1/posts", postsRoute);
-app.use("/api/v1/comments", commentsRoute);
-app.use("/api/v1/chat", chatRoute);
-app.use("/api/v1/messages", messageRoute);
-app.use("/api/v1/notifications", notificationRoute);
+mountRoutes(app)
 
 app.all("*", (req, res, next) => {
   next(new ApiError(`can't find this route: ${req.originalUrl}`, 400));

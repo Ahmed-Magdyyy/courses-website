@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
-let assignmentModel = require("../models/assignmentModel")
 
 const classSchema = new mongoose.Schema(
   {
