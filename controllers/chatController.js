@@ -39,6 +39,144 @@ const chatNotify = async (array, user) => {
   }
 };
 
+// exports.startSupportchat = asyncHandler(async (req, res, next) => {
+//   if (req.user.role !== "student" && req.user.role !== "teacher") {
+//     return next(
+//       new ApiError(
+//         `You can't start support chat unless you are Student or Teacher`,
+//         400
+//       )
+//     );
+//   }
+
+//   try {
+//     const supportAdmins = await userModel.find({
+//       role: "admin",
+//       enabledControls: { $in: ["messaging"] },
+//     });
+
+//     if (!supportAdmins || supportAdmins.length === 0) {
+//       return next(new ApiError(`No support admins found`, 404));
+//     }
+
+//     const supportIds = supportAdmins.map((admin) => admin._id.toString());
+
+//     if (supportIds.includes(req.user._id.toString())) {
+//       return next(
+//         new ApiError(
+//           req.user.role == "admin" &&
+//             req.user.enabledControls.includes("messaging") &&
+//             `Can't start support chat since you are an Admin with Support control`,
+//           404
+//         )
+//       );
+//     }
+
+//     // Check if there's any open support chat with any other admin
+//     const openChats = await chatModel.find({
+//       chatWith: "support",
+//       status: "open",
+//       members: { $in: [req.user._id] },
+//     });
+
+//     if (openChats && openChats.length > 0) {
+//       return next(new ApiError(`There is already an open support chat`, 400));
+//     }
+
+//     const getChatCount = async (supportId) => {
+//       const count = await chatModel.countDocuments({
+//         members: { $in: [supportId] },
+//       });
+//       return { id: supportId, count: count };
+//     };
+
+//     const supportIdsChatCount = await Promise.all(
+//       supportIds.map(async (supportId) => {
+//         return getChatCount(supportId);
+//       })
+//     );
+
+//     const minChatCount = Math.min(
+//       ...supportIdsChatCount.map((admin) => admin.count)
+//     );
+//     const adminsWithMinChatCount = supportIdsChatCount.filter(
+//       (admin) => admin.count === minChatCount
+//     );
+
+//     let supportAdmin;
+//     let adminWithLowestChatCount;
+
+//     if (adminsWithMinChatCount.length > 0) {
+//       const randomIndex = Math.floor(
+//         Math.random() * adminsWithMinChatCount.length
+//       );
+//       adminWithLowestChatCount = adminsWithMinChatCount[randomIndex];
+//     } else {
+//       adminWithLowestChatCount = adminsWithMinChatCount[0];
+//     }
+
+//     const { io, users } = getIO();
+//     if (users.length > 0) {
+//       const onlineSupportAdmins = users.filter((user) =>
+//         supportIds.includes(user.userId)
+//       );
+
+//       if (!onlineSupportAdmins || onlineSupportAdmins.length == 0) {
+//         supportAdmin = adminWithLowestChatCount.id;
+//         var selectedofflineAdmin = adminWithLowestChatCount;
+//       } else {
+//         const onlineAdminWithLowestChatCount = onlineSupportAdmins.find(
+//           (admin) => admin.userId === adminWithLowestChatCount.id
+//         );
+
+//         if (onlineAdminWithLowestChatCount) {
+//           var selectedOnlineAdmin = onlineAdminWithLowestChatCount;
+//           supportAdmin = onlineAdminWithLowestChatCount.userId;
+//         } else {
+//           supportAdmin = adminWithLowestChatCount.id;
+//         }
+//       }
+//     } else {
+//       supportAdmin = adminWithLowestChatCount.id;
+//       var selectedofflineAdmin = adminWithLowestChatCount;
+//     }
+
+//     const existingChat = await chatModel.find({
+//       chatWith: "support",
+//       status: "open",
+//       members: {
+//         $all: [req.user._id, supportAdmin],
+//       },
+//     });
+
+//     if (existingChat && existingChat.length > 0) {
+//       return next(new ApiError(`There is already an open support chat`, 400));
+//     } else {
+//       const chat = await chatModel.create({
+//         members: [req.user._id, supportAdmin],
+//         chatWith: "support",
+//       });
+
+//       const populatedChat = await chat.populate("members", "_id name");
+
+//       // Proceed with creating a new chat
+//       if (users && users.length > 0) {
+//         if (selectedOnlineAdmin !== undefined) {
+//           chatNotify(selectedOnlineAdmin, req.user._id);
+//         }
+//       } else {
+//         chatNotify(selectedofflineAdmin, req.user._id);
+//       }
+//       res
+//         .status(200)
+//         .json({ message: "chat created successfully", chat: populatedChat });
+//     }
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
 exports.startSupportchat = asyncHandler(async (req, res, next) => {
   if (req.user.role !== "student" && req.user.role !== "teacher") {
     return next(
@@ -90,87 +228,105 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
       return { id: supportId, count: count };
     };
 
-    const supportIdsChatCount = await Promise.all(
-      supportIds.map(async (supportId) => {
-        return getChatCount(supportId);
-      })
-    );
+    const filterAdmins = (data) => {
+      // Find the minimum count among admins
+      const minCount = Math.min(...data.map((admin) => admin.count));
 
-    const minChatCount = Math.min(
-      ...supportIdsChatCount.map((admin) => admin.count)
-    );
-    const adminsWithMinChatCount = supportIdsChatCount.filter(
-      (admin) => admin.count === minChatCount
-    );
+      // Filter admins with the lowest count
+      const filteredAdmins = data.filter((admin) => admin.count === minCount);
 
-    let supportAdmin;
-    let adminWithLowestChatCount;
+      // Handle different cases
+      if (filteredAdmins.length === 1) {
+        // Only one admin with the lowest count, return it (filter it out)
+        return filteredAdmins[0];
+      } else if (filteredAdmins.length > 0) {
+        // Multiple admins with the same lowest count, pick one randomly
+        return filteredAdmins[
+          Math.floor(Math.random() * filteredAdmins.length)
+        ];
+      } else {
+        // All admins have the same count, pick one randomly (no filtering)
+        return data[Math.floor(Math.random() * data.length)];
+      }
+    };
 
-    if (adminsWithMinChatCount.length > 1) {
-      const randomIndex = Math.floor(
-        Math.random() * adminsWithMinChatCount.length
-      );
-      adminWithLowestChatCount = adminsWithMinChatCount[randomIndex];
-    } else {
-      adminWithLowestChatCount = adminsWithMinChatCount[0];
-    }
+    let selectedAdmin
 
     const { io, users } = getIO();
+
+    // Check if there are users connected to socket including admins and other users
     if (users.length > 0) {
+      // Check for online admins connected to socket (in users)
       const onlineSupportAdmins = users.filter((user) =>
         supportIds.includes(user.userId)
       );
 
-      if (!onlineSupportAdmins || onlineSupportAdmins.length == 0) {
-        supportAdmin = adminWithLowestChatCount.id;
-        var selectedofflineAdmin = adminWithLowestChatCount;
-      } else {
-        const onlineAdminWithLowestChatCount = onlineSupportAdmins.find(
-          (admin) => admin.userId === adminWithLowestChatCount.id
+      if (onlineSupportAdmins.length > 0) {
+        // There are online admins
+        const OnlineSupportIdsChatCount = await Promise.all(
+          onlineSupportAdmins.map(async (OnlineSupportId) => {
+            return getChatCount(OnlineSupportId.userId);
+          })
         );
 
-        if (onlineAdminWithLowestChatCount) {
-          var selectedOnlineAdmin = onlineAdminWithLowestChatCount;
-          supportAdmin = onlineAdminWithLowestChatCount.userId;
-        } else {
-          supportAdmin = adminWithLowestChatCount.id;
+        if (OnlineSupportIdsChatCount.length > 0) {
+           selectedAdmin = filterAdmins(OnlineSupportIdsChatCount);
+
+          console.log("====================================");
+          console.log("selectedAdmin:", selectedAdmin);
+          console.log("====================================");
         }
+
+      } else {
+        // There are online users but NON of them are admins
+      const supportIdsChatCount = await Promise.all(
+        supportIds.map(async (supportId) => {
+          return getChatCount(supportId);
+        })
+      );
+
+        console.log("====================================");
+        console.log("supportIdsChatCount:", supportIdsChatCount);
+        console.log("====================================");
+
+         selectedAdmin = filterAdmins(supportIdsChatCount);
+
+        console.log("====================================");
+        console.log("selectedAdmin:", selectedAdmin);
+        console.log("====================================");
       }
+
     } else {
-      supportAdmin = adminWithLowestChatCount.id;
-      var selectedofflineAdmin = adminWithLowestChatCount;
+      const supportIdsChatCount = await Promise.all(
+        supportIds.map(async (supportId) => {
+          return getChatCount(supportId);
+        })
+      );
+
+        console.log("====================================");
+        console.log("supportIdsChatCount:", supportIdsChatCount);
+        console.log("====================================");
+
+         selectedAdmin = filterAdmins(supportIdsChatCount);
+
+        console.log("====================================");
+        console.log("selectedAdmin:", selectedAdmin);
+        console.log("====================================");
+
     }
 
-    const existingChat = await chatModel.find({
+    const chat = await chatModel.create({
+      members: [req.user._id, selectedAdmin.id],
       chatWith: "support",
-      status: "open",
-      members: {
-        $all: [req.user._id, supportAdmin],
-      },
     });
 
-    if (existingChat && existingChat.length > 0) {
-      return next(new ApiError(`There is already an open support chat`, 400));
-    } else {
-      const chat = await chatModel.create({
-        members: [req.user._id, supportAdmin],
-        chatWith: "support",
-      });
+    const populatedChat = await chat.populate("members", "_id name");
 
-      const populatedChat = await chat.populate("members", "_id name");
+    res
+    .status(200)
+    .json({ message: "chat created successfully", chat: populatedChat });
 
-      // Proceed with creating a new chat
-      if (users && users.length > 0) {
-        if (selectedOnlineAdmin !== undefined) {
-          chatNotify(selectedOnlineAdmin, req.user._id);
-        }
-      } else {
-        chatNotify(selectedofflineAdmin, req.user._id);
-      }
-      res
-        .status(200)
-        .json({ message: "chat created successfully", chat: populatedChat });
-    }
+
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
