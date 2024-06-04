@@ -68,7 +68,9 @@ exports.createClass = asyncHandler(async (req, res, next) => {
     // Decrypt Zoom credentials
     if (
       teacherExists.zoom_account_id !== "" &&
-      teacherExists.zoom_account_id !== null
+      teacherExists.zoom_account_id !== null &&
+      teacherExists.zoom_account_id !== undefined
+
     ) {
       decryptedZoomAccountId = decryptField(teacherExists.zoom_account_id);
     } else {
@@ -79,7 +81,8 @@ exports.createClass = asyncHandler(async (req, res, next) => {
 
     if (
       teacherExists.zoom_client_id !== "" &&
-      teacherExists.zoom_client_id !== null
+      teacherExists.zoom_client_id !== null &&
+      teacherExists.zoom_client_id !== undefined
     ) {
       decryptedZoomClientId = decryptField(teacherExists.zoom_client_id);
     } else {
@@ -90,7 +93,9 @@ exports.createClass = asyncHandler(async (req, res, next) => {
 
     if (
       teacherExists.zoom_client_Secret !== "" &&
-      teacherExists.zoom_client_Secret !== null
+      teacherExists.zoom_client_Secret !== null &&
+      teacherExists.zoom_client_Secret !== undefined
+
     ) {
       decryptedZoomClientSecret = decryptField(
         teacherExists.zoom_client_Secret

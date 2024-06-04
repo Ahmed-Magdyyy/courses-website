@@ -74,7 +74,7 @@ Router.route("/:id/classReport").put(
 );
 
 Router.route("/:id/cancelClass").put(
-  allowedTo("superAdmin", "admin", "teacher"),
+  allowedTo("superAdmin", "admin"),
   enabledControls("classes"),
   cancelClass
 );
