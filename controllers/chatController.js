@@ -270,32 +270,18 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         );
 
         if (OnlineSupportIdsChatCount.length > 0) {
-           selectedAdmin = filterAdmins(OnlineSupportIdsChatCount);
-
-          console.log("====================================");
-          console.log("selectedAdmin:", selectedAdmin);
-          console.log("====================================");
+          selectedAdmin = filterAdmins(OnlineSupportIdsChatCount);
         }
-
       } else {
         // There are online users but NON of them are admins
-      const supportIdsChatCount = await Promise.all(
-        supportIds.map(async (supportId) => {
-          return getChatCount(supportId);
-        })
-      );
+        const supportIdsChatCount = await Promise.all(
+          supportIds.map(async (supportId) => {
+            return getChatCount(supportId);
+          })
+        );
 
-        console.log("====================================");
-        console.log("supportIdsChatCount:", supportIdsChatCount);
-        console.log("====================================");
-
-         selectedAdmin = filterAdmins(supportIdsChatCount);
-
-        console.log("====================================");
-        console.log("selectedAdmin:", selectedAdmin);
-        console.log("====================================");
+        selectedAdmin = filterAdmins(supportIdsChatCount);
       }
-
     } else {
       const supportIdsChatCount = await Promise.all(
         supportIds.map(async (supportId) => {
@@ -303,16 +289,7 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
         })
       );
 
-        console.log("====================================");
-        console.log("supportIdsChatCount:", supportIdsChatCount);
-        console.log("====================================");
-
-         selectedAdmin = filterAdmins(supportIdsChatCount);
-
-        console.log("====================================");
-        console.log("selectedAdmin:", selectedAdmin);
-        console.log("====================================");
-
+      selectedAdmin = filterAdmins(supportIdsChatCount);
     }
 
     const chat = await chatModel.create({
@@ -323,10 +300,8 @@ exports.startSupportchat = asyncHandler(async (req, res, next) => {
     const populatedChat = await chat.populate("members", "_id name");
 
     res
-    .status(200)
-    .json({ message: "chat created successfully", chat: populatedChat });
-
-
+      .status(200)
+      .json({ message: "chat created successfully", chat: populatedChat });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
