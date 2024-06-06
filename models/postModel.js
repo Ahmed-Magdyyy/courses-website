@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const moment = require("moment-timezone");
 
 const postSchema = new mongoose.Schema(
   {
@@ -20,6 +19,7 @@ const postSchema = new mongoose.Schema(
         url: { type: String, required: true },
       },
     ],
+    url: { type: String, default: null },
     likes: {
       count: { type: Number, default: 0 },
       users: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
@@ -30,40 +30,23 @@ const postSchema = new mongoose.Schema(
         ref: "comment",
       },
     ],
+    status: {
+      type: String,
+      enum: ["pending", "approved"],
+      default: "pending",
+    },
+    visibleTo: {
+      type: String,
+      enum: ["all", "student", "teacher", "admin"],
+      default: "all",
+    },
   },
-  { timestamps: true }
-);
-
-
-function setMediaURL(doc) {
-  if (doc.media && doc.media.length > 0) {
-    doc.media.forEach((mediaItem) => {
-      mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
-    });
+  {
+    timestamps: {
+      timeZone: "UTC", // Set the time zone to UTC
+    },
   }
-}
-
-postSchema.pre("save", function (next) {
-  const currentTime = moment()
-    .tz("Africa/Cairo")
-    .format("YYYY-MM-DDTHH:mm:ss[Z]");
-
-  this.createdAt = currentTime;
-  this.updatedAt = currentTime;
-
-  next();
-});
-
-postSchema.pre("findOneAndUpdate", function () {
-  this.updateOne(
-    {},
-    {
-      $set: {
-        updatedAt: moment().tz("Africa/Cairo").format("YYYY-MM-DDTHH:mm:ss[Z]"),
-      },
-    }
-  );
-});
+);
 
 const post = mongoose.model("post", postSchema);
 module.exports = post;

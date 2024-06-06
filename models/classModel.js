@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const moment = require("moment-timezone");
 
 const classSchema = new mongoose.Schema(
   {
@@ -57,7 +56,11 @@ const classSchema = new mongoose.Schema(
       ref: "assignment"
     },
   },
-  { timestamps: true }
+  { 
+    timestamps: {
+      timeZone: "UTC", // Set the time zone to UTC
+    },
+   }
 );
 
 classSchema.post("save", async function (doc) {
@@ -104,9 +107,7 @@ const assignmentModel = require("../models/assignmentModel")
         }
       );
 
-      console.log('====================================');
-      console.log(assignmentModel);
-      console.log('====================================');
+
     const deletedAssignments=  await assignmentModel.deleteMany({ class: classId });
     }
 
@@ -114,26 +115,6 @@ const assignmentModel = require("../models/assignmentModel")
   } catch (error) {
     next(error);
   }
-});
-
-classSchema.pre("save", function (next) {
-  const currentTime = moment()
-    .tz("Africa/Cairo")
-    .format("YYYY-MM-DDTHH:mm:ss[Z]");
-  this.createdAt = currentTime;
-  this.updatedAt = currentTime;
-  next();
-});
-
-classSchema.pre("findOneAndUpdate", function () {
-  this.updateOne(
-    {},
-    {
-      $set: {
-        updatedAt: moment().tz("Africa/Cairo").format("YYYY-MM-DDTHH:mm:ss[Z]"),
-      },
-    }
-  );
 });
 
 const classes = mongoose.model("class", classSchema);

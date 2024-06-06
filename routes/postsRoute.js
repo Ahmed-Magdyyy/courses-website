@@ -9,6 +9,8 @@ const {
   editPost,
   deletePost,
   toggleLike,
+  changePostVisibleTo,
+  updatePostStatus,
 } = require("../controllers/postController");
 
 const {
@@ -19,17 +21,50 @@ const {
 
 // applied on all routes
 Router.use(protect);
-Router.use(
-  allowedTo("superAdmin", "admin", "teacher", "student"),
-  enabledControls("timeline")
-);
- 
-Router.route("/").post(uploadPostMedia, createPost).get(getAllPosts);
+
+Router.route("/")
+  .post(
+    allowedTo("superAdmin", "admin", "teacher", "student"),
+    enabledControls("timeline"),
+    uploadPostMedia,
+    createPost
+  )
+  .get(
+    allowedTo("superAdmin", "admin", "teacher", "student"),
+    enabledControls("timeline"),
+    getAllPosts
+  );
 
 Router.route("/:id")
-  .get(getPost)
-  .put(uploadPostMedia, editPost)
-  .delete(deletePost);
-Router.route("/:id/like").put(toggleLike);
+  .get(
+    allowedTo("superAdmin", "admin", "teacher", "student"),
+    enabledControls("timeline"),
+    getPost
+  )
+  .put(
+    allowedTo("superAdmin", "admin", "teacher", "student"),
+    enabledControls("timeline"),
+    uploadPostMedia,
+    editPost
+  )
+  .delete(
+    allowedTo("superAdmin", "admin", "teacher", "student"),
+    enabledControls("timeline"),
+    deletePost
+  );
+
+Router.route("/:id/like").put(
+  allowedTo("superAdmin", "admin", "teacher", "student"),
+  enabledControls("timeline"),
+  toggleLike
+);
+
+Router.route("/:id/approve").put(allowedTo("superAdmin"), updatePostStatus);
+
+Router.route("/:id/visibleTo").put(
+  allowedTo("superAdmin", "admin"),
+  enabledControls("timeline"),
+  changePostVisibleTo
+);
 
 module.exports = Router;

@@ -114,14 +114,33 @@ exports.uploadPostMedia = (req, res, next) => {
 };
 
 exports.createPost = asyncHandler(async (req, res, next) => {
-  const { content } = req.body;
+  const { content, url, visibleTo } = req.body;
   const media = req.body.media || [];
+
+  const allowedVisibleToValues = ["all", "students", "teachers", "admins"];
+
+  // Validate visibleTo field
+  if (visibleTo && !allowedVisibleToValues.includes(visibleTo)) {
+    return next(new ApiError(`Invalid visibleTo value: ${visibleTo}`, 400));
+  }
+
+  let postVisibleTo = "all"; //Default value
+  if (
+    (req.user.role === "admin" &&
+      req.user.enabledControls.includes("timeline")) ||
+    req.user.role === "superAdmin"
+  ) {
+    postVisibleTo = visibleTo || "all";
+  }
 
   try {
     const post = await postsModel.create({
       author: req.user._id,
       content,
       media,
+      url,
+      status: req.user.role === "superAdmin" ? "approved" : "pending",
+      visibleTo: postVisibleTo,
     });
 
     res.status(201).json({ message: "Success", data: post });
@@ -138,7 +157,7 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 
 exports.editPost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const { content, oldMedia } = req.body;
+  const { content, url, oldMedia } = req.body;
   const updateFields = {};
 
   let ParsedOldMedia;
@@ -171,6 +190,14 @@ exports.editPost = asyncHandler(async (req, res, next) => {
     // Update post content
     if (content) {
       updateFields.content = content;
+    }
+
+    if (url) {
+      if (req.user.role === "superAdmin" || req.user.role === "admin") {
+        updateFields.url = url;
+      } else {
+        updateFields.url = null;
+      }
     }
 
     let newFiles = [];
@@ -301,9 +328,80 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
   }
 });
 
+// exports.getAllPosts = asyncHandler(async (req, res, next) => {
+//   let filter = {};
+//   const { page, limit, skip, ...query } = req.query;
+
+//   // Modify the filter to support partial matches for string fields
+//   Object.keys(query).forEach((key) => {
+//     if (typeof query[key] === "string") {
+//       filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+//     } else {
+//       filter[key] = query[key];
+//     }
+//   });
+
+//   const pageNum = page * 1 || 1;
+//   const limitNum = limit * 1 || 5;
+//   const skipNum = (pageNum - 1) * limit;
+//   const totalPostsCount = await postsModel.countDocuments(filter);
+//   const totalPages = Math.ceil(totalPostsCount / limitNum);
+
+//   const posts = await postsModel
+//     .find(filter)
+//     .populate("author", "_id name email phone role")
+//     .populate("likes.users", "_id name")
+//     // .populate({
+//     //   path: "comments",
+//     //   select: "-__v -post",
+//     //   populate: {
+//     //     path: "author",
+//     //     select: "_id name",
+//     //   },
+//     // })
+//     // .populate({
+//     //   path: "comments",
+//     //   select: "-__v -post",
+//     //   populate: {
+//     //     path: "likes.users",
+//     //     select: "_id name",
+//     //   },
+//     // })
+//     .sort({ createdAt: -1 })
+//     .skip(skipNum)
+//     .limit(limitNum);
+
+//   posts.forEach((post) => {
+//     if (post.media && post.media.length > 0) {
+//       post.media.forEach((mediaItem) => {
+//         mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
+//       });
+//     }
+//   });
+
+//   res
+//     .status(200)
+//     .json({ totalPages, page: pageNum, results: posts.length, data: posts });
+// });
+
 exports.getAllPosts = asyncHandler(async (req, res, next) => {
-  let filter = {};
-  const { page, limit, skip, ...query } = req.query;
+  let filter = { status: "approved" }; // Filter for approved posts by default
+  const { page, limit, status, ...query } = req.query;
+
+  // Check if status is "pending" and adjust the filter based on the user's role
+  if (status === "pending") {
+    if (req.user.role !== "superAdmin") {
+      // For non-superAdmin users, only allow viewing their own pending posts
+      filter = { status: "pending", author: req.user._id };
+    } else {
+      // For superAdmin users, allow viewing all pending posts
+      filter.status = "pending";
+    }
+  }
+
+  if (status) {
+    filter.status = status;
+  }
 
   // Modify the filter to support partial matches for string fields
   Object.keys(query).forEach((key) => {
@@ -313,6 +411,14 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
       filter[key] = query[key];
     }
   });
+
+  // Adjust filter based on user's role
+  if (
+    req.user.role !== "superAdmin" &&
+    !(req.user.role === "admin" && req.user.enabledControls.includes("timeline"))
+  ) {
+    filter.visibleTo = { $in: ["all", req.user.role] };
+  }
 
   const pageNum = page * 1 || 1;
   const limitNum = limit * 1 || 5;
@@ -324,22 +430,6 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
     .find(filter)
     .populate("author", "_id name email phone role")
     .populate("likes.users", "_id name")
-    // .populate({
-    //   path: "comments",
-    //   select: "-__v -post",
-    //   populate: {
-    //     path: "author",
-    //     select: "_id name",
-    //   },
-    // })
-    // .populate({
-    //   path: "comments",
-    //   select: "-__v -post",
-    //   populate: {
-    //     path: "likes.users",
-    //     select: "_id name",
-    //   },
-    // })
     .sort({ createdAt: -1 })
     .skip(skipNum)
     .limit(limitNum);
@@ -357,11 +447,59 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
     .json({ totalPages, page: pageNum, results: posts.length, data: posts });
 });
 
+// exports.getPost = asyncHandler(async (req, res, next) => {
+//   const { id } = req.params;
+
+//   const post = await postsModel
+//     .findById(id)
+//     .populate("author", "_id name email phone role")
+//     .populate("likes.users", "_id name")
+//     .populate("comments", "_id name")
+//     .populate({
+//       path: "comments",
+//       select: "-__v -post",
+//       populate: {
+//         path: "author",
+//         select: "_id name",
+//       },
+//     })
+//     .populate({
+//       path: "comments",
+//       select: "-__v -post",
+//       populate: {
+//         path: "likes.users",
+//         select: "_id name",
+//       },
+//     });
+
+//   if (!post) {
+//     return next(new ApiError(`No post found for this ${id}`, 404));
+//   }
+
+//   if (post.media && post.media.length > 0) {
+//     post.media.forEach((mediaItem) => {
+//       mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
+//     });
+//   }
+
+//   res.status(200).json({ data: post });
+// });
+
 exports.getPost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
+  let filter = { _id: id, status: "approved" }; // Filter for approved posts by default
+
+  // Adjust filter based on user's role
+  if (
+    req.user.role !== "superAdmin" &&
+    !(req.user.role === "admin" && req.user.enabledControl.includes("timeline"))
+  ) {
+    filter.visibleTo = { $in: ["all", req.user.role] };
+  }
+
   const post = await postsModel
-    .findById(id)
+    .findOne(filter)
     .populate("author", "_id name email phone role")
     .populate("likes.users", "_id name")
     .populate("comments", "_id name")
@@ -467,5 +605,64 @@ exports.toggleLike = asyncHandler(async (req, res, next) => {
   } catch (error) {
     console.error("Error toggling like:", error);
     next(error);
+  }
+});
+
+exports.updatePostStatus = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  try {
+    const updatedPost = await postsModel.findByIdAndUpdate(
+      { _id: id },
+      { $set: { status: "approved" } },
+      { new: true }
+    );
+
+    if (!updatedPost) {
+      return next(new ApiError(`No post found for ${id}`, 404));
+    }
+
+    // Check if the user is authorized to update the status
+    if (req.user.role !== "superAdmin") {
+      return next(new ApiError(`Only superAdmin can update the status.`, 403));
+    }
+
+    res.status(200).json({
+      message: "Post status updated to approved successfully",
+      data: updatedPost,
+    });
+  } catch (error) {
+    console.error("Error updating post status:", error);
+    res.status(400).json({ message: "Error updating post status", error });
+  }
+});
+
+exports.changePostVisibleTo = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { visibleTo } = req.body;
+
+  const allowedVisibleToValues = ["all", "student", "teacher", "admin"];
+  if (!allowedVisibleToValues.includes(visibleTo)) {
+    return next(new ApiError(`Invalid visibleTo value: ${visibleTo}`, 400));
+  }
+
+  try {
+    const updatedPost = await postsModel.findByIdAndUpdate(
+      id,
+      { $set: { visibleTo } },
+      { new: true }
+    );
+
+    if (!updatedPost) {
+      return next(new ApiError(`No post found for ${id}`, 404));
+    }
+
+    res.status(200).json({
+      message: "Post visibility updated successfully",
+      data: updatedPost,
+    });
+  } catch (error) {
+    console.error("Error updating post visibility:", error);
+    res.status(400).json({ message: "Error updating post visibility", error });
   }
 });

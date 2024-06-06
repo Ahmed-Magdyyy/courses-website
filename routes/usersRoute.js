@@ -2,6 +2,7 @@ const express = require("express");
 const Router = express.Router();
 
 const {
+  uploadUserImage,
   //----- Admin Routes -----
   getUsers,
   getUser,
@@ -33,7 +34,7 @@ Router.use(protect);
 
 Router.get("/getLoggedUser", getLoggedUser, getUser);
 Router.put("/updateLoggedUserPassword", updateLoggedUserPassword);
-Router.put("/updateLoggedUserData", updateLoggedUserData);
+Router.put("/updateLoggedUserData",uploadUserImage, updateLoggedUserData);
 Router.delete("/deleteLoggedUserData", deleteLoggedUserData);
 
 //----- /User Routes -----

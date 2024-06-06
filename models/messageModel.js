@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const moment = require("moment-timezone");
 
 const messageSchema = new mongoose.Schema(
   {
@@ -25,7 +24,9 @@ const messageSchema = new mongoose.Schema(
     ],
   },
   {
-    timestamps: true,
+    timestamps: {
+      timeZone: "UTC", // Set the time zone to UTC
+    },
   }
 );
 
@@ -42,27 +43,6 @@ messageSchema.post("init", (doc) => {
 });
 messageSchema.post("save", (doc) => {
   setMediaURL(doc);
-});
-
-// Pre-save hook to set timestamps
-messageSchema.pre("save", function (next) {
-  const currentTime = moment()
-    .tz("Africa/Cairo")
-    .format("YYYY-MM-DDTHH:mm:ss[Z]");
-  this.createdAt = currentTime;
-  this.updatedAt = currentTime;
-  next();
-});
-
-messageSchema.pre("findOneAndUpdate", function () {
-  this.updateOne(
-    {},
-    {
-      $set: {
-        updatedAt: moment().tz("Africa/Cairo").format("YYYY-MM-DDTHH:mm:ss[Z]"),
-      },
-    }
-  );
 });
 
 const message = mongoose.model("message", messageSchema);

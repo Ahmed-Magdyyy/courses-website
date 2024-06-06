@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const moment = require("moment-timezone");
 
 const courseSchema = new mongoose.Schema(
   {
@@ -23,7 +22,11 @@ const courseSchema = new mongoose.Schema(
     // teacher: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
     studentsEnrolled: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
   },
-  { timestamps: true }
+  { 
+    timestamps: {
+      timeZone: "UTC", // Set the time zone to UTC
+    },
+   }
 );
 
 function setImageURL(doc) {
@@ -42,14 +45,6 @@ courseSchema.post("save", (doc) => {
 
 courseSchema.post("save", async function (doc) {
   const userModel = mongoose.model("user");
-
-  // Update teacher if exists
-  // if (doc.teacher) {
-  //   await userModel.updateOne(
-  //     { _id: doc.teacher, courses: { $ne: doc._id } }, // Add condition to check if the course ID is not already present
-  //     { $addToSet: { classes: doc._id } }
-  //   );
-  // }
 
   // Update studentsEnrolled
   await userModel.updateMany(
@@ -80,29 +75,6 @@ courseSchema.pre("findOneAndDelete", async function (next) {
     next(error);
   }
 });
-
-courseSchema.pre("save", function (next) {
-  const currentTime = moment()
-    .tz("Africa/Cairo")
-    .format("YYYY-MM-DDTHH:mm:ss[Z]");
-
-  this.createdAt = currentTime;
-  this.updatedAt = currentTime;
-
-  next();
-});
-
-courseSchema.pre("findOneAndUpdate", function () {
-  this.updateOne(
-    {},
-    {
-      $set: {
-        updatedAt: moment().tz("Africa/Cairo").format("YYYY-MM-DDTHH:mm:ss[Z]"),
-      },
-    }
-  );
-});
-
 
 const course = mongoose.model("course", courseSchema);
 module.exports = course;

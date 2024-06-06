@@ -1,4 +1,5 @@
 const asyncHandler = require("express-async-handler");
+const moment = require("moment");
 
 const { createMeeting, deleteMeeting } = require("../utils/zoom");
 const ApiError = require("../utils/ApiError");
@@ -70,7 +71,6 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       teacherExists.zoom_account_id !== "" &&
       teacherExists.zoom_account_id !== null &&
       teacherExists.zoom_account_id !== undefined
-
     ) {
       decryptedZoomAccountId = decryptField(teacherExists.zoom_account_id);
     } else {
@@ -95,7 +95,6 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       teacherExists.zoom_client_Secret !== "" &&
       teacherExists.zoom_client_Secret !== null &&
       teacherExists.zoom_client_Secret !== undefined
-
     ) {
       decryptedZoomClientSecret = decryptField(
         teacherExists.zoom_client_Secret
@@ -137,13 +136,19 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       decryptedZoomClientId,
       decryptedZoomClientSecret
     );
+///////////////// to be checked later
+    const parsedTime = new Date(meeting.meetingTime);
+
+    const formattedTime = moment(parsedTime).format("hh:mm A");
+
+    const formattedDate = moment(parsedTime).format("DD/MM/YYYY");
 
     // Create a new class document
     const classInfo = await classModel.create({
       name,
-      start_date,
+      start_date: formattedDate,
+      start_time: formattedTime,
       duration,
-      start_time,
       zoomMeetingId: meeting.meetingId,
       classZoomLink: meeting.meeting_url,
       meetingPassword: meeting.password,

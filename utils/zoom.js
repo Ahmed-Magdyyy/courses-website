@@ -41,15 +41,17 @@ exports.createMeeting = async function (
     const formattedDateTime = moment(datetimeString, "DD-MM-YYYY h:mm A");
 
     // Format the datetime as needed
-    const formattedStartTime = formattedDateTime.format(
+    const formattedStartTime = formattedDateTime.utc().format(
       "YYYY-MM-DDTHH:mm:ss[Z]"
     );
+
     console.log("formattedStartTime:", new Date(formattedStartTime));
+    
     const payload = {
       topic: topic,
       duration: duration,
       start_time: new Date(formattedStartTime),
-      timezone: "Africa/Cairo",
+      timezone: "UTC",
       type: 2,
     };
 
@@ -67,9 +69,10 @@ exports.createMeeting = async function (
     const content = {
       meeting_url: response_data.join_url,
       password: response_data.password,
-      meetingTime: moment(response_data.start_time)
-        .add(2, "hours")
-        .toISOString(),
+      meetingTime: response_data.start_time,
+      // meetingTime: moment(response_data.start_time)
+      //   .add(2, "hours")
+      //   .toISOString(),
       meeting_uuid: response_data.uuid,
       meetingId: response_data.id,
       host_id: response_data.host_id,

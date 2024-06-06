@@ -1,5 +1,8 @@
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
+const multer = require("multer");
+const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
 
 const usersModel = require("../models/userModel");
 const classModel = require("../models/classModel");
@@ -7,6 +10,72 @@ const ApiError = require("../utils/ApiError");
 const createToken = require("../utils/createToken");
 const mongoose = require("mongoose");
 const { encryptField, decryptField } = require("../utils/encryption");
+
+function deleteUploadedFile(file) {
+  if (file) {
+    const filePath = `${file.path}`;
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Error deleting user image:", err);
+      } else {
+        console.log("User image deleted successfully:", filePath);
+      }
+    });
+  }
+}
+
+const multerStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/users");
+  },
+  filename: function (req, file, cb) {
+    const ext = file.mimetype.split("/")[1];
+    const filename = `user-${uuidv4()}.${ext}`;
+    cb(null, filename);
+  },
+});
+
+const multerfilter = function (req, file, cb) {
+  if (file.mimetype.startsWith("image")) {
+    cb(null, true);
+  } else {
+    cb(new ApiError("only Images allowed", 400), false);
+  }
+};
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerfilter,
+}).single("image");
+
+exports.uploadUserImage = (req, res, next) => {
+  upload(req, res, function (err) {
+    // Check if the uploaded file is not an image
+    if (req.file && !req.file.mimetype.startsWith("image")) {
+      // Delete the uploaded file
+      deleteUploadedFile(req.file);
+      return next(new ApiError("Only images are allowed", 400));
+    }
+
+    // Check if the uploaded file exceeds the size limit
+    if (req.file && req.file.size > 5 * 1024 * 1024) {
+      // Delete the uploaded file
+      deleteUploadedFile(req.file);
+      return next(new ApiError("Image file size exceeds 5 MB", 400));
+    }
+
+    // File uploaded successfully
+    if (req.file) req.body.image = req.file.filename; // Set the image filename to req.body.image
+    next();
+
+    if (err) {
+      deleteUploadedFile(req.file); // Delete the uploaded file
+      return next(
+        new ApiError(`An error occurred while uploading the file. ${err}`, 500)
+      );
+    }
+  });
+};
 
 //----- Admin Routes -----
 
@@ -179,6 +248,18 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
             zoom_client_id: "$userDetails.zoom_client_id",
             zoom_client_Secret: "$userDetails.zoom_client_Secret",
             zoom_credentials: "$userDetails.zoom_credentials",
+            image: {
+              $cond: {
+                if: { $ne: ["$userDetails.image", null] },
+                then: {
+                  $concat: [
+                    `${process.env.BASE_URL}/users/`,
+                    "$userDetails.image",
+                  ],
+                },
+                else: null,
+              },
+            },
           },
         },
         {
@@ -234,7 +315,15 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
         .find(filter)
         .sort({ createdAt: -1 })
         .skip(skipNum)
-        .limit(limitNum);
+        .limit(limitNum)
+        .lean(); // Use lean to return plain JavaScript objects
+
+      users = users.map((user) => {
+        if (user.image) {
+          user.image = `${process.env.BASE_URL}/users/${user.image}`;
+        }
+        return user;
+      });
     }
 
     res
@@ -242,7 +331,13 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
       .json({ totalPages, page: pageNum, results: users.length, data: users });
   } else {
     // Return all data without pagination
-    users = await usersModel.find(filter).sort({ createdAt: -1 });
+    users = await usersModel.find(filter).sort({ createdAt: -1 }).lean();
+    users = users.map((user) => {
+      if (user.image) {
+        user.image = `${process.env.BASE_URL}/users/${user.image}`;
+      }
+      return user;
+    });
     res.status(200).json({ results: users.length, data: users });
   }
 });
@@ -251,7 +346,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const user = await usersModel.findById(id);
+    const user = await usersModel.findById(id).lean();
 
     if (!user) {
       return next(new ApiError(`No user found for this id: ${id}`, 404));
@@ -399,13 +494,27 @@ exports.getUser = asyncHandler(async (req, res, next) => {
             zoom_client_id: "$userDetails.zoom_client_id",
             zoom_client_Secret: "$userDetails.zoom_client_Secret",
             zoom_credentials: "$userDetails.zoom_credentials",
+            image: {
+              $cond: {
+                if: { $ne: ["$userDetails.image", null] },
+                then: {
+                  $concat: [
+                    `${process.env.BASE_URL}/users/`,
+                    "$userDetails.image",
+                  ],
+                },
+                else: null,
+              },
+            },
           },
         },
-        { $project: { userDetails: 0, monthYear: 0 } }
+        { $project: { userDetails: 0, monthYear: 0 } },
       ]);
 
       if (userData.length === 0) {
-        return res.status(404).json({ message: 'No user data found in aggregation' });
+        return res
+          .status(404)
+          .json({ message: "No user data found in aggregation" });
       }
 
       const userResult = userData[0];
@@ -436,11 +545,16 @@ exports.getUser = asyncHandler(async (req, res, next) => {
         userResult.zoom_client_Secret !== null &&
         userResult.zoom_client_Secret !== undefined
       ) {
-        userResult.zoom_client_Secret = decryptField(userResult.zoom_client_Secret);
+        userResult.zoom_client_Secret = decryptField(
+          userResult.zoom_client_Secret
+        );
       }
 
       res.status(200).json({ data: userResult });
     } else {
+      if (user.image) {
+        user.image = `${process.env.BASE_URL}/users/${user.image}`;
+      }
       res.status(200).json({ data: user });
     }
   } catch (error) {
@@ -481,9 +595,9 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
 
   if (user.role === "teacher") {
     if (user.zoom_credentials === false) {
-      let encrypted_zoom_account_id;
-      let encrypted_zoom_client_id;
-      let encrypted_zoom_client_Secret;
+      // let encrypted_zoom_account_id;
+      // let encrypted_zoom_client_id;
+      // let encrypted_zoom_client_Secret;
 
       const updatedFields = {
         name,
@@ -498,7 +612,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
         zoom_account_id !== undefined &&
         zoom_account_id !== ""
       ) {
-        encrypted_zoom_account_id = encryptField(zoom_account_id);
+        let encrypted_zoom_account_id = encryptField(zoom_account_id);
         updatedFields.zoom_account_id = encrypted_zoom_account_id;
         updatedFields.zoom_credentials = true;
       }
@@ -509,7 +623,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
         zoom_client_id !== undefined &&
         zoom_client_id !== ""
       ) {
-        encrypted_zoom_client_id = encryptField(zoom_client_id);
+        let encrypted_zoom_client_id = encryptField(zoom_client_id);
         updatedFields.zoom_client_id = encrypted_zoom_client_id;
         updatedFields.zoom_credentials = true;
       }
@@ -520,7 +634,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
         zoom_client_Secret !== undefined &&
         zoom_client_Secret !== ""
       ) {
-        encrypted_zoom_client_Secret = encryptField(zoom_client_Secret);
+        let encrypted_zoom_client_Secret = encryptField(zoom_client_Secret);
         updatedFields.zoom_client_Secret = encrypted_zoom_client_Secret;
         updatedFields.zoom_credentials = true;
       }
@@ -538,7 +652,6 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       }
       res.status(200).json({ data: updatedUser });
     } else if (user.zoom_credentials === true) {
-
       const updatedUser = await usersModel.findByIdAndUpdate(
         req.params.id,
         {
@@ -656,12 +769,37 @@ exports.updateLoggedUserPassword = asyncHandler(async (req, res, next) => {
 });
 
 exports.updateLoggedUserData = asyncHandler(async (req, res, next) => {
+  const user = await usersModel.findById(req.user._id);
+
+  if (!user) {
+    if (req.file) {
+      const path = req.file.path;
+      deleteUploadedFile({
+        fieldname: "image",
+        path,
+      });
+    }
+    return next(new ApiError(`No user found for this id:${req.user._id}`, 404));
+  }
+
+  console.log("====================================");
+  console.log(user.image);
+  console.log("====================================");
+
+  if (user.image !== null && req.file) {
+    deleteUploadedFile({
+      fieldname: "image",
+      path: `uploads/users/${user.image}`,
+    });
+  }
+
   const updatedUser = await usersModel.findByIdAndUpdate(
     req.user._id,
     {
       name: req.body.name,
       email: req.body.email,
       phone: req.body.phone,
+      image: req.file && req.file.filename,
     },
     { new: true }
   );
@@ -734,4 +872,3 @@ exports.getTeacher_students = asyncHandler(async (req, res, next) => {
     studentsOfTeacher: paginatedStudents,
   });
 });
-

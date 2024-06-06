@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const moment = require("moment-timezone");
 
 const productSchema = new mongoose.Schema(
   {
@@ -14,7 +13,7 @@ const productSchema = new mongoose.Schema(
     },
     image: {
       type: String,
-        required: [true, "Product image is required"],
+      required: [true, "Product image is required"],
     },
     productFile: {
       type: String,
@@ -22,7 +21,11 @@ const productSchema = new mongoose.Schema(
     },
     students: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
   },
-  { timestamps: true }
+  {
+    timestamps: {
+      timeZone: "UTC", // Set the time zone to UTC
+    },
+  }
 );
 
 function setImageURL(doc) {
@@ -40,21 +43,13 @@ productSchema.post("init", (doc) => {
   setImageURL(doc);
 });
 
-productSchema.post("save", (doc,next) => {
+productSchema.post("save", (doc, next) => {
   setImageURL(doc);
   next();
 });
 
 productSchema.post("save", async function (doc) {
   const userModel = mongoose.model("user");
-
-  // Update teacher if exists
-  // if (doc.teacher) {
-  //   await userModel.updateOne(
-  //     { _id: doc.teacher, courses: { $ne: doc._id } }, // Add condition to check if the course ID is not already present
-  //     { $addToSet: { classes: doc._id } }
-  //   );
-  // }
 
   // Update students
   await userModel.updateMany(
@@ -84,28 +79,6 @@ productSchema.pre("findOneAndDelete", async function (next) {
   } catch (error) {
     next(error);
   }
-});
-
-productSchema.pre("save", function (next) {
-  const currentTime = moment()
-    .tz("Africa/Cairo")
-    .format("YYYY-MM-DDTHH:mm:ss[Z]");
-
-  this.createdAt = currentTime;
-  this.updatedAt = currentTime;
-
-  next();
-});
-
-productSchema.pre("findOneAndUpdate", function () {
-  this.updateOne(
-    {},
-    {
-      $set: {
-        updatedAt: moment().tz("Africa/Cairo").format("YYYY-MM-DDTHH:mm:ss[Z]"),
-      },
-    }
-  );
 });
 
 const product = mongoose.model("product", productSchema);

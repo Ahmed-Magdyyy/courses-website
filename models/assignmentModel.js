@@ -1,8 +1,5 @@
 const mongoose = require("mongoose");
-const moment = require("moment-timezone");
 const fs = require("fs");
-const path = require("path");
-const ApiError = require("../utils/ApiError");
 
 const assignmentSchema = new mongoose.Schema(
   {
@@ -16,7 +13,11 @@ const assignmentSchema = new mongoose.Schema(
     },
     assignmentFile: String,
   },
-  { timestamps: true }
+  {
+    timestamps: {
+      timeZone: "UTC", // Set the time zone to UTC
+    },
+  }
 );
 
 function setImageURL(doc) {
@@ -54,27 +55,6 @@ assignmentSchema.post("save", async function (doc) {
   } catch (error) {
     console.error("Error adding assignment to class:", error);
   }
-});
-
-// Pre-save hook to set timestamps
-assignmentSchema.pre("save", function (next) {
-  const currentTime = moment()
-    .tz("Africa/Cairo")
-    .format("YYYY-MM-DDTHH:mm:ss[Z]");
-  this.createdAt = currentTime;
-  this.updatedAt = currentTime;
-  next();
-});
-
-assignmentSchema.pre("findOneAndUpdate", function () {
-  this.updateOne(
-    {},
-    {
-      $set: {
-        updatedAt: moment().tz("Africa/Cairo").format("YYYY-MM-DDTHH:mm:ss[Z]"),
-      },
-    }
-  );
 });
 
 assignmentSchema.pre(/delete/i, async function (next) {
