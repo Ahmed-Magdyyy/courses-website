@@ -782,10 +782,6 @@ exports.updateLoggedUserData = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No user found for this id:${req.user._id}`, 404));
   }
 
-  console.log("====================================");
-  console.log(user.image);
-  console.log("====================================");
-
   if (user.image !== null && req.file) {
     deleteUploadedFile({
       fieldname: "image",
