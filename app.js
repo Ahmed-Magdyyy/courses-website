@@ -15,12 +15,16 @@ const socketConfig = require("./socketConfig");
 
 // Routes
 const mountRoutes = require("./routes");
+const {webhook} = require("./controllers/packagesController")
 
 // middlewares
 
 app.use(cors());
 app.options("*", cors());
 app.use(express.urlencoded({ extended: false }));
+
+app.post("/api/v1/packages/webhook",express.raw({ type: "application/json" }),webhook)
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "uploads")));
 
