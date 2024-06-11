@@ -5,7 +5,7 @@ const ApiError = require("../utils/ApiError");
 const User = require("../models/userModel");
 const Package = require("../models/packagesModel");
 
-const createPackage = asyncHandler(async (req, res, next) => {
+exports.createPackage = asyncHandler(async (req, res, next) => {
   const { title, prices, classesNum, visibleTo } = req.body;
 
   try {
@@ -46,13 +46,13 @@ const createPackage = asyncHandler(async (req, res, next) => {
   }
 });
 
-const getPackages = asyncHandler(async (req, res, next) => {
+exports.getPackages = asyncHandler(async (req, res, next) => {
   const packages = await Package.find({});
 
   res.status(200).json({ message: "Success", data: packages });
 });
 
-const createCheckoutSession = asyncHandler(async (req, res, next) => {
+exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
   const { packageId } = req.params;
   const { currency } = req.query;
 
@@ -131,13 +131,14 @@ const createCheckoutSession = asyncHandler(async (req, res, next) => {
       userId: user._id.toString(),
       packageId: selectedPackage._id.toString(),
       stripePackageId: selectedPackage.packageStripeId,
+      classesNum: selectedPackage.classesNum
     },
   });
 
   res.status(200).json({ success: true, session });
 });
 
-const webhook = asyncHandler(async (req, res, next) => {
+exports.webhook = asyncHandler(async (req, res, next) => {
   console.log('====================================');
   console.log("webhook hitted");
   console.log('====================================');
@@ -183,6 +184,7 @@ async function handleSubscriptionCreated(session, subscription) {
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
   if (user) {
+    if (user.role=== "student") user.remainingClasses += session.metadata.classesNum
     user.subscribed = true;
     user.subscription = {
       package: session.metadata.packageId,
@@ -202,19 +204,13 @@ async function handleInvoicePaymentSucceeded(invoice) {
   console.log("invoice:", invoice);
   console.log('====================================');
   const userId = invoice.metadata.userId;
-  const user = await User.findById(userId);
+  const user = await User.findOne({email:invoice.customer_email});
   if (user) {
+    user.subscription.stripeInvoiceId = invoice.id
+   await user.save()
     console.log(`Sending invoice to ${user.email} with details:`, invoice);
   } else {
     console.log(`User not found for ID: ${userId}`);
   }
 }
 
-module.exports = {
-  createPackage,
-  getPackages,
-  createCheckoutSession,
-  webhook,
-  handleSubscriptionCreated,
-  handleInvoicePaymentSucceeded,
-};

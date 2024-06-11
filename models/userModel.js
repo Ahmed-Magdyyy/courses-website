@@ -107,6 +107,10 @@ const userSchema = new mongoose.Schema(
         type: String,
         default: null,
       },
+      stripeInvoiceId:{
+        type: String,
+        default: null,
+      }
     },
   },
   {
