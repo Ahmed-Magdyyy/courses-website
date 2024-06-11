@@ -99,6 +99,10 @@ const packageSchema = new mongoose.Schema(
       ],
       default: [],
     },
+    active:{
+      type: Boolean,
+      default: true
+    }
   },
   {
     timestamps: {

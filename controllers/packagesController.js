@@ -47,9 +47,23 @@ exports.createPackage = asyncHandler(async (req, res, next) => {
 });
 
 exports.getPackages = asyncHandler(async (req, res, next) => {
-  const packages = await Package.find({});
+  if (req.user.role === "superAdmin") {
+    const packages = await Package.find({}).populate(
+      "visibleTo",
+      "_id name email"
+    );
+    res.status(200).json({ message: "Success", data: packages });
+  } else {
+    const packages = await Package.find({
+      active: true,
+      $or: [
+        { visibleTo: { $size: 0 } },
+        { visibleTo: { $in: [req.user._id] } },
+      ],
+    }).populate("visibleTo", "_id name email");
 
-  res.status(200).json({ message: "Success", data: packages });
+    res.status(200).json({ message: "Success", data: packages });
+  }
 });
 
 exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
@@ -67,10 +81,6 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
   if (!selectedPackage) {
     return next(new ApiError(`No package found`, 400));
   }
-
-  const stripeProduct = await stripe.products.retrieve(
-    selectedPackage.packageStripeId
-  );
 
   const selectedPrice = selectedPackage.prices.find(
     (price) => price.currency === currency.toLowerCase()
@@ -138,7 +148,10 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
     },
   });
 
-  res.status(200).json({ success: true, session });
+  res
+    .status(200)
+    .json({ message: "session created successfully", url: session.url });
+  // res.status(200).redirect(session.url);
 });
 
 exports.webhook = asyncHandler(async (req, res, next) => {
@@ -169,9 +182,11 @@ exports.webhook = asyncHandler(async (req, res, next) => {
         );
         await handleSubscriptionCreated(session, subscription);
       }
-    case "invoice.payment_succeeded":
-      const invoice = event.data.object;
-      await handleInvoicePaymentSucceeded(invoice);
+      break;
+
+    case "customer.subscription.updated":
+      console.log("customer cancelled subscription");
+      await handleSubscriptionUpdated(session);
       break;
     default:
       console.log(`Unhandled event type ${event.type}`);
@@ -189,7 +204,7 @@ async function handleSubscriptionCreated(session, subscription) {
       user.remainingClasses =
         parseInt(user.remainingClasses, 10) +
         parseInt(session.metadata.classesNum, 10);
-    user.subscribed = true;
+    user.subscriptionStatus = "active";
     user.subscription = {
       package: session.metadata.packageId,
       packageStripeId: session.metadata.stripePackageId,
@@ -203,14 +218,134 @@ async function handleSubscriptionCreated(session, subscription) {
   }
 }
 
-async function handleInvoicePaymentSucceeded(invoice) {
-  const userId = invoice.metadata.userId;
-  const user = await User.findOne({ email: invoice.customer_email });
+const handleSubscriptionUpdated = async (subscription) => {
+  console.log("handleSubscriptionUpdated triggerd");
+  console.log("subscription:",subscription);
+  const user = await User.findOne({ 'subscription.stripeSubscriptionId': subscription.id });
   if (user) {
-    user.subscription.stripeInvoiceId = invoice.id;
+    user.subscriptionStatus = subscription.status;
+    if (subscription.status === 'canceled') {
+      user.subscriptionStatus = 'cancelled';
+    } else if (subscription.status === 'active') {
+      user.subscriptionStatus = 'active';
+    }
+    // Handle other statuses if needed
     await user.save();
-    console.log(`Sending invoice to ${user.email} with details:`, invoice);
-  } else {
-    console.log(`User not found for ID: ${userId}`);
   }
-}
+};
+
+// async function handleInvoicePaymentSucceeded(invoice) {
+//   const userId = invoice.metadata.userId;
+//   const user = await User.findOne({ email: invoice.customer_email });
+//   if (user) {
+//     user.subscription.stripeInvoiceId = invoice.id;
+//     await user.save();
+//     console.log(`Sending invoice to ${user.email} with details:`, invoice);
+//   } else {
+//     console.log(`User not found for ID: ${userId}`);
+//   }
+// }
+
+exports.updatePackage = asyncHandler(async (req, res, next) => {
+  const { packageId } = req.params;
+  const { title, prices, discountedPrice, classesNum, visibleTo } = req.body;
+
+  // Find the package in the database
+  const existingPackage = await Package.findById(packageId);
+
+  if (!existingPackage) {
+    return next(new ApiError("Package not found", 404));
+  }
+
+  try {
+    // Update product in Stripe
+    const updatedProduct = await stripe.products.update(
+      existingPackage.packageStripeId,
+      {
+        name: title,
+      }
+    );
+
+    // Deactivate old prices in Stripe
+    for (const oldPrice of existingPackage.prices) {
+      await stripe.prices.update(oldPrice.stripePriceId, { active: false });
+    }
+
+    // Create new prices in Stripe
+    const newPrices = [];
+    for (const price of prices) {
+      const stripePrice = await stripe.prices.create({
+        unit_amount: price.amount * 100,
+        currency: price.currency,
+        recurring: { interval: "month" },
+        product: existingPackage.packageStripeId,
+      });
+
+      newPrices.push({
+        currency: price.currency,
+        amount: price.amount,
+        stripePriceId: stripePrice.id,
+      });
+    }
+
+    // Update the package in the database
+    existingPackage.title = title;
+    existingPackage.prices = newPrices;
+    existingPackage.discountedPrice = discountedPrice || null;
+    existingPackage.classesNum = classesNum;
+    existingPackage.visibleTo = visibleTo || [];
+
+    await existingPackage.save();
+
+    res
+      .status(200)
+      .json({ message: "Package updated successfully", data: existingPackage });
+  } catch (error) {
+    console.error("Error updating package:", error);
+    next(new ApiError("Error updating package", 500));
+  }
+});
+
+exports.deactivatePackage = asyncHandler(async (req, res, next) => {
+  const { packageId } = req.params;
+
+  // Find the package by ID
+  const package = await Package.findById(packageId);
+
+  if (!package) {
+    return res.status(404).json({ message: "Package not found" });
+  }
+
+  // Set package as inactive in the database
+  package.active = false;
+  await package.save();
+
+  // Archive the product on Stripe
+  await stripe.products.update(package.packageStripeId, {
+    active: false,
+  });
+
+  res.status(200).json({ message: "Package successfully deactivated" });
+});
+
+exports.reactivatePackage = asyncHandler(async (req, res, next) => {
+  const { packageId } = req.params;
+
+  // Find the package by ID
+  const package = await Package.findById(packageId);
+
+  if (!package) {
+    return res.status(404).json({ message: "Package not found" });
+  }
+
+  // Set package as active in the database
+  package.active = true;
+  await package.save();
+
+  // Reactivate the product on Stripe
+  await stripe.products.update(package.packageStripeId, {
+    active: true,
+  });
+
+  res.status(200).json({ message: "Package successfully reactivated" });
+});

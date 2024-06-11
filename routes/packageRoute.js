@@ -5,18 +5,12 @@ const {
   createPackage,
   getPackages,
   createCheckoutSession,
-  webhook,
+  updatePackage,
+  deactivatePackage,
+  reactivatePackage
 } = require("../controllers/packagesController");
 
-const {
-  protect,
-  allowedTo,
-} = require("../controllers/authController");
-
-Router.route("/webhook").post(
-  express.raw({ type: "application/json" }),
-  webhook
-);
+const { protect, allowedTo } = require("../controllers/authController");
 
 // applied on all routes
 Router.use(protect);
@@ -28,4 +22,8 @@ Router.route("/chackout-session/:packageId").post(
   createCheckoutSession
 );
 
+Router.route("/:packageId").put(allowedTo("superAdmin"), updatePackage)
+
+Router.route("/:packageId/deactivate").put(allowedTo("superAdmin"), deactivatePackage)
+Router.route("/:packageId/reactivate").put(allowedTo("superAdmin"), reactivatePackage)
 module.exports = Router;
