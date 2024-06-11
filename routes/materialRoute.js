@@ -50,22 +50,4 @@ Router.route("/:id")
     deleteMaterial
   );
 
-// Router.route("/:id/addStudents").put(
-//   allowedTo("superAdmin", "admin"),
-//   enabledControls("products"),
-//   addStudentsToProduct
-// );
-
-// Router.route("/:id/removeStudents").put(
-//   allowedTo("superAdmin", "admin"),
-//   enabledControls("products"),
-//   removeStudentsFromProduct
-// );
-
-// Router.route("/productStudents/:productId").get(
-//   allowedTo("superAdmin", "admin"),
-//   enabledControls("products"),
-//   getStudentsOfProduct
-// );
-
 module.exports = Router;

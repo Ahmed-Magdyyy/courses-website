@@ -170,6 +170,13 @@ exports.webhook = asyncHandler(async (req, res, next) => {
 })
 
 async function handleSubscriptionCreated(session, subscription) {
+  console.log('====================================');
+  console.log("session:",session);
+  console.log('====================================');
+  console.log('||||||||||||||||||||||||||||||||||||');
+  console.log('====================================');
+  console.log("subscription:",subscription);
+  console.log('====================================');
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
   if (user) {
@@ -188,6 +195,9 @@ async function handleSubscriptionCreated(session, subscription) {
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {
+  console.log('====================================');
+  console.log("invoice:", invoice);
+  console.log('====================================');
   const userId = invoice.metadata.userId;
   const user = await User.findById(userId);
   if (user) {
