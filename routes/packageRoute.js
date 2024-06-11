@@ -14,6 +14,8 @@ const {
   enabledControls,
 } = require("../controllers/authController");
 
+Router.route("/webhook").post(express.raw({ type: "application/json" }),webhook)
+
 // applied on all routes
 Router.use(protect);
 
@@ -21,7 +23,6 @@ Router.route("/").post(allowedTo("superAdmin"), createPackage).get(getPackages);
 
 Router.route("/chackout-session/:packageId").post(allowedTo("student"),createCheckoutSession)
 
-Router.route("/webhook").post(express.raw({ type: "application/json" }),webhook)
 
 
 module.exports = Router;
