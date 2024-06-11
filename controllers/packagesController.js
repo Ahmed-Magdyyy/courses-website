@@ -100,7 +100,7 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
         return_url: `${req.protocol}://${req.get("host")}/subscriptions`,
       });
 
-      return res.status(200).json({ url: session.url });
+      return res.status(200).json({message:"User already have an active subscription", url: session.url });
     }
   } else {
     // If the user does not exist in Stripe, create a new customer
