@@ -185,6 +185,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
       break;
 
     case "customer.subscription.updated":
+      console.log("session:", session);
       console.log("customer cancelled subscription");
       await handleSubscriptionUpdated(session);
       break;
@@ -220,14 +221,16 @@ async function handleSubscriptionCreated(session, subscription) {
 
 const handleSubscriptionUpdated = async (subscription) => {
   console.log("handleSubscriptionUpdated triggerd");
-  console.log("subscription:",subscription);
-  const user = await User.findOne({ 'subscription.stripeSubscriptionId': subscription.id });
+  console.log("subscription:", subscription);
+  const user = await User.findOne({
+    "subscription.stripeSubscriptionId": subscription.id,
+  });
   if (user) {
     user.subscriptionStatus = subscription.status;
-    if (subscription.status === 'canceled') {
-      user.subscriptionStatus = 'cancelled';
-    } else if (subscription.status === 'active') {
-      user.subscriptionStatus = 'active';
+    if (subscription.status === "canceled") {
+      user.subscriptionStatus = "cancelled";
+    } else if (subscription.status === "active") {
+      user.subscriptionStatus = "active";
     }
     // Handle other statuses if needed
     await user.save();
