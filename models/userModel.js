@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema(
     },
     image: {
       type: String,
-      default: null
+      default: null,
     },
     courses: [
       {
@@ -90,6 +90,29 @@ const userSchema = new mongoose.Schema(
     zoom_credentials: {
       type: Boolean,
       default: false,
+    },
+    subscribed: {
+      type: Boolean,
+      default: false,
+    },
+    subscription: {
+      package: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Package",
+        default: null,
+      },
+      packageStripeId: {
+        type: String,
+        default: null,
+      },
+      stripeSubscriptionId: {
+        type: String,
+        default: null,
+      },
+      stripeCustomerId: {
+        type: String,
+        default: null,
+      },
     },
   },
   {
