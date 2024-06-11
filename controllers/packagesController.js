@@ -100,7 +100,10 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
         return_url: `${req.protocol}://${req.get("host")}/subscriptions`,
       });
 
-      return res.status(200).json({message:"User already have an active subscription", url: session.url });
+      return res.status(200).json({
+        message: "User already have an active subscription",
+        url: session.url,
+      });
     }
   } else {
     // If the user does not exist in Stripe, create a new customer
@@ -131,7 +134,7 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
       userId: user._id.toString(),
       packageId: selectedPackage._id.toString(),
       stripePackageId: selectedPackage.packageStripeId,
-      classesNum: selectedPackage.classesNum
+      classesNum: selectedPackage.classesNum,
     },
   });
 
@@ -139,15 +142,19 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
 });
 
 exports.webhook = asyncHandler(async (req, res, next) => {
-  console.log('====================================');
+  console.log("====================================");
   console.log("webhook hitted");
-  console.log('====================================');
+  console.log("====================================");
   const sig = req.headers["stripe-signature"];
 
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
   } catch (err) {
     console.error(`Webhook Error: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -156,11 +163,12 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   switch (event.type) {
     case "checkout.session.completed":
       const session = event.data.object;
-      if (session.mode === 'subscription') {
-        const subscription = await stripe.subscriptions.retrieve(session.subscription);
+      if (session.mode === "subscription") {
+        const subscription = await stripe.subscriptions.retrieve(
+          session.subscription
+        );
         await handleSubscriptionCreated(session, subscription);
       }
-      break;
     case "invoice.payment_succeeded":
       const invoice = event.data.object;
       await handleInvoicePaymentSucceeded(invoice);
@@ -170,26 +178,17 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   }
 
   res.json({ received: true });
-
-})
+});
 
 async function handleSubscriptionCreated(session, subscription) {
-  console.log('====================================');
-  console.log("session:",session);
-  console.log('====================================');
-  console.log('||||||||||||||||||||||||||||||||||||');
-  console.log('====================================');
-  console.log("subscription:",subscription);
-  console.log('====================================');
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
-  console.log('====================================');
-  console.log("user.remainingClasses:",user.remainingClasses);
-  console.log("session.metadata.classesNum:",session.metadata.classesNum);
-  console.log("sum:",parseInt(user.remainingClasses,10)+parseInt(session.metadata.classesNum,10));
-  console.log('====================================');
+
   if (user) {
-    if (user.role=== "student") user.remainingClasses = parseInt(user.remainingClasses,10)  + parseInt(session.metadata.classesNum,10)
+    if (user.role === "student")
+      user.remainingClasses =
+        parseInt(user.remainingClasses, 10) +
+        parseInt(session.metadata.classesNum, 10);
     user.subscribed = true;
     user.subscription = {
       package: session.metadata.packageId,
@@ -205,17 +204,13 @@ async function handleSubscriptionCreated(session, subscription) {
 }
 
 async function handleInvoicePaymentSucceeded(invoice) {
-  console.log('====================================');
-  console.log("invoice:", invoice);
-  console.log('====================================');
   const userId = invoice.metadata.userId;
-  const user = await User.findOne({email:invoice.customer_email});
+  const user = await User.findOne({ email: invoice.customer_email });
   if (user) {
-    user.subscription.stripeInvoiceId = invoice.id
-   await user.save()
+    user.subscription.stripeInvoiceId = invoice.id;
+    await user.save();
     console.log(`Sending invoice to ${user.email} with details:`, invoice);
   } else {
     console.log(`User not found for ID: ${userId}`);
   }
 }
-
