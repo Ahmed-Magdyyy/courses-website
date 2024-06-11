@@ -136,3 +136,63 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({ success: true, session });
 });
+
+exports.webhook = asyncHandler(async (req, res, next) => {
+  const sig = req.headers["stripe-signature"];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error(`Webhook Error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  switch (event.type) {
+    case "checkout.session.completed":
+      const session = event.data.object;
+      if (session.mode === 'subscription') {
+        const subscription = await stripe.subscriptions.retrieve(session.subscription);
+        await handleSubscriptionCreated(session, subscription);
+      }
+      break;
+    case "invoice.payment_succeeded":
+      const invoice = event.data.object;
+      await handleInvoicePaymentSucceeded(invoice);
+      break;
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  res.json({ received: true });
+
+})
+
+async function handleSubscriptionCreated(session, subscription) {
+  const userId = session.metadata.userId;
+  const user = await User.findById(userId);
+  if (user) {
+    user.subscribed = true;
+    user.subscription = {
+      package: session.metadata.packageId,
+      packageStripeId: session.metadata.stripePackageId,
+      stripeSubscriptionId: subscription.id,
+      stripeCustomerId: session.customer,
+    };
+    await user.save();
+    console.log(`Subscription started for user: ${user.email}`);
+  } else {
+    console.log(`User not found for ID: ${userId}`);
+  }
+}
+
+async function handleInvoicePaymentSucceeded(invoice) {
+  const userId = invoice.metadata.userId;
+  const user = await User.findById(userId);
+  if (user) {
+    console.log(`Sending invoice to ${user.email} with details:`, invoice);
+  } else {
+    console.log(`User not found for ID: ${userId}`);
+  }
+}
