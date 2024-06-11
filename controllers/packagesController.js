@@ -184,7 +184,7 @@ async function handleSubscriptionCreated(session, subscription) {
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
   if (user) {
-    if (user.role=== "student") user.remainingClasses += session.metadata.classesNum
+    if (user.role=== "student") user.remainingClasses =user.remainingClasses + session.metadata.classesNum
     user.subscribed = true;
     user.subscription = {
       package: session.metadata.packageId,
