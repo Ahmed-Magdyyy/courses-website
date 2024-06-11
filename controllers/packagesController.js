@@ -183,6 +183,10 @@ async function handleSubscriptionCreated(session, subscription) {
   console.log('====================================');
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
+  console.log('====================================');
+  console.log("user.remainingClasses:",user.remainingClasses);
+  console.log("session.metadata.classesNum:",session.metadata.classesNum);
+  console.log('====================================');
   if (user) {
     if (user.role=== "student") user.remainingClasses =user.remainingClasses + session.metadata.classesNum
     user.subscribed = true;
