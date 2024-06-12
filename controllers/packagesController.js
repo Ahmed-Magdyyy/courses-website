@@ -174,7 +174,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   }
 
   switch (event.type) {
-    case "checkout.session.completed":;
+    case "checkout.session.completed":
       if (session.mode === "subscription") {
         const subscription = await stripe.subscriptions.retrieve(
           session.subscription
@@ -219,16 +219,18 @@ async function handleSubscriptionCreated(session, subscription) {
 
 const handleSubscriptionUpdated = async (subscription) => {
   console.log("handleSubscriptionUpdated triggerd");
-  console.log("subscription:",subscription);
-  console.log("cancel_at_period_end:",subscription.cancel_at_period_end);
-  const user = await User.findOne({ 'subscription.stripeSubscriptionId': subscription.id });
+  console.log("subscription:", subscription);
+  console.log("cancel_at_period_end:", subscription.cancel_at_period_end);
+  const user = await User.findOne({
+    "subscription.stripeSubscriptionId": subscription.id,
+  });
   if (user) {
-    user.subscriptionStatus = subscription.status;
-    if (subscription.status === 'canceled') {
-      user.subscriptionStatus = 'cancelled';
-    } else if (subscription.status === 'active') {
-      user.subscriptionStatus = 'active';
+    if (subscription.cancel_at_period_end === true) {
+      user.subscriptionStatus = "cancelled";
+    } else if (subscription.cancel_at_period_end === false) {
+      user.subscriptionStatus = "active";
     }
+
     // Handle other statuses if needed
     await user.save();
   }
