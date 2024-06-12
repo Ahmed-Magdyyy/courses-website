@@ -220,6 +220,7 @@ async function handleSubscriptionCreated(session, subscription) {
 const handleSubscriptionUpdated = async (subscription) => {
   console.log("handleSubscriptionUpdated triggerd");
   console.log("subscription:",subscription);
+  console.log("cancel_at_period_end:",subscription.cancel_at_period_end);
   const user = await User.findOne({ 'subscription.stripeSubscriptionId': subscription.id });
   if (user) {
     user.subscriptionStatus = subscription.status;
