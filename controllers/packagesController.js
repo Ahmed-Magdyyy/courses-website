@@ -233,17 +233,6 @@ const handleSubscriptionUpdated = async (subscription) => {
   }
 };
 
-// async function handleInvoicePaymentSucceeded(invoice) {
-//   const userId = invoice.metadata.userId;
-//   const user = await User.findOne({ email: invoice.customer_email });
-//   if (user) {
-//     user.subscription.stripeInvoiceId = invoice.id;
-//     await user.save();
-//     console.log(`Sending invoice to ${user.email} with details:`, invoice);
-//   } else {
-//     console.log(`User not found for ID: ${userId}`);
-//   }
-// }
 
 exports.updatePackage = asyncHandler(async (req, res, next) => {
   const { packageId } = req.params;
@@ -348,3 +337,30 @@ exports.reactivatePackage = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({ message: "Package successfully reactivated" });
 });
+
+exports.managePackageSubscription = asyncHandler(async (req, res, next) => {
+  const userId = req.user._id;
+
+  // Find the user by ID
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  console.log(user.subscription.stripeSubscriptionId)
+
+  // Check if the user has a Stripe customer ID
+  if (user.subscription.stripeSubscriptionId === null) {
+    return res.status(400).json({ message: 'No subscription found for user' });
+  }
+
+  // Create a session for the Stripe Customer Portal
+  const session = await stripe.billingPortal.sessions.create({
+    customer: user.subscription.stripeCustomerId,
+    return_url: `${req.protocol}://${req.get('host')}/subscriptions`, // URL to return after managing subscription
+  });
+
+  // Respond with the URL of the Stripe Customer Portal session
+  res.status(200).json({ url: session.url });
+});
+

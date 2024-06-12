@@ -7,7 +7,8 @@ const {
   createCheckoutSession,
   updatePackage,
   deactivatePackage,
-  reactivatePackage
+  reactivatePackage,
+  managePackageSubscription
 } = require("../controllers/packagesController");
 
 const { protect, allowedTo } = require("../controllers/authController");
@@ -21,6 +22,8 @@ Router.route("/chackout-session/:packageId").post(
   allowedTo("student"),
   createCheckoutSession
 );
+
+Router.route("/manage-subscription").get(allowedTo("student"), managePackageSubscription)
 
 Router.route("/:packageId").put(allowedTo("superAdmin"), updatePackage)
 
