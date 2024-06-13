@@ -8,7 +8,9 @@ const {
   updatePackage,
   deactivatePackage,
   reactivatePackage,
-  managePackageSubscription
+  managePackageSubscription,
+  getPackageSubscriptions,
+  getAllPaidInvoices
 } = require("../controllers/packagesController");
 
 const { protect, allowedTo } = require("../controllers/authController");
@@ -29,4 +31,7 @@ Router.route("/:packageId").put(allowedTo("superAdmin"), updatePackage)
 
 Router.route("/:packageId/deactivate").put(allowedTo("superAdmin"), deactivatePackage)
 Router.route("/:packageId/reactivate").put(allowedTo("superAdmin"), reactivatePackage)
+
+Router.route("/subscriptions").get(allowedTo("superAdmin"),getPackageSubscriptions)
+Router.route("/invoices").get(allowedTo("superAdmin"),getAllPaidInvoices)
 module.exports = Router;

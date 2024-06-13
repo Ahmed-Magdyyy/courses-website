@@ -120,6 +120,7 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
     stripeCustomer = await stripe.customers.create({
       email: user.email,
       name: user.name,
+      phone: user.phone,
     });
 
     // Update the user in your database with the stripeCustomerId
@@ -233,7 +234,6 @@ const handleSubscriptionUpdated = async (subscription) => {
   }
 };
 
-
 exports.updatePackage = asyncHandler(async (req, res, next) => {
   const { packageId } = req.params;
   const { title, prices, discountedPrice, classesNum, visibleTo } = req.body;
@@ -338,6 +338,84 @@ exports.reactivatePackage = asyncHandler(async (req, res, next) => {
   res.status(200).json({ message: "Package successfully reactivated" });
 });
 
+exports.getPackageSubscriptions = asyncHandler(async (req, res, next) => {
+  const { packageId } = req.query;
+  let filter = {};
+
+  if (packageId) {
+    filter = { "subscription.package": packageId };
+  } else {
+    filter = { "subscription.package": { $ne: null } };
+  }
+
+  // Retrieve subscriptions from the database
+  const users = await User.find(filter)
+    .populate("subscription.package", "title")
+    .select("name email phone subscription subscriptionStatus");
+
+  if (!users.length) {
+    return next(new ApiError("No users subscribed to this package", 404));
+  }
+
+  // Map through users and retrieve subscription data from Stripe
+  const subscriptions = await Promise.all(
+    users.map(async (user) => {
+      let stripeSubscriptionDetails = null;
+
+      if (user.subscription.stripeSubscriptionId) {
+        try {
+          const stripeSubscription = await stripe.subscriptions.retrieve(
+            user.subscription.stripeSubscriptionId
+          );
+
+          const customer = await stripe.customers.retrieve(
+            stripeSubscription.customer
+          );
+          const latestInvoice = await stripe.invoices.retrieve(
+            stripeSubscription.latest_invoice
+          );
+
+          stripeSubscriptionDetails = {
+            subscriptionId: stripeSubscription.id,
+            customer_name: customer.name,
+            customer_email: customer.email,
+            customer_phone: customer.phone,
+            amount_paid: latestInvoice.amount_paid / 100,
+            currency: stripeSubscription.currency,
+            subscription_start: new Date(
+              stripeSubscription.current_period_start * 1000
+            ),
+            subscription_end: new Date(
+              stripeSubscription.current_period_end * 1000
+            ),
+            package_name: user.subscription.package.title,
+          };
+        } catch (error) {
+          console.error(
+            `Error retrieving Stripe subscription for user ${user.email}:`,
+            error
+          );
+        }
+      }
+
+      return {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        subscriptionStatus: user.subscriptionStatus,
+        package: user.subscription.package,
+        stripeSubscription: stripeSubscriptionDetails,
+      };
+    })
+  );
+
+  res.status(200).json({
+    message: "Success",
+    data: subscriptions,
+  });
+});
+
+// allow student to manage their own subscription
 exports.managePackageSubscription = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
 
@@ -345,22 +423,57 @@ exports.managePackageSubscription = asyncHandler(async (req, res, next) => {
   const user = await User.findById(userId);
 
   if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ message: "User not found" });
   }
-  console.log(user.subscription.stripeSubscriptionId)
+  console.log(user.subscription.stripeSubscriptionId);
 
   // Check if the user has a Stripe customer ID
   if (user.subscription.stripeSubscriptionId === null) {
-    return res.status(400).json({ message: 'No subscription found for user' });
+    return res.status(400).json({ message: "No subscription found for user" });
   }
 
   // Create a session for the Stripe Customer Portal
   const session = await stripe.billingPortal.sessions.create({
     customer: user.subscription.stripeCustomerId,
-    return_url: `${req.protocol}://${req.get('host')}/subscriptions`, // URL to return after managing subscription
+    return_url: `${req.protocol}://${req.get("host")}/subscriptions`, // URL to return after managing subscription
   });
 
   // Respond with the URL of the Stripe Customer Portal session
   res.status(200).json({ url: session.url });
 });
+
+exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
+  try {
+    // Fetch all paid invoices from Stripe
+    const invoices = await stripe.invoices.list({ status: "paid", limit: 100 });
+    console.log("====================================");
+    console.log("invoices:", invoices);
+    console.log("====================================");
+
+    // Transform to the desired format
+    const paidInvoices = invoices.data.map((invoice) => ({
+      invoiceId: invoice.id,
+      invoice_number: invoice.number,
+      customer_name: invoice.customer_name || "N/A", // Fallback if customer_name is not available
+      customer_email: invoice.customer_email,
+      package_name: invoice.lines.data[0].description.split("× ")[1],
+      amount_paid: invoice.amount_paid / 100,
+      currency: invoice.currency.toUpperCase(),
+      subscription_start: new Date(invoice.lines.data[0].period.start * 1000),
+      subscription_end: new Date(invoice.lines.data[0].period.end * 1000),
+      invoice_url: invoice.hosted_invoice_url,
+      invoice_pdf: invoice.invoice_pdf,
+      created_at: new Date(invoice.created * 1000),
+    }));
+
+    res.status(200).json({
+      message: "Success",
+      data: paidInvoices,
+    });
+  } catch (error) {
+    console.error("Error fetching invoices:", error);
+    res.status(500).json({ message: "Error fetching invoices", error });
+  }
+});
+
 
