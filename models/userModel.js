@@ -113,6 +113,11 @@ const userSchema = new mongoose.Schema(
         default: null,
       }
     },
+    timezone: {
+      type: String,
+      required: true,
+      default: 'UTC'
+    }
   },
   {
     timestamps: {

@@ -18,11 +18,11 @@ const {
 
   Router.route("/").post(
     allowedTo("superAdmin", "admin", "teacher"),
-    enabledControls("users", "classes"),
+    enabledControls("classes"),
     createReport
   ).get(
     allowedTo("superAdmin", "admin", "teacher"),
-    enabledControls("users", "classes"),
+    enabledControls("classes"),
     getReport
   )
 
