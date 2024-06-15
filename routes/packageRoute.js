@@ -10,7 +10,7 @@ const {
   reactivatePackage,
   managePackageSubscription,
   getPackageSubscriptions,
-  getAllPaidInvoices
+  getAllPaidInvoices,
 } = require("../controllers/packagesController");
 
 const { protect, allowedTo } = require("../controllers/authController");
@@ -25,13 +25,30 @@ Router.route("/chackout-session/:packageId").post(
   createCheckoutSession
 );
 
-Router.route("/manage-subscription").get(allowedTo("student"), managePackageSubscription)
+Router.route("/manage-subscription").get(
+  allowedTo("student"),
+  managePackageSubscription
+);
 
-Router.route("/:packageId").put(allowedTo("superAdmin"), updatePackage)
+Router.route("/:packageId").put(allowedTo("superAdmin"), updatePackage);
 
-Router.route("/:packageId/deactivate").put(allowedTo("superAdmin"), deactivatePackage)
-Router.route("/:packageId/reactivate").put(allowedTo("superAdmin"), reactivatePackage)
+Router.route("/:packageId/deactivate").put(
+  allowedTo("superAdmin"),
+  deactivatePackage
+);
+Router.route("/:packageId/reactivate").put(
+  allowedTo("superAdmin"),
+  reactivatePackage
+);
 
-Router.route("/subscriptions").get(allowedTo("superAdmin"),getPackageSubscriptions)
-Router.route("/invoices").get(allowedTo("superAdmin"),getAllPaidInvoices)
+Router.route("/subscriptions").get(
+  allowedTo("superAdmin", "admin"),
+  enabledControls("packages"),
+  getPackageSubscriptions
+);
+Router.route("/invoices").get(
+  allowedTo("superAdmin"),
+  enabledControls("packages"),
+  getAllPaidInvoices
+);
 module.exports = Router;

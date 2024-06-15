@@ -488,7 +488,7 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
 exports.getPost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
-  let filter = { _id: id, status: "approved" }; // Filter for approved posts by default
+  let filter = { _id: id }; // Filter for approved posts by default
 
   // Adjust filter based on user's role
   if (
