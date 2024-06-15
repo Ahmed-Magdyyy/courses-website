@@ -47,7 +47,7 @@ Router.route("/subscriptions").get(
   getPackageSubscriptions
 );
 Router.route("/invoices").get(
-  allowedTo("superAdmin"),
+  allowedTo("superAdmin", "admin"),
   enabledControls("packages"),
   getAllPaidInvoices
 );
