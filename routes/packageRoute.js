@@ -13,7 +13,7 @@ const {
   getAllPaidInvoices,
 } = require("../controllers/packagesController");
 
-const { protect, allowedTo } = require("../controllers/authController");
+const { protect, allowedTo,enabledControls } = require("../controllers/authController");
 
 // applied on all routes
 Router.use(protect);
