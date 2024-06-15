@@ -117,7 +117,7 @@ exports.createPost = asyncHandler(async (req, res, next) => {
   const { content, url, visibleTo } = req.body;
   const media = req.body.media || [];
 
-  const allowedVisibleToValues = ["all", "students", "teachers", "admins"];
+  const allowedVisibleToValues = ["all", "student", "teacher", "admin"];
 
   // Validate visibleTo field
   if (visibleTo && !allowedVisibleToValues.includes(visibleTo)) {
@@ -328,62 +328,6 @@ exports.deletePost = asyncHandler(async (req, res, next) => {
   }
 });
 
-// exports.getAllPosts = asyncHandler(async (req, res, next) => {
-//   let filter = {};
-//   const { page, limit, skip, ...query } = req.query;
-
-//   // Modify the filter to support partial matches for string fields
-//   Object.keys(query).forEach((key) => {
-//     if (typeof query[key] === "string") {
-//       filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
-//     } else {
-//       filter[key] = query[key];
-//     }
-//   });
-
-//   const pageNum = page * 1 || 1;
-//   const limitNum = limit * 1 || 5;
-//   const skipNum = (pageNum - 1) * limit;
-//   const totalPostsCount = await postsModel.countDocuments(filter);
-//   const totalPages = Math.ceil(totalPostsCount / limitNum);
-
-//   const posts = await postsModel
-//     .find(filter)
-//     .populate("author", "_id name email phone role")
-//     .populate("likes.users", "_id name")
-//     // .populate({
-//     //   path: "comments",
-//     //   select: "-__v -post",
-//     //   populate: {
-//     //     path: "author",
-//     //     select: "_id name",
-//     //   },
-//     // })
-//     // .populate({
-//     //   path: "comments",
-//     //   select: "-__v -post",
-//     //   populate: {
-//     //     path: "likes.users",
-//     //     select: "_id name",
-//     //   },
-//     // })
-//     .sort({ createdAt: -1 })
-//     .skip(skipNum)
-//     .limit(limitNum);
-
-//   posts.forEach((post) => {
-//     if (post.media && post.media.length > 0) {
-//       post.media.forEach((mediaItem) => {
-//         mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
-//       });
-//     }
-//   });
-
-//   res
-//     .status(200)
-//     .json({ totalPages, page: pageNum, results: posts.length, data: posts });
-// });
-
 exports.getAllPosts = asyncHandler(async (req, res, next) => {
   let filter = { status: "approved" }; // Filter for approved posts by default
   const { page, limit, status, ...query } = req.query;
@@ -446,44 +390,6 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
     .status(200)
     .json({ totalPages, page: pageNum, results: posts.length, data: posts });
 });
-
-// exports.getPost = asyncHandler(async (req, res, next) => {
-//   const { id } = req.params;
-
-//   const post = await postsModel
-//     .findById(id)
-//     .populate("author", "_id name email phone role")
-//     .populate("likes.users", "_id name")
-//     .populate("comments", "_id name")
-//     .populate({
-//       path: "comments",
-//       select: "-__v -post",
-//       populate: {
-//         path: "author",
-//         select: "_id name",
-//       },
-//     })
-//     .populate({
-//       path: "comments",
-//       select: "-__v -post",
-//       populate: {
-//         path: "likes.users",
-//         select: "_id name",
-//       },
-//     });
-
-//   if (!post) {
-//     return next(new ApiError(`No post found for this ${id}`, 404));
-//   }
-
-//   if (post.media && post.media.length > 0) {
-//     post.media.forEach((mediaItem) => {
-//       mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
-//     });
-//   }
-
-//   res.status(200).json({ data: post });
-// });
 
 exports.getPost = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
