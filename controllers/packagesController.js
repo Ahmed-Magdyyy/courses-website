@@ -454,21 +454,75 @@ exports.managePackageSubscription = asyncHandler(async (req, res, next) => {
   res.status(200).json({ url: session.url });
 });
 
+// exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
+//   try {
+//     // Fetch all paid invoices from Stripe
+//     const invoices = await stripe.invoices.list({ status: "paid", limit: 100 });
+//     console.log("====================================");
+//     console.log("invoices:", invoices);
+//     console.log("====================================");
+
+//     // Transform to the desired format
+//     const paidInvoices = invoices.data.map((invoice) => ({
+//       invoiceId: invoice.id,
+//       invoice_number: invoice.number,
+//       customer_name: invoice.customer_name || "N/A", // Fallback if customer_name is not available
+//       customer_email: invoice.customer_email,
+//       package_name: invoice.lines.data[0].description.split("× ")[1],
+//       amount_paid: invoice.amount_paid / 100,
+//       currency: invoice.currency.toUpperCase(),
+//       subscription_start: new Date(invoice.lines.data[0].period.start * 1000),
+//       subscription_end: new Date(invoice.lines.data[0].period.end * 1000),
+//       invoice_url: invoice.hosted_invoice_url,
+//       invoice_pdf: invoice.invoice_pdf,
+//       created_at: new Date(invoice.created * 1000),
+//     }));
+
+//     res.status(200).json({
+//       message: "Success",
+//       data: paidInvoices,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching invoices:", error);
+//     res.status(500).json({ message: "Error fetching invoices", error });
+//   }
+// });
+
+
 exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   try {
-    // Fetch all paid invoices from Stripe
-    const invoices = await stripe.invoices.list({ status: "paid", limit: 100 });
-    console.log("====================================");
-    console.log("invoices:", invoices);
-    console.log("====================================");
+    // Destructure page and limit from request params with default values
+    const { page = 1, limit = 10 } = req.query;
 
-    // Transform to the desired format
+    // Validate page and limit parameters (optional, for extra security)
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({ message: 'Invalid page or limit parameters' });
+    }
+
+    const startingAfter = req.query.starting_after; // Optional cursor for pagination
+    const endingBefore = req.query.ending_before;   // Optional cursor for pagination (mutually exclusive with startingAfter)
+
+    const stripeParams = {
+      status: 'paid',
+      limit: Math.min(limit, 100), // Enforce maximum limit of 100 for security
+    };
+
+    // Use startingAfter or endingBefore for pagination if provided
+    if (startingAfter) {
+      stripeParams.starting_after = startingAfter;
+    } else if (endingBefore) {
+      stripeParams.ending_before = endingBefore;
+    }
+
+    const invoices = await stripe.invoices.list(stripeParams);
+
+    // Transform invoices to desired format
     const paidInvoices = invoices.data.map((invoice) => ({
       invoiceId: invoice.id,
       invoice_number: invoice.number,
-      customer_name: invoice.customer_name || "N/A", // Fallback if customer_name is not available
+      customer_name: invoice.customer_name || 'N/A', // Fallback if customer_name is not available
       customer_email: invoice.customer_email,
-      package_name: invoice.lines.data[0].description.split("× ")[1],
+      package_name: invoice.lines.data[0].description.split('× ')[1],
       amount_paid: invoice.amount_paid / 100,
       currency: invoice.currency.toUpperCase(),
       subscription_start: new Date(invoice.lines.data[0].period.start * 1000),
@@ -478,12 +532,20 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
       created_at: new Date(invoice.created * 1000),
     }));
 
+    const hasNextPage = invoices.has_more; // Check for next page based on Stripe response
+    const nextStartingAfter = invoices.data[invoices.data.length - 1].id; // Get next page cursor (starting_after)
+
     res.status(200).json({
-      message: "Success",
+      message: 'Success',
       data: paidInvoices,
+      pagination: {
+        hasNextPage,
+        nextStartingAfter, // Include next page cursor for client-side pagination
+      },
     });
   } catch (error) {
-    console.error("Error fetching invoices:", error);
-    res.status(500).json({ message: "Error fetching invoices", error });
+    console.error('Error fetching invoices:', error);
+    res.status(500).json({ message: 'Error fetching invoices', error });
   }
 });
+

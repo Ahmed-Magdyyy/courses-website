@@ -172,61 +172,6 @@ exports.getAllMaterials = asyncHandler(async (req, res, next) => {
     data: documents,
   });
 
-  //   if (req.user.role === "student") {
-  //     const totalMaterialsCount = await materialModel.countDocuments({
-  //       students: { $in: [req.user._id] },
-  //     });
-  //     const totalPages = Math.ceil(totalProductsCount / limitNum);
-
-  //     const documents = await productModel
-  //       .find({
-  //         students: { $in: [req.user._id] },
-  //       })
-  //       .sort({ createdAt: -1 })
-  //       .select("-students")
-  //       .skip(skipNum)
-  //       .limit(limitNum);
-  //     res.status(200).json({
-  //       totalPages,
-  //       page: pageNum,
-  //       results: documents.length,
-  //       data: documents,
-  //     });
-  //   } else if (req.user.role === "teacher") {
-  //     const totalProductsCount = await productModel.countDocuments({
-  //       teacher: req.user._id,
-  //     });
-  //     const totalPages = Math.ceil(totalProductsCount / limitNum);
-
-  //     const documents = await productModel
-  //       .find({ teacher: req.user._id })
-  //       .sort({ createdAt: -1 })
-  //       .populate("students", "_id name email phone")
-  //       .skip(skipNum)
-  //       .limit(limitNum);
-  //     res.status(200).json({
-  //       totalPages,
-  //       page: pageNum,
-  //       results: documents.length,
-  //       data: documents,
-  //     });
-  //   } else {
-  //     const totalProductsCount = await productModel.countDocuments(filter);
-  //     const totalPages = Math.ceil(totalProductsCount / limitNum);
-
-  //     const documents = await productModel
-  //       .find(filter)
-  //       .sort({ createdAt: -1 })
-  //       .populate("students", "_id name email phone")
-  //       .skip(skipNum)
-  //       .limit(limitNum);
-  //     res.status(200).json({
-  //       totalPages,
-  //       page: pageNum,
-  //       results: documents.length,
-  //       data: documents,
-  //     });
-  //   }
 });
 
 exports.getMaterial = factory.getOne(materialModel);

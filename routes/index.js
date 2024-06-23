@@ -13,6 +13,7 @@ const chatRoute = require("./chatRoute");
 const messageRoute = require("./messageRoute");
 const notificationRoute = require("./notificationRoute");
 const packagesRoute = require("./packageRoute");
+const formRoute = require("./formRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/v1/auth", authRoute);
@@ -30,6 +31,7 @@ const mountRoutes = (app) => {
   app.use("/api/v1/messages", messageRoute);
   app.use("/api/v1/notifications", notificationRoute);
   app.use("/api/v1/packages", packagesRoute);
+  app.use("/api/v1/forms", formRoute);
 };
 
 module.exports = mountRoutes
