@@ -11,8 +11,6 @@ const Notification = require("../models/notificationModel");
 const sendEmail = require("../utils/sendEmails");
 const { getIO } = require("../socketConfig");
 
-
-
 function deleteUploadedFile(file) {
   if (file) {
     const filePath = `${file.path}`;
@@ -147,14 +145,14 @@ exports.createPost = asyncHandler(async (req, res, next) => {
       visibleTo: postVisibleTo,
     });
 
-    const superAdmin = await userModel.findOne({role: "superAdmin"})
+    const superAdmin = await userModel.findOne({ role: "superAdmin" });
 
     let img =
-    "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
+      "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
 
     let capitalizeFirstLetterOfName =
-        superAdmin.name.split(" ")[0].charAt(0).toUpperCase() +
-        superAdmin.name.split(" ")[0].slice(1).toLocaleLowerCase();
+      superAdmin.name.split(" ")[0].charAt(0).toUpperCase() +
+      superAdmin.name.split(" ")[0].slice(1).toLocaleLowerCase();
 
     let emailTamplate = `<!DOCTYPE html>
     <html lang="en-US">
@@ -321,24 +319,25 @@ exports.createPost = asyncHandler(async (req, res, next) => {
       </body>
     </html>`;
 
-    try {
-      await sendEmail({
-        email: superAdmin.email,
-        subject: `${capitalizeFirstLetterOfName}, User ${req.user.name} submitted a post`,
-        message: emailTamplate,
+    if (req.user.role !== "superAdmin") {
+      try {
+        await sendEmail({
+          email: superAdmin.email,
+          subject: `${capitalizeFirstLetterOfName}, User ${req.user.name} submitted a post`,
+          message: emailTamplate,
+        });
+        console.log("Email sent");
+      } catch (error) {
+        console.log(error);
+      }
+
+      const superAdminNotification = await Notification.create({
+        scope: "post",
+        userId: superAdmin._id,
+        relatedId: post._id,
+        message: `${req.user.name} submitted a post and needs your approval.`,
       });
-      console.log("Email sent");
-    } catch (error) {
-      console.log(error);
     }
-
-    const superAdminNotification = await Notification.create({
-      scope: "post",
-      userId: superAdmin._id,
-      relatedId: post._id,
-      message: `${req.user.name} submitted a post and needs your approval.`,
-    });
-
 
     res.status(201).json({ message: "Success", data: post });
   } catch (error) {
@@ -556,7 +555,9 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
   // Adjust filter based on user's role
   if (
     req.user.role !== "superAdmin" &&
-    !(req.user.role === "admin" && req.user.enabledControls.includes("timeline"))
+    !(
+      req.user.role === "admin" && req.user.enabledControls.includes("timeline")
+    )
   ) {
     filter.visibleTo = { $in: ["all", req.user.role] };
   }
