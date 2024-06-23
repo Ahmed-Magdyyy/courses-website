@@ -11,6 +11,12 @@ exports.submitForm = asyncHandler(async (req, res, next) => {
     return next(new ApiError("Missing required fields in request body", 400));
   }
   try {
+    const submissionExists = await FormSubmission.findOne({userEmail})
+
+    if (submissionExists) {
+      return next(new ApiError(`This email: ${userEmail} already submitted a form before.`, 404));
+    }
+
     const form = await Form.findById(formId);
     if (!form) {
       return next(new ApiError(`No form found for this id: ${formId}`, 404));
