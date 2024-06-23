@@ -4,10 +4,14 @@ const moment = require("moment-timezone");
 const asyncHandler = require("express-async-handler");
 
 const postsModel = require("../models/postModel");
+const userModel = require("../models/userModel");
 const commentModel = require("../models/commentModel");
 const ApiError = require("../utils/ApiError");
 const Notification = require("../models/notificationModel");
+const sendEmail = require("../utils/sendEmails");
 const { getIO } = require("../socketConfig");
+
+
 
 function deleteUploadedFile(file) {
   if (file) {
@@ -142,6 +146,199 @@ exports.createPost = asyncHandler(async (req, res, next) => {
       status: req.user.role === "superAdmin" ? "approved" : "pending",
       visibleTo: postVisibleTo,
     });
+
+    const superAdmin = await userModel.findOne({role: "superAdmin"})
+
+    let img =
+    "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
+
+    let capitalizeFirstLetterOfName =
+        superAdmin.name.split(" ")[0].charAt(0).toUpperCase() +
+        superAdmin.name.split(" ")[0].slice(1).toLocaleLowerCase();
+
+    let emailTamplate = `<!DOCTYPE html>
+    <html lang="en-US">
+      <head>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+        <title>Your remaining classes credit is running out</title>
+        <meta name="description" content="Your remaining classes credit is running out" />
+        <style type="text/css">
+          a:hover {
+            text-decoration: underline !important;
+          }
+        </style>
+      </head>
+    
+      <body
+        marginheight="0"
+        topmargin="0"
+        marginwidth="0"
+        style="margin: 0px; background-color: #f2f3f8"
+        leftmargin="0"
+      >
+        <!--100% body table-->
+        <table
+          cellspacing="0"
+          border="0"
+          cellpadding="0"
+          width="100%"
+          bgcolor="#f2f3f8"
+          style="
+            @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
+            font-family: 'Open Sans', sans-serif;
+          "
+        >
+          <tr>
+            <td>
+              <table
+                style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
+                width="100%"
+                border="0"
+                align="center"
+                cellpadding="0"
+                cellspacing="0"
+              >
+                <tr>
+                  <td style="height: 80px">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td style="text-align: center">
+                    <a
+                      href="https://learning.jawwid.com"
+                      title="logo"
+                      target="_blank"
+                    >
+                      <img width="250" src="${img}" title="logo" alt="logo" />
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="height: 20px">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td>
+                    <table
+                      width="95%"
+                      border="0"
+                      align="center"
+                      cellpadding="0"
+                      cellspacing="0"
+                      style="
+                        max-width: 670px;
+                        background: #fff;
+                        border-radius: 3px;
+                        text-align: center;
+                        -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                        -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                        box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                      "
+                    >
+                      <tr>
+                        <td style="height: 40px">&nbsp;</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 0 35px">
+                          <span
+                            style="
+                              display: inline-block;
+                              vertical-align: middle;
+                              margin: 29px 0 26px;
+                              border-bottom: 1px solid #cecece;
+                              width: 200px;
+                            "
+                          ></span>
+                          <p
+                            style="
+                              color: #455056;
+                              font-size: 17px;
+                              line-height: 24px;
+                              text-align: left;
+                            "
+                          >
+                            Hello ${capitalizeFirstLetterOfName},
+                          </p>
+                          <p
+                            style="
+                              color: #455056;
+                              font-size: 17px;
+                              line-height: 24px;
+                              text-align: left;
+                            "
+                          >
+                          User <span style="font-weight: 600">${req.user.name}</span> submitted a post and needs your approval.
+                          <br>
+                          <br>
+                          You can either approve or delete that post.
+                        </p>
+                          
+    
+                          <br>
+                          <p
+                            style="
+                              margin-top: 3px;
+                              color: #455056;
+                              font-size: 17px;
+                              line-height: 2px;
+                              text-align: left;
+                            "
+                          >
+                            The Jawwid Team.
+                          </p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="height: 40px">&nbsp;</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+    
+                <tr>
+                  <td style="height: 20px">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td style="text-align: center">
+                    <p
+                      style="
+                        font-size: 14px;
+                        color: rgba(69, 80, 86, 0.7411764705882353);
+                        line-height: 18px;
+                        margin: 0 0 0;
+                      "
+                    >
+                      &copy; <strong>https://learning.jawwid.com</strong>
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="height: 80px">&nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        <!--/100% body table-->
+      </body>
+    </html>`;
+
+    try {
+      await sendEmail({
+        email: superAdmin.email,
+        subject: `${capitalizeFirstLetterOfName}, User ${req.user.name} submitted a post`,
+        message: emailTamplate,
+      });
+      console.log("Email sent");
+    } catch (error) {
+      console.log(error);
+    }
+
+    const superAdminNotification = await Notification.create({
+      scope: "post",
+      userId: superAdmin._id,
+      relatedId: post._id,
+      message: `${req.user.name} submitted a post and needs your approval.`,
+    });
+
 
     res.status(201).json({ message: "Success", data: post });
   } catch (error) {
