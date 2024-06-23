@@ -66,6 +66,18 @@ exports.getPackages = asyncHandler(async (req, res, next) => {
   }
 });
 
+exports.getSpeceficPackage = asyncHandler(async (req, res, next) => {
+  const { packageId } = req.params;
+
+  const package = await Package.findById(packageId).populate(
+    "visibleTo",
+    "_id name email"
+  );
+
+  res.status(200).json({ message: "Success", package });
+
+});
+
 exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
   const { packageId } = req.params;
   const { currency } = req.query;
@@ -475,5 +487,3 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Error fetching invoices", error });
   }
 });
-
-

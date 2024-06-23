@@ -4,6 +4,7 @@ const Router = express.Router();
 const {
   createPackage,
   getPackages,
+  getSpeceficPackage,
   createCheckoutSession,
   updatePackage,
   deactivatePackage,
@@ -13,7 +14,11 @@ const {
   getAllPaidInvoices,
 } = require("../controllers/packagesController");
 
-const { protect, allowedTo,enabledControls } = require("../controllers/authController");
+const {
+  protect,
+  allowedTo,
+  enabledControls,
+} = require("../controllers/authController");
 
 // applied on all routes
 Router.use(protect);
@@ -30,8 +35,6 @@ Router.route("/manage-subscription").get(
   managePackageSubscription
 );
 
-Router.route("/:packageId").put(allowedTo("superAdmin"), updatePackage);
-
 Router.route("/:packageId/deactivate").put(
   allowedTo("superAdmin"),
   deactivatePackage
@@ -43,12 +46,22 @@ Router.route("/:packageId/reactivate").put(
 
 Router.route("/subscriptions").get(
   allowedTo("superAdmin", "admin"),
-  enabledControls("packages"),
+  enabledControls("subscription"),
   getPackageSubscriptions
 );
+
 Router.route("/invoices").get(
   allowedTo("superAdmin", "admin"),
-  enabledControls("packages"),
+  enabledControls("subscription"),
   getAllPaidInvoices
 );
+
+Router.route("/:packageId")
+  .get(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("subscription"),
+    getSpeceficPackage
+  )
+  .put(allowedTo("superAdmin"), updatePackage);
+
 module.exports = Router;
