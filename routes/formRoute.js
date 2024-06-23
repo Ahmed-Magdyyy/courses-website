@@ -11,7 +11,7 @@ const {
 
 const {
   submitForm,
-  getSubmissions,
+  getFormSubmissions,
   getSpeceficSubmission,
   deleteSubmission
 } = require("../controllers/submittedFormController");
@@ -22,11 +22,11 @@ const {
   enabledControls,
 } = require("../controllers/authController");
 
-Router.route("/submissions").get(
+Router.route("/:formId/submissions").get(
   protect,
   allowedTo("superAdmin", "admin"),
   enabledControls("forms"),
-  getSubmissions
+  getFormSubmissions
 );
 
 Router.route("/submissions/:submissionId").get(
