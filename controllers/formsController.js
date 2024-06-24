@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 
 const ApiError = require("../utils/ApiError");
 const Form = require("../models/formModel");
+const FormSubmission = require("../models/formSubmissionsModel");
 
 exports.createForm = asyncHandler(async (req, res, next) => {
   const { name, questions } = req.body;
@@ -74,7 +75,7 @@ exports.getSpecificForm = asyncHandler(async (req, res, next) => {
 });
 
 exports.deleteForm = asyncHandler(async (req, res, next) => {
-  const formId = req.params.formId;
+  const { formId } = req.params;
 
   const form = await Form.findById(formId);
 
@@ -83,6 +84,7 @@ exports.deleteForm = asyncHandler(async (req, res, next) => {
   }
 
   await Form.findOneAndDelete(formId);
+  await FormSubmission.deleteMany({ formId });
 
   res.status(204).send("form deleted successfully");
 });
