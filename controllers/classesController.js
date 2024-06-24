@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const moment = require("moment");
+const mongoose = require("mongoose");
 
 const { createMeeting, deleteMeeting } = require("../utils/zoom");
 const ApiError = require("../utils/ApiError");
@@ -136,7 +137,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       decryptedZoomClientId,
       decryptedZoomClientSecret
     );
-///////////////// to be checked later
+    ///////////////// to be checked later
     const parsedTime = new Date(meeting.meetingTime);
 
     const formattedTime = moment(parsedTime).format("hh:mm A");
@@ -1681,3 +1682,178 @@ exports.removeStudentFromClass = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
+
+exports.getClassesGroupedByMonthAndStatus = asyncHandler(
+  async (req, res, next) => {
+    let filter = {};
+    const { page, limit, ...query } = req.query;
+
+    // Construct filter based on query parameters
+    Object.keys(query).forEach((key) => {
+      if (mongoose.Types.ObjectId.isValid(query[key])) {
+        filter[key] = mongoose.Types.ObjectId(query[key]);
+      } else if (typeof query[key] === "string") {
+        filter[key] = { $regex: query[key], $options: "i" };
+      } else {
+        filter[key] = query[key];
+      }
+    });
+
+    if (query.month) {
+      query.month = parseInt(query.month, 10)
+    }
+
+    try {
+      console.log("Filter:", filter); // Log filter to check its content
+
+      // Pipeline to aggregate classes grouped by month, year, and status
+      const pipeline = [
+        { $match: filter },
+        {
+          $addFields: {
+            month: {
+              $month: {
+                $dateFromString: {
+                  dateString: "$start_date",
+                  format: "%d/%m/%Y",
+                },
+              },
+            },
+            year: {
+              $year: {
+                $dateFromString: {
+                  dateString: "$start_date",
+                  format: "%d/%m/%Y",
+                },
+              },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              year: "$year",
+              month: "$month",
+              status: "$status",
+            },
+            classes: {
+              $push: {
+                _id: "$_id",
+                name: "$name",
+                start_date: "$start_date",
+                duration: "$duration",
+                start_time: "$start_time",
+                zoomMeetingId: "$zoomMeetingId",
+                classZoomLink: "$classZoomLink",
+                meetingPassword: "$meetingPassword",
+                teacher: "$teacher",
+                studentsEnrolled: "$studentsEnrolled",
+                comment: "$comment",
+                attendance: "$attendance",
+                assignments: "$assignments",
+                createdAt: "$createdAt",
+                updatedAt: "$updatedAt",
+              },
+            },
+          },
+        },
+        {
+          $sort: { "_id.year": 1, "_id.month": 1, "_id.status": 1 },
+        },
+        {
+          $group: {
+            _id: { year: "$_id.year", month: "$_id.month" },
+            classes: {
+              $push: {
+                year: "$_id.year",
+                month: "$_id.month",
+                status: "$_id.status",
+                classes: "$classes",
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            year: "$_id.year",
+            month: "$_id.month",
+            classes: 1,
+          },
+        },
+      ];
+
+      // Execute aggregation pipeline
+      let aggregatedResult = await classModel.aggregate(pipeline);
+
+      // Check if aggregatedResult is empty or undefined
+      if (!aggregatedResult || aggregatedResult.length === 0) {
+        console.log("No classes found"); // Log message for debugging
+        return res.status(404).json({ message: "No classes found" });
+      }
+
+      // Flatten and format the response as per the desired structure
+      let formattedResponse = [];
+
+      aggregatedResult.forEach((monthGroup) => {
+        monthGroup.classes.forEach((statusGroup) => {
+          statusGroup.classes.forEach((classItem) => {
+            // Find or create a matching entry in formattedResponse
+            let existingEntry = formattedResponse.find(
+              (entry) =>
+                entry.year === monthGroup.year &&
+                entry.month === monthGroup.month &&
+                entry.status === statusGroup.status
+            );
+
+            if (!existingEntry) {
+              existingEntry = {
+                year: monthGroup.year,
+                month: monthGroup.month,
+                status: statusGroup.status,
+                classes: [],
+              };
+              formattedResponse.push(existingEntry);
+            }
+
+            // Push classItem into the appropriate entry in formattedResponse
+            existingEntry.classes.push(classItem);
+          });
+        });
+      });
+
+      // Handle pagination if necessary
+      if (limit && page) {
+        const pageNum = parseInt(page, 10) || 1;
+        const limitNum = parseInt(limit, 10) || 5;
+        const skipNum = (pageNum - 1) * limitNum;
+
+        const totalPages = Math.ceil(formattedResponse.length / limitNum);
+        const paginatedResults = formattedResponse.slice(
+          skipNum,
+          skipNum + limitNum
+        );
+
+        return res.status(200).json({
+          totalPages,
+          page: pageNum,
+          results: paginatedResults.length,
+          data: paginatedResults,
+        });
+      } else {
+        // Return the formatted response without pagination
+        return res
+          .status(200)
+          .json({ results: formattedResponse.length, data: formattedResponse });
+      }
+    } catch (error) {
+      console.error("Error in getClassesGroupedByMonthAndStatus:", error); // Log detailed error message
+      next(error);
+    }
+  }
+);
+
+
+
+
+

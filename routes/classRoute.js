@@ -13,6 +13,7 @@ const {
   cancelClass,
   zoomWebHook,
   getAllClassesByMonthYear,
+  getClassesGroupedByMonthAndStatus
 } = require("../controllers/classesController");
 
 const {
@@ -24,6 +25,9 @@ const {
 // applied on all routes
 Router.use(protect);
 
+
+
+
 Router.route("/")
   .post(
     allowedTo("superAdmin", "admin"),
@@ -34,6 +38,12 @@ Router.route("/")
     allowedTo("superAdmin", "admin", "teacher", "student"),
     enabledControls("classes"),
     getAllClasses
+  );
+
+  Router.route("/classesByMonth").get(
+    allowedTo("superAdmin", "admin", "teacher", "student"),
+    enabledControls("classes"),
+    getClassesGroupedByMonthAndStatus
   );
 
 Router.route("/month-year").get(
@@ -78,5 +88,8 @@ Router.route("/:id/cancelClass").put(
   enabledControls("classes"),
   cancelClass
 );
+
+
+
 
 module.exports = Router;
