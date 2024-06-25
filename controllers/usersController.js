@@ -585,7 +585,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
     zoom_account_id,
     zoom_client_id,
     zoom_client_Secret,
-    timezone
+    // timezone
   } = req.body;
 
   const user = await usersModel.findById(req.params.id);
@@ -799,7 +799,7 @@ exports.updateLoggedUserData = asyncHandler(async (req, res, next) => {
       email: req.body.email,
       phone: req.body.phone,
       image: req.file && req.file.filename,
-      timezone: req.body.timezone
+      // timezone: req.body.timezone
     },
     { new: true }
   );

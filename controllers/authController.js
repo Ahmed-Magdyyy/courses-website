@@ -17,6 +17,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
     phone: req.body.phone,
     password: req.body.password,
     role: req.body.role,
+    timezone: req.body.timezone
   });
 
   // Generate token and send it to the client side
