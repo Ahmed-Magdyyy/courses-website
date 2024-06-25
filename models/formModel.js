@@ -6,7 +6,8 @@ const formSchema = new mongoose.Schema({
     _id: false,
     type: String,  // Question text
     required: true
-  }]
+  }],
+  submissionsCount: { type: Number, default: 0 } 
 });
 
 module.exports = mongoose.model('form', formSchema);

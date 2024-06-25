@@ -5,13 +5,17 @@ const FormSubmission = require("../models/formSubmissionsModel");
 const Form = require("../models/formModel");
 
 exports.submitForm = asyncHandler(async (req, res, next) => {
-  const { userName, userEmail, formId, answers } = req.body; // Extract form ID, user ID (optional), and answers
+  const { userName, userEmail, formId, answers } = req.body;
 
   if (!formId || !answers || answers.length === 0) {
     return next(new ApiError("Missing required fields in request body", 400));
   }
+
   try {
-    const submissionExists = await FormSubmission.findOne({ userEmail });
+    const submissionExists = await FormSubmission.findOne({
+      userEmail,
+      formId,
+    });
 
     if (submissionExists) {
       return next(
@@ -45,6 +49,10 @@ exports.submitForm = asyncHandler(async (req, res, next) => {
       })),
     });
 
+    const submissionsCount = await FormSubmission.countDocuments({ formId });
+    form.submissionsCount = submissionsCount;
+    await form.save();
+
     res.status(200).json({
       message: "Form submitted successfully",
       submittedForm: formsubmission,
@@ -73,6 +81,11 @@ exports.getFormSubmissions = asyncHandler(async (req, res, next) => {
       filter[key] = query[key];
     }
   });
+
+  const form = await Form.findById(formId);
+  if (!form) {
+    return next(new ApiError(`No form found for this id: ${formId}`, 404));
+  }
 
   const totalSubmissions = await FormSubmission.countDocuments(filter);
   const totalPages = Math.ceil(totalSubmissions / limitNum);
@@ -115,7 +128,13 @@ exports.deleteSubmission = asyncHandler(async (req, res, next) => {
     );
   }
 
-  await FormSubmission.findOneAndDelete(submissionId);
+  await FormSubmission.findByIdAndDelete(submissionId);
+
+  const submissionsCount = await FormSubmission.countDocuments({ formId: submittedForm.formId });
+  const form = await Form.findById(submittedForm.formId);
+  form.submissionsCount = submissionsCount;
+  await form.save();
+
 
   res.status(204).send("form submission deleted successfully");
 });
