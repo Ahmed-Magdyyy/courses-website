@@ -129,7 +129,7 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
       // Redirect to the customer portal to manage the subscription
       const session = await stripe.billingPortal.sessions.create({
         customer: stripeCustomer.id,
-        return_url: `${req.protocol}://${req.get("host")}/subscriptions`,
+        return_url: `https://learning.jawwid.com/subscriptions/packages`,
       });
 
       return res.status(200).json({
@@ -159,8 +159,8 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
         quantity: 1,
       },
     ],
-    success_url: `${req.protocol}://${req.get("host")}/subscriptions`,
-    cancel_url: `${req.protocol}://${req.get("host")}/packages`,
+    success_url: `https://learning.jawwid.com/subscriptions/packages`,
+    cancel_url: `https://learning.jawwid.com/subscriptions/packages`,
     customer: stripeCustomer.id,
     client_reference_id: selectedPackage._id.toString(),
     metadata: {
