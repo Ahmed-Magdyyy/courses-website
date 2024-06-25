@@ -83,7 +83,7 @@ exports.deleteForm = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No form found for this id:${formId}`, 404));
   }
 
-  await Form.findOneAndDelete(formId);
+  await Form.findByIdAndDelete(formId);
   await FormSubmission.deleteMany({ formId });
 
   res.status(204).send("form deleted successfully");
