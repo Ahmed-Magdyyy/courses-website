@@ -457,47 +457,12 @@ exports.managePackageSubscription = asyncHandler(async (req, res, next) => {
   // Create a session for the Stripe Customer Portal
   const session = await stripe.billingPortal.sessions.create({
     customer: user.subscription.stripeCustomerId,
-    return_url: `${req.protocol}://${req.get("host")}/subscriptions`, // URL to return after managing subscription
+    return_url: `https://learning.jawwid.com/subscriptions/packages`,
   });
 
   // Respond with the URL of the Stripe Customer Portal session
   res.status(200).json({ url: session.url });
 });
-
-// exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
-//   try {
-//     // Fetch all paid invoices from Stripe
-//     const invoices = await stripe.invoices.list({ status: "paid", limit: 100 });
-//     console.log("====================================");
-//     console.log("invoices:", invoices);
-//     console.log("====================================");
-
-//     // Transform to the desired format
-//     const paidInvoices = invoices.data.map((invoice) => ({
-//       invoiceId: invoice.id,
-//       invoice_number: invoice.number,
-//       customer_name: invoice.customer_name || "N/A", // Fallback if customer_name is not available
-//       customer_email: invoice.customer_email,
-//       package_name: invoice.lines.data[0].description.split("× ")[1],
-//       amount_paid: invoice.amount_paid / 100,
-//       currency: invoice.currency.toUpperCase(),
-//       subscription_start: new Date(invoice.lines.data[0].period.start * 1000),
-//       subscription_end: new Date(invoice.lines.data[0].period.end * 1000),
-//       invoice_url: invoice.hosted_invoice_url,
-//       invoice_pdf: invoice.invoice_pdf,
-//       created_at: new Date(invoice.created * 1000),
-//     }));
-
-//     res.status(200).json({
-//       message: "Success",
-//       data: paidInvoices,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching invoices:", error);
-//     res.status(500).json({ message: "Error fetching invoices", error });
-//   }
-// });
-
 
 exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   try {
