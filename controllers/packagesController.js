@@ -94,9 +94,19 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No package found`, 400));
   }
 
+  console.log("currency",currency)
+  console.log("selectedPackage",selectedPackage)
+
   const selectedPrice = selectedPackage.prices.find(
-    (price) => price.currency === currency.toLowerCase()
+    (price) => price.currency.toLowerCase() === currency.toLowerCase()
   );
+
+  console.log("selectedPrice",selectedPrice)
+
+  if(!selectedPrice) {
+    return next(new ApiError(`No price found for the currency you entered`, 400));
+  }
+
 
   const priceId = selectedPrice.stripePriceId;
 
@@ -195,7 +205,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
         await handleSubscriptionCreated(event.data.object, subscription);
       }
       break;
-
+      customer.subscription.updated
     case "customer.subscription.updated":
       console.log("customer cancelled subscription");
       await handleSubscriptionUpdated(event.data.object);
