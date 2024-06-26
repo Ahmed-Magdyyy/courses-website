@@ -141,7 +141,7 @@ exports.createPost = asyncHandler(async (req, res, next) => {
       content,
       media,
       url,
-      status: req.user.role === "superAdmin" ? "approved" : "pending",
+      status: req.user.role === "superAdmin" ||req.user.role ===  "admin" ? "approved" : "pending",
       visibleTo: postVisibleTo,
     });
 
@@ -597,7 +597,7 @@ exports.getPost = asyncHandler(async (req, res, next) => {
   // Adjust filter based on user's role
   if (
     req.user.role !== "superAdmin" &&
-    !(req.user.role === "admin" && req.user.enabledControl.includes("timeline"))
+    !(req.user.role === "admin" && req.user.enabledControls.includes("timeline"))
   ) {
     filter.visibleTo = { $in: ["all", req.user.role] };
   }

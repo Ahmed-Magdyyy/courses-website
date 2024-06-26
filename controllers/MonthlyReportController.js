@@ -33,20 +33,27 @@ exports.createReport = asyncHandler(async (req, res, next) => {
 });
 
 exports.getReport = asyncHandler(async (req, res, next) => {
-  let filter = {};
+  const { role, _id: userId } = req.user; // Extract the user's role and ID from the request
   const { page, limit, skip, ...query } = req.query;
-  
-  
-  if (query) {
-    filter = query;
+
+  let filter = {};
+
+  // Apply role-based filtering
+  if (role === 'teacher') {
+    filter.teacher = userId;
+  } else if (role === 'student') {
+    filter.student = userId;
   }
-  
+
+  // Apply additional query filters if provided
+  Object.assign(filter, query);
+
   const pageNum = page * 1 || 1;
   const limitNum = limit * 1 || 5;
   const skipNum = (pageNum - 1) * limit;
   const totalPostsCount = await reportModel.countDocuments(filter);
   const totalPages = Math.ceil(totalPostsCount / limitNum);
-  
+
   const reports = await reportModel
     .find(filter)
     .populate("teacher", "_id name")
@@ -55,8 +62,9 @@ exports.getReport = asyncHandler(async (req, res, next) => {
     .skip(skipNum)
     .limit(limitNum);
 
-  if (!reports) {
-    return next(new ApiError(`No document found for this id:${id}`, 404));
+  if (!reports || reports.length === 0) {
+    return next(new ApiError(`No reports found`, 404));
   }
-  res.status(200).json({totalPages, page: pageNum, results: reports.length, reports });
+
+  res.status(200).json({ totalPages, page: pageNum, results: reports.length, reports });
 });
