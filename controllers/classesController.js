@@ -63,6 +63,8 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       return res.status(400).json({ message: "Teacher not found" });
     }
 
+    const teacherTimezone = teacherExists.timezone;
+
     let decryptedZoomAccountId;
     let decryptedZoomClientId;
     let decryptedZoomClientSecret;
@@ -127,22 +129,34 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       });
     }
 
+    // Combine start_date and start_time to form a datetime string
+    const datetimeString = `${start_date} ${start_time}`;
+
+    // Parse the datetime string using moment-timezone and user's timezone
+    const userLocalTime = moment.tz(
+      datetimeString,
+      "DD-MM-YYYY h:mm A",
+      teacherTimezone
+    );
+
+    // Convert the user's local time to UTC
+    const utcTime = userLocalTime.utc().format("YYYY-MM-DDTHH:mm:ss[Z]");
+
     // Create a Zoom meeting
     const meeting = await createMeeting(
       name,
       duration,
-      start_date,
-      start_time,
+      new Date(utcTime),
       decryptedZoomAccountId,
       decryptedZoomClientId,
       decryptedZoomClientSecret
     );
-    ///////////////// to be checked later
-    const parsedTime = new Date(meeting.meetingTime);
 
-    const formattedTime = moment(parsedTime).format("hh:mm A");
+    const formattedTime = moment(meeting.meetingTime).utc().format("hh:mm A");
 
-    const formattedDate = moment(parsedTime).format("DD/MM/YYYY");
+    const formattedDate = moment(meeting.meetingTime)
+      .utc()
+      .format("DD/MM/YYYY");
 
     // Create a new class document
     const classInfo = await classModel.create({
@@ -161,6 +175,9 @@ exports.createClass = asyncHandler(async (req, res, next) => {
         attended: false,
       })),
     });
+
+    const classInfoObj = classInfo.toObject();
+    classInfoObj.meetingTime = meeting.meetingTime;
 
     // Send email to teacher
     if (classInfo.teacher) {
@@ -353,12 +370,26 @@ exports.createClass = asyncHandler(async (req, res, next) => {
 
     const populatedClass = await classInfo.populate(
       "studentsEnrolled",
-      "name email phone"
+      "name email phone timezone"
     );
 
     // Send emails to students enrolled
     if (populatedClass.studentsEnrolled) {
       populatedClass.studentsEnrolled.forEach(async (student) => {
+        studentTimezone = student.timezone;
+        const meetingTimeInStudentTimezone = moment.tz(
+          classInfoObj.parsedTime,
+          "DD-MM-YYYY h:mm A",
+          studentTimezone
+        );
+        const studentFormattedTime = moment(
+          meetingTimeInStudentTimezone
+        ).format("hh:mm A");
+
+        const studentFormattedDate = moment(
+          meetingTimeInStudentTimezone
+        ).format("DD/MM/YYYY");
+
         let capitalizeFirstLetterOfName =
           student.name.split(" ")[0].charAt(0).toUpperCase() +
           student.name.split(" ")[0].slice(1).toLocaleLowerCase();
@@ -477,7 +508,8 @@ exports.createClass = asyncHandler(async (req, res, next) => {
                                   >
                                   We hope you are enjoying your time on Jawwid.<br>
                                   You have been added to class: ${classInfo.name}<br>
-                                  Class will start on ${classInfo.start_date} at ${classInfo.start_time}<br>
+                                  Class will start on ${classInfo.start_date} at ${classInfo.start_time} (as UTC time)<br>
+                                  and on ${studentFormattedDate} at ${studentFormattedTime} (as ${studentTimezone} time)
                                   Meeting link: ${classInfo.classZoomLink}<br>
                                   Meeting password: ${classInfo.meetingPassword}
                                   <br>
@@ -611,7 +643,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
 
     res.status(200).json({
       message: "Success",
-      class: classInfo,
+      class: classInfoObj,
       meetingInfo: meeting,
     });
   } catch (error) {
@@ -1700,7 +1732,7 @@ exports.getClassesGroupedByMonthAndStatus = asyncHandler(
     });
 
     if (query.month) {
-      query.month = parseInt(query.month, 10)
+      query.month = parseInt(query.month, 10);
     }
 
     try {
@@ -1852,8 +1884,3 @@ exports.getClassesGroupedByMonthAndStatus = asyncHandler(
     }
   }
 );
-
-
-
-
-

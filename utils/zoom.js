@@ -1,11 +1,9 @@
 const axios = require("axios");
-const moment = require("moment-timezone");
 
 exports.createMeeting = async function (
   topic,
   duration,
-  start_date,
-  start_time,
+  meetingTime,
   zoom_account_id,
   zoom_client_id,
   zoom_client_Secret
@@ -24,7 +22,7 @@ exports.createMeeting = async function (
 
     if (authResponse.status !== 200) {
       console.log("Unable to get access token");
-      throw new Error("Unable to get access token")
+      throw new Error("Unable to get access token");
     }
 
     const access_token = authResponse.data.access_token;
@@ -34,23 +32,10 @@ exports.createMeeting = async function (
       "Content-Type": "application/json",
     };
 
-    // Combine start_date and start_time to form a datetime string
-    const datetimeString = `${start_date} ${start_time}`;
-
-    // Parse the datetime string with the specified format
-    const formattedDateTime = moment(datetimeString, "DD-MM-YYYY h:mm A");
-
-    // Format the datetime as needed
-    const formattedStartTime = formattedDateTime.utc().format(
-      "YYYY-MM-DDTHH:mm:ss[Z]"
-    );
-
-    console.log("formattedStartTime:", new Date(formattedStartTime));
-    
     const payload = {
       topic: topic,
       duration: duration,
-      start_time: new Date(formattedStartTime),
+      start_time: meetingTime,
       timezone: "UTC",
       type: 2,
     };
@@ -62,17 +47,15 @@ exports.createMeeting = async function (
     );
     if (meetingResponse.status !== 201) {
       console.log("Unable to generate meeting link");
-      throw new Error("Unable to generate meeting link")
+      throw new Error("Unable to generate meeting link");
     }
 
     const response_data = meetingResponse.data;
+
     const content = {
       meeting_url: response_data.join_url,
       password: response_data.password,
-      meetingTime: response_data.start_time,
-      // meetingTime: moment(response_data.start_time)
-      //   .add(2, "hours")
-      //   .toISOString(),
+      meetingTime: new Date(response_data.start_time),
       meeting_uuid: response_data.uuid,
       meetingId: response_data.id,
       host_id: response_data.host_id,
@@ -97,7 +80,6 @@ exports.deleteMeeting = async function (
   zoom_client_Secret
 ) {
   try {
-
     // Authenticate with Zoom to get access token
     const authResponse = await axios.post(
       `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${zoom_account_id}`,
@@ -112,7 +94,7 @@ exports.deleteMeeting = async function (
 
     if (authResponse.status !== 200) {
       console.log("Unable to get access token");
-      throw new Error("Unable to get access token")
+      throw new Error("Unable to get access token");
     }
 
     const access_token = authResponse.data.access_token;
@@ -132,8 +114,7 @@ exports.deleteMeeting = async function (
 
     if (response.status !== 204) {
       console.log("Unable to delete meeting from Zoom");
-      throw new Error("Unable to delete meeting from Zoom")
-
+      throw new Error("Unable to delete meeting from Zoom");
     } else {
       console.log("Meeting deleted successfully from Zoom");
       return "Meeting deleted successfully from Zoom";
