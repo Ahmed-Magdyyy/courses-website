@@ -10,11 +10,15 @@ const classSchema = new mongoose.Schema(
       type: String,
       required: [true, "class date is required"],
     },
-    duration: { type: String, default: 40 },
     start_time: {
       type: String,
       required: [true, "class starting time is required"],
     },
+    meeting_time: {
+      type: Date,
+      required: [true, "class meeting time is required"],
+    },
+    duration: { type: String, default: 40 },
     zoomMeetingId: {
       type: Number,
       required: [true, "zoom meeting id is required"],
@@ -53,14 +57,14 @@ const classSchema = new mongoose.Schema(
     ],
     assignments: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "assignment"
+      ref: "assignment",
     },
   },
-  { 
+  {
     timestamps: {
       timeZone: "UTC", // Set the time zone to UTC
     },
-   }
+  }
 );
 
 classSchema.post("save", async function (doc) {
@@ -83,9 +87,7 @@ classSchema.post("save", async function (doc) {
 
 classSchema.pre("findOneAndDelete", async function (next) {
   const userModel = mongoose.model("user");
-const assignmentModel = require("../models/assignmentModel")
-
-
+  const assignmentModel = require("../models/assignmentModel");
 
   try {
     const classDoc = await this.model.findOne(this.getFilter());
@@ -107,8 +109,9 @@ const assignmentModel = require("../models/assignmentModel")
         }
       );
 
-
-    const deletedAssignments=  await assignmentModel.deleteMany({ class: classId });
+      const deletedAssignments = await assignmentModel.deleteMany({
+        class: classId,
+      });
     }
 
     next();

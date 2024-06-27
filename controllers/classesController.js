@@ -163,6 +163,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       name,
       start_date: formattedDate,
       start_time: formattedTime,
+      meeting_time: meeting.meetingTime,
       duration,
       zoomMeetingId: meeting.meetingId,
       classZoomLink: meeting.meeting_url,
@@ -175,9 +176,6 @@ exports.createClass = asyncHandler(async (req, res, next) => {
         attended: false,
       })),
     });
-
-    const classInfoObj = classInfo.toObject();
-    classInfoObj.meetingTime = meeting.meetingTime;
 
     // Send email to teacher
     if (classInfo.teacher) {
@@ -378,7 +376,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
       populatedClass.studentsEnrolled.forEach(async (student) => {
         studentTimezone = student.timezone;
         const meetingTimeInStudentTimezone = moment.tz(
-          classInfoObj.parsedTime,
+          meeting.meetingTime,
           "DD-MM-YYYY h:mm A",
           studentTimezone
         );
@@ -509,7 +507,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
                                   We hope you are enjoying your time on Jawwid.<br>
                                   You have been added to class: ${classInfo.name}<br>
                                   Class will start on ${classInfo.start_date} at ${classInfo.start_time} (as UTC time)<br>
-                                  and on ${studentFormattedDate} at ${studentFormattedTime} (as ${studentTimezone} time)
+                                  and on ${studentFormattedDate} at ${studentFormattedTime} (as ${studentTimezone} time)<br>
                                   Meeting link: ${classInfo.classZoomLink}<br>
                                   Meeting password: ${classInfo.meetingPassword}
                                   <br>
@@ -643,7 +641,7 @@ exports.createClass = asyncHandler(async (req, res, next) => {
 
     res.status(200).json({
       message: "Success",
-      class: classInfoObj,
+      class: classInfo,
       meetingInfo: meeting,
     });
   } catch (error) {
