@@ -47,6 +47,7 @@ Router.route("/")
     protect,
     allowedTo("superAdmin", "admin"),
     enabledControls("forms"),
+    uploadFiles,
     createForm
   )
   .get(getForms);

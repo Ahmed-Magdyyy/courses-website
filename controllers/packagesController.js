@@ -193,14 +193,19 @@ exports.webhook = asyncHandler(async (req, res, next) => {
 
   switch (event.type) {
     case "checkout.session.completed":
-      if (session.mode === "subscription") {
+
+      if (event.data.object.mode === "subscription") {
         const subscription = await stripe.subscriptions.retrieve(
-          session.subscription
+          event.data.object.subscription
         );
+
         await handleSubscriptionCreated(event.data.object, subscription);
       }
       break;
+<<<<<<< HEAD
       customer.subscription.updated;
+=======
+>>>>>>> 1938824cc134ae3a56ecc9b86405d32a04ee6158
     case "customer.subscription.updated":
       console.log("customer cancelled subscription");
       await handleSubscriptionUpdated(event.data.object);
@@ -435,13 +440,14 @@ exports.getPackageSubscriptions = asyncHandler(async (req, res, next) => {
 // allow student to manage their own subscription
 exports.managePackageSubscription = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
-
+  
   // Find the user by ID
   const user = await User.findById(userId);
-
+  
   if (!user) {
     return res.status(404).json({ message: "User not found" });
   }
+  console.log("tststs", userId);
   console.log(user.subscription.stripeSubscriptionId);
 
   // Check if the user has a Stripe customer ID
