@@ -204,7 +204,7 @@ exports.getCommentsForPost = asyncHandler(async (req, res, next) => {
     const comments = await commentsModel
       .find({ post: postId })
       .sort({ createdAt: -1 })
-      .populate("author", "_id name email phone role")
+      .populate("author", "_id name email phone role image")
       .populate("likes.users", "_id name")
       .skip(skipNum)
       .limit(limitNum);
@@ -225,7 +225,7 @@ exports.getComment = asyncHandler(async (req, res, next) => {
   try {
     const comment = await commentsModel
       .findById(id)
-      .populate("author", "_id name email phone role")
+      .populate("author", "_id name email phone role image")
       .populate("likes.users", "_id name");
     if (!comment) {
       return next(new ApiError("Comment not found", 404));

@@ -7,7 +7,7 @@ const submissionSchema = new mongoose.Schema({
   answers: [
     {
         _id: false,
-      question: { type: String },
+      question: { type: mongoose.Schema.Types.Mixed },
       answer: { type: mongoose.Schema.Types.Mixed },
     },
   ],
