@@ -10,6 +10,7 @@ const {
 } = require("../controllers/formsController");
 
 const {
+  uploadFiles,
   submitForm,
   getFormSubmissions,
   getSpeceficSubmission,
@@ -46,6 +47,7 @@ Router.route("/")
     protect,
     allowedTo("superAdmin", "admin"),
     enabledControls("forms"),
+    uploadFiles,
     createForm
   )
   .get(getForms);
