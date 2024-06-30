@@ -202,13 +202,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
         await handleSubscriptionCreated(event.data.object, subscription);
       }
       break;
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-      customer.subscription.updated;
-=======
->>>>>>> 1938824cc134ae3a56ecc9b86405d32a04ee6158
->>>>>>> 914945cefe39c8273a580c547f94b44a6e22d86c
+
     case "customer.subscription.updated":
       console.log("customer cancelled subscription");
       await handleSubscriptionUpdated(event.data.object);
