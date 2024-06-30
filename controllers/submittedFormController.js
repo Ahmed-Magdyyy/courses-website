@@ -55,9 +55,16 @@ exports.uploadFiles = upload.any();
 
 exports.submitForm = asyncHandler(async (req, res, next) => {
   const { userName, userEmail, formId, question, answer } = req.body;
+  
 
   // Combine the answers array with the file inputs
-  const answers = answer.slice();
+  const answers = answer.slice(); // Create a shallow copy of the answer array
+
+  // Insert the file paths into the answers array at the correct indices
+  req.files.forEach(file => {
+    const index = parseInt(file.fieldname.match(/\d+/)[0], 10);
+    answers[index] = `https://api.jawwid.com/forms/${file.filename}`; // Insert the file path at the correct index
+  });
 
   if (!formId || !answers || answers.length === 0) {
     if (req.files.length > 0) {
@@ -101,6 +108,7 @@ exports.submitForm = asyncHandler(async (req, res, next) => {
       return next(new ApiError(`No form found for this id: ${formId}`, 404));
     }
 
+
     // Validate answer count matches form question count
     if (answers.length !== form.questions.length) {
       if (req.files.length > 0) {
@@ -118,7 +126,6 @@ exports.submitForm = asyncHandler(async (req, res, next) => {
       userName,
       userEmail,
       formId,
-      //   userId: req.user._id ? req.user._id : null, // Set user ID if provided, otherwise null
       answers: answers.map((answer, index) => ({
         question: question[index], // Use form questions for clarity
         answer: answer,
@@ -144,6 +151,7 @@ exports.submitForm = asyncHandler(async (req, res, next) => {
     return next(new ApiError("Error submitting form", 500));
   }
 });
+
 
 exports.getFormSubmissions = asyncHandler(async (req, res, next) => {
   const { formId } = req.params;
