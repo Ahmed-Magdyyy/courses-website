@@ -60,6 +60,12 @@ exports.submitForm = asyncHandler(async (req, res, next) => {
   const answers = answer.slice();
 
   if (!formId || !answers || answers.length === 0) {
+    if (req.files.length > 0) {
+      req.files.forEach((file) => {
+        const fileUrl = `https://api.jawwid.com/forms/${file.filename}`;
+        deleteUploadedFile(fileUrl);
+      });
+    }
     return next(new ApiError("Missing required fields in request body", 400));
   }
 
