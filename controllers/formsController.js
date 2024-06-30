@@ -1,8 +1,23 @@
 const asyncHandler = require("express-async-handler");
+const fs = require("fs");
 
 const ApiError = require("../utils/ApiError");
 const Form = require("../models/formModel");
 const FormSubmission = require("../models/formSubmissionsModel");
+
+// Function to delete uploaded file
+function deleteUploadedFile(fileUrl) {
+  // Extract the filename from the URL
+  const filename = fileUrl.split('/').pop();
+  const filePath = path.join(__dirname, '..', 'uploads', 'forms', filename);
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      console.error("Error deleting file:", err);
+    } else {
+      console.log("File deleted successfully:", filePath);
+    }
+  });
+}
 
 exports.createForm = asyncHandler(async (req, res, next) => {
   const { name, questions } = req.body;
@@ -74,6 +89,23 @@ exports.getSpecificForm = asyncHandler(async (req, res, next) => {
   res.status(200).json({ form });
 });
 
+// exports.deleteForm = asyncHandler(async (req, res, next) => {
+//   const { formId } = req.params;
+
+//   const form = await Form.findById(formId);
+
+//   if (!form) {
+//     return next(new ApiError(`No form found for this id:${formId}`, 404));
+//   }
+
+//   await Form.findByIdAndDelete(formId);
+//   await FormSubmission.deleteMany({ formId });
+
+//   res.status(204).send("form deleted successfully");
+// });
+
+
+
 exports.deleteForm = asyncHandler(async (req, res, next) => {
   const { formId } = req.params;
 
@@ -83,8 +115,24 @@ exports.deleteForm = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No form found for this id:${formId}`, 404));
   }
 
-  await Form.findByIdAndDelete(formId);
+  // Get all submissions related to the form
+  const submissions = await FormSubmission.find({ formId });
+
+  // Iterate over each submission and delete associated files
+  submissions.forEach(submission => {
+    submission.answers.forEach(answer => {
+      if (typeof answer.answer === 'string' && answer.answer.includes('form-file-')) {
+        deleteUploadedFile(answer.answer);
+      }
+    });
+  });
+
+  // Delete all submissions related to the form
   await FormSubmission.deleteMany({ formId });
 
-  res.status(204).send("form deleted successfully");
+  // Delete the form itself
+  await Form.findByIdAndDelete(formId);
+
+  res.status(204).send("Form and related submissions deleted successfully");
 });
+
