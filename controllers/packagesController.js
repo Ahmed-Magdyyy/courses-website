@@ -75,7 +75,6 @@ exports.getSpeceficPackage = asyncHandler(async (req, res, next) => {
   );
 
   res.status(200).json({ message: "Success", package });
-
 });
 
 exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
@@ -94,19 +93,15 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No package found`, 400));
   }
 
-  console.log("currency",currency)
-  console.log("selectedPackage",selectedPackage)
-
   const selectedPrice = selectedPackage.prices.find(
     (price) => price.currency.toLowerCase() === currency.toLowerCase()
   );
 
-  console.log("selectedPrice",selectedPrice)
-
-  if(!selectedPrice) {
-    return next(new ApiError(`No price found for the currency you entered`, 400));
+  if (!selectedPrice) {
+    return next(
+      new ApiError(`No price found for the currency you entered`, 400)
+    );
   }
-
 
   const priceId = selectedPrice.stripePriceId;
 
@@ -207,6 +202,13 @@ exports.webhook = asyncHandler(async (req, res, next) => {
         await handleSubscriptionCreated(event.data.object, subscription);
       }
       break;
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+      customer.subscription.updated;
+=======
+>>>>>>> 1938824cc134ae3a56ecc9b86405d32a04ee6158
+>>>>>>> 914945cefe39c8273a580c547f94b44a6e22d86c
     case "customer.subscription.updated":
       console.log("customer cancelled subscription");
       await handleSubscriptionUpdated(event.data.object);
@@ -218,7 +220,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   res.json({ received: true });
 });
 
-async function handleSubscriptionCreated(session, subscription) {
+const handleSubscriptionCreated = async (session, subscription) => {
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
 
@@ -239,7 +241,7 @@ async function handleSubscriptionCreated(session, subscription) {
   } else {
     console.log(`User not found for ID: ${userId}`);
   }
-}
+};
 
 const handleSubscriptionUpdated = async (subscription) => {
   const user = await User.findOne({
@@ -473,14 +475,16 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
 
     // Validate page and limit parameters (optional, for extra security)
     if (page < 1 || limit < 1 || limit > 100) {
-      return res.status(400).json({ message: 'Invalid page or limit parameters' });
+      return res
+        .status(400)
+        .json({ message: "Invalid page or limit parameters" });
     }
 
     const startingAfter = req.query.starting_after; // Optional cursor for pagination
-    const endingBefore = req.query.ending_before;   // Optional cursor for pagination (mutually exclusive with startingAfter)
+    const endingBefore = req.query.ending_before; // Optional cursor for pagination (mutually exclusive with startingAfter)
 
     const stripeParams = {
-      status: 'paid',
+      status: "paid",
       limit: Math.min(limit, 100), // Enforce maximum limit of 100 for security
     };
 
@@ -497,9 +501,9 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
     const paidInvoices = invoices.data.map((invoice) => ({
       invoiceId: invoice.id,
       invoice_number: invoice.number,
-      customer_name: invoice.customer_name || 'N/A', // Fallback if customer_name is not available
+      customer_name: invoice.customer_name || "N/A", // Fallback if customer_name is not available
       customer_email: invoice.customer_email,
-      package_name: invoice.lines.data[0].description.split('× ')[1],
+      package_name: invoice.lines.data[0].description.split("× ")[1],
       amount_paid: invoice.amount_paid / 100,
       currency: invoice.currency.toUpperCase(),
       subscription_start: new Date(invoice.lines.data[0].period.start * 1000),
@@ -513,7 +517,7 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
     const nextStartingAfter = invoices.data[invoices.data.length - 1].id; // Get next page cursor (starting_after)
 
     res.status(200).json({
-      message: 'Success',
+      message: "Success",
       data: paidInvoices,
       pagination: {
         hasNextPage,
@@ -521,8 +525,7 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching invoices:', error);
-    res.status(500).json({ message: 'Error fetching invoices', error });
+    console.error("Error fetching invoices:", error);
+    res.status(500).json({ message: "Error fetching invoices", error });
   }
 });
-

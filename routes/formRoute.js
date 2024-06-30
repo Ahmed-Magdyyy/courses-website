@@ -67,7 +67,7 @@ Router.route("/:formId")
     deleteForm
   );
 
-Router.route("/submit").post(submitForm);
+Router.route("/submit").post(uploadFiles,submitForm);
 
 Router.route("/submissions/delete/:submissionId").post(submitForm);
 

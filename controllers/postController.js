@@ -570,7 +570,7 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
 
   const posts = await postsModel
     .find(filter)
-    .populate("author", "_id name email phone role")
+    .populate("author", "_id name email phone role image")
     .populate("likes.users", "_id name")
     .sort({ createdAt: -1 })
     .skip(skipNum)
@@ -604,7 +604,7 @@ exports.getPost = asyncHandler(async (req, res, next) => {
 
   const post = await postsModel
     .findOne(filter)
-    .populate("author", "_id name email phone role")
+    .populate("author", "_id name email phone role post")
     .populate("likes.users", "_id name")
     .populate("comments", "_id name")
     .populate({
