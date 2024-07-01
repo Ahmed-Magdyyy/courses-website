@@ -10,6 +10,7 @@ const ApiError = require("../utils/ApiError");
 const Notification = require("../models/notificationModel");
 const sendEmail = require("../utils/sendEmails");
 const { getIO } = require("../socketConfig");
+const { devNull } = require("os");
 
 function deleteUploadedFile(file) {
   if (file) {
@@ -141,7 +142,10 @@ exports.createPost = asyncHandler(async (req, res, next) => {
       content,
       media,
       url,
-      status: req.user.role === "superAdmin" ||req.user.role ===  "admin" ? "approved" : "pending",
+      status:
+        req.user.role === "superAdmin" || req.user.role === "admin"
+          ? "approved"
+          : "pending",
       visibleTo: postVisibleTo,
     });
 
@@ -582,6 +586,13 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
         mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
       });
     }
+
+    if (post.author.image !== null) {
+      const baseUrl = "https://api.jawwid.com/users/";
+      if (!post.author.image.startsWith(baseUrl)) {
+        post.author.image = `${baseUrl}${post.author.image}`;
+      }
+    }
   });
 
   res
@@ -597,14 +608,16 @@ exports.getPost = asyncHandler(async (req, res, next) => {
   // Adjust filter based on user's role
   if (
     req.user.role !== "superAdmin" &&
-    !(req.user.role === "admin" && req.user.enabledControls.includes("timeline"))
+    !(
+      req.user.role === "admin" && req.user.enabledControls.includes("timeline")
+    )
   ) {
     filter.visibleTo = { $in: ["all", req.user.role] };
   }
 
   const post = await postsModel
     .findOne(filter)
-    .populate("author", "_id name email phone role post")
+    .populate("author", "_id name email phone role image")
     .populate("likes.users", "_id name")
     .populate("comments", "_id name")
     .populate({
@@ -632,6 +645,13 @@ exports.getPost = asyncHandler(async (req, res, next) => {
     post.media.forEach((mediaItem) => {
       mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
     });
+  }
+
+  if (post.author.image !== null) {
+    const baseUrl = 'https://api.jawwid.com/users/';
+    if (!post.author.image.startsWith(baseUrl)) {
+      post.author.image = `${baseUrl}${post.author.image}`;
+    }
   }
 
   res.status(200).json({ data: post });
