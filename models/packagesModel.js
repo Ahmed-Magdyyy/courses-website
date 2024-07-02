@@ -82,10 +82,6 @@ const packageSchema = new mongoose.Schema(
         stripePriceId: String,
       },
     ],
-    discountedPrice: {
-      type: Number,
-      default: null,
-    },
     classesNum: {
       type: Number,
       required: [true, "Classes number is required"],
