@@ -74,6 +74,10 @@ exports.getSpeceficPackage = asyncHandler(async (req, res, next) => {
     "_id name email"
   );
 
+  if (!package) {
+    return next(new ApiError(`No package found`, 400));
+  }
+
   res.status(200).json({ message: "Success", package });
 });
 
