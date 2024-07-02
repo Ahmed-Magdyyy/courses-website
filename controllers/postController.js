@@ -134,6 +134,9 @@ exports.createPost = asyncHandler(async (req, res, next) => {
     req.user.role === "superAdmin"
   ) {
     postVisibleTo = visibleTo || "all";
+  } else {
+    return next(new ApiError(`This admin doesn't have access to the timeline`, 403));
+
   }
 
   try {

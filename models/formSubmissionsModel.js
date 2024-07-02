@@ -11,6 +11,10 @@ const submissionSchema = new mongoose.Schema({
       answer: { type: mongoose.Schema.Types.Mixed },
     },
   ],
+}, {
+  timestamps: {
+    timeZone: "UTC", // Set the time zone to UTC
+  }, 
 });
 
 module.exports = mongoose.model("Submission", submissionSchema);
