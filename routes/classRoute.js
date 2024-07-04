@@ -89,12 +89,12 @@ Router.route("/:id/cancelClass").put(
 );
 
 Router.route("/:classId/checkIn").post(
-  allowedTo("superAdmin","teacher"),
+  allowedTo("teacher"),
   classCheckIn
 );
 
 Router.route("/:classId/checkOut").put(
-  allowedTo("superAdmin","teacher"),
+  allowedTo("teacher"),
   classCheckOut
 );
 
