@@ -14,7 +14,8 @@ const {
   getAllClassesByMonthYear,
   getClassesGroupedByMonthAndStatus,
   classCheckIn,
-  classCheckOut
+  classCheckOut,
+  getClassCheckInOut
 } = require("../controllers/classesController");
 
 const {
@@ -25,9 +26,6 @@ const {
 
 // applied on all routes
 Router.use(protect);
-
-
-
 
 Router.route("/")
   .post(
@@ -100,5 +98,10 @@ Router.route("/:classId/checkOut").put(
   classCheckOut
 );
 
+Router.route("/checkInOut/:classId").get(
+  allowedTo("superAdmin","admin","teacher"),
+  enabledControls("classes"),
+  getClassCheckInOut
+);
 
 module.exports = Router;

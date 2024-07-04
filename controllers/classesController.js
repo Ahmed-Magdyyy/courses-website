@@ -1990,3 +1990,24 @@ exports.classCheckOut = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
+
+exports.getClassCheckInOut = asyncHandler(async (req, res, next) => {
+  const { classId } = req.params;
+
+  const cls = await classModel
+    .findById(classId)
+    .populate("teacher", "_id name email phone timezone");
+
+  if (!cls) {
+    return next(new ApiError(`No class found for this id:${classId}`, 404));
+  }
+
+  const classCheckInOut = await checkInOutModel.findOne({class: classId}).populate("class", "_id name start_date start_time meeting_time")
+
+  if (!classCheckInOut) {
+    return next(new ApiError(`No check in and out records for this class`, 404));
+  }
+
+  res.status(200).json(classCheckInOut)
+
+})
