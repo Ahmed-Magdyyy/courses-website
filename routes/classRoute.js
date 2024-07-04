@@ -11,9 +11,10 @@ const {
   removeStudentFromClass,
   classReport,
   cancelClass,
-  zoomWebHook,
   getAllClassesByMonthYear,
-  getClassesGroupedByMonthAndStatus
+  getClassesGroupedByMonthAndStatus,
+  classCheckIn,
+  classCheckOut
 } = require("../controllers/classesController");
 
 const {
@@ -89,7 +90,15 @@ Router.route("/:id/cancelClass").put(
   cancelClass
 );
 
+Router.route("/:classId/checkIn").post(
+  allowedTo("superAdmin","teacher"),
+  classCheckIn
+);
 
+Router.route("/:classId/checkOut").put(
+  allowedTo("superAdmin","teacher"),
+  classCheckOut
+);
 
 
 module.exports = Router;

@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const { createMeeting, deleteMeeting } = require("../utils/zoom");
 const ApiError = require("../utils/ApiError");
 const classModel = require("../models/classModel");
+const checkInOutModel = require("../models/classCheckIn-OutModel");
 const userModel = require("../models/userModel");
 const Notification = require("../models/notificationModel");
 const sendEmail = require("../utils/sendEmails");
@@ -179,6 +180,19 @@ exports.createClass = asyncHandler(async (req, res, next) => {
 
     // Send email to teacher
     if (classInfo.teacher) {
+      const meetingTimeInTeacherTimezone = moment.tz(
+        meeting.meetingTime,
+        "DD-MM-YYYY h:mm A",
+        teacherTimezone
+      );
+      const teacherFormattedTime = moment(meetingTimeInTeacherTimezone).format(
+        "hh:mm A"
+      );
+
+      const teacherFormattedDate = moment(meetingTimeInTeacherTimezone).format(
+        "DD/MM/YYYY"
+      );
+
       let capitalizeFirstLetterOfName =
         teacherExists.name.split(" ")[0].charAt(0).toUpperCase() +
         teacherExists.name.split(" ")[0].slice(1).toLocaleLowerCase();
@@ -297,7 +311,8 @@ exports.createClass = asyncHandler(async (req, res, next) => {
                             >
                             We hope you are enjoying your time on Jawwid.<br>
                             You have been assigned to be the teacher of class: ${classInfo.name}<br>
-                            Class will start on ${classInfo.start_date} at ${classInfo.start_time}<br>
+                            Class will start on ${classInfo.start_date} at ${classInfo.start_time} (as UTC time)<br>
+                            and on ${teacherFormattedDate} at ${teacherFormattedTime} (as ${teacherTimezone} time)<br>
                             Meeting link: ${classInfo.classZoomLink}<br>
                             Meeting password: ${classInfo.meetingPassword}
                             <br>
@@ -1882,3 +1897,96 @@ exports.getClassesGroupedByMonthAndStatus = asyncHandler(
     }
   }
 );
+
+exports.classCheckIn = asyncHandler(async (req, res, next) => {
+  const { classId } = req.params;
+
+  const cls = await classModel
+    .findById(classId)
+    .populate("teacher", "_id name email phone timezone");
+
+  if (!cls) {
+    return next(new ApiError(`No class found for this id:${classId}`, 404));
+  }
+
+  if (cls.teacher._id !== req.user._id) {
+    return next(new ApiError(`you are not the teacher of this class`, 404));
+  }
+
+  if (cls.status !== "scheduled") {
+    return next(
+      new ApiError(`check in only available for scheduled classes`, 400)
+    );
+  }
+
+  const checkInExists = await checkInOutModel.findOne({ class: classId });
+
+  if (checkInExists) {
+    return next(new ApiError(`there is already a check in record for this class`, 500));
+  }
+
+  try {
+    const checkIn = await checkInOutModel.create({
+      class: `${cls._id}`,
+      teacher: req.user._id,
+      checkIn: new Date(
+        moment().tz(cls.teacher.timezone).format("YYYY-MM-DDTHH:mm:ss[Z]")
+      ),
+    });
+
+    res.status(200).json(checkIn);
+  } catch (error) {
+    console.error("Error adding check in record:", error);
+    next(error);
+  }
+});
+
+exports.classCheckOut = asyncHandler(async (req, res, next) => {
+  const { classId } = req.params;
+
+  const cls = await classModel
+    .findById(classId)
+    .populate("teacher", "_id name email phone timezone");
+
+  if (!cls) {
+    return next(new ApiError(`No class found for this id:${classId}`, 404));
+  }
+
+  if (cls.teacher._id !== req.user._id) {
+    return next(new ApiError(`you are not the teacher of this class`, 404));
+  }
+
+  const checkInExists = await checkInOutModel.findOne({ class: classId });
+
+  if (checkInExists && checkInExists.checkOut) {
+    return next(
+      new ApiError(`there is a check out record for this class`, 404)
+    );
+  }
+
+  if (!checkInExists && !checkInExists.checkIn) {
+    return next(
+      new ApiError(
+        `Can't set the check out record untill you check in first`,
+        500
+      )
+    );
+  }
+
+  try {
+    const checkout = await checkInOutModel.findOneAndUpdate(
+      { class: classId },
+      {
+        checkOut: new Date(
+          moment().tz(cls.teacher.timezone).format("YYYY-MM-DDTHH:mm:ss[Z]")
+        ),
+      },
+      { new: true }
+    );
+
+    res.status(200).json(checkout);
+  } catch (error) {
+    console.error("Error adding check out record:", error);
+    next(error);
+  }
+});
