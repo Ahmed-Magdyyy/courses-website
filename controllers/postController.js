@@ -140,7 +140,7 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 
   if (
     !(req.user.role === "admin" &&
-      req.user.enabledControls.includes("timeline"))
+      req.user.enabledControls.includes("timeline")||req.user.role === "superAdmin" )
   ) {
     return next(new ApiError(`This admin doesn't have access to the timeline`, 403));
 
@@ -543,7 +543,7 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
   const { page, limit, status, ...query } = req.query;
 
   // Check if status is "pending" and adjust the filter based on the user's role
-  if (status === "pending") {
+  if (status && status === "pending") {
     if (req.user.role !== "superAdmin") {
       // For non-superAdmin users, only allow viewing their own pending posts
       filter = { status: "pending", author: req.user._id };
@@ -568,12 +568,9 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
 
   // Adjust filter based on user's role
   if (
-    req.user.role !== "superAdmin" &&
-    !(
-      req.user.role === "admin" && req.user.enabledControls.includes("timeline")
-    )
+    req.user.role !== "superAdmin" 
   ) {
-    filter.visibleTo = { $in: ["all", req.user.role] };
+    filter.visibleTo = { $in: req.user.role };
   }
 
   const pageNum = page * 1 || 1;
@@ -617,12 +614,9 @@ exports.getPost = asyncHandler(async (req, res, next) => {
 
   // Adjust filter based on user's role
   if (
-    req.user.role !== "superAdmin" &&
-    !(
-      req.user.role === "admin" && req.user.enabledControls.includes("timeline")
-    )
+    req.user.role !== "superAdmin" 
   ) {
-    filter.visibleTo = { $in: ["all", req.user.role] };
+    filter.visibleTo = { $in: req.user.role };
   }
 
   const post = await postsModel
@@ -775,9 +769,12 @@ exports.changePostVisibleTo = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { visibleTo } = req.body;
 
-  const allowedVisibleToValues = ["all", "student", "teacher", "admin"];
-  if (!allowedVisibleToValues.includes(visibleTo)) {
-    return next(new ApiError(`Invalid visibleTo value: ${visibleTo}`, 400));
+  const allowedVisibleToValues = ["student", "teacher", "admin"];
+  if (
+    !Array.isArray(visibleTo) ||
+    visibleTo.some((role) => !allowedVisibleToValues.includes(role))
+  ) {
+    return next(new ApiError(`Invalid visibleTo values: ${visibleTo}`, 400));
   }
 
   try {
