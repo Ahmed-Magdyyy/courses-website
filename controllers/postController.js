@@ -120,21 +120,28 @@ exports.createPost = asyncHandler(async (req, res, next) => {
   const { content, url, visibleTo } = req.body;
   const media = req.body.media || [];
 
-  const allowedVisibleToValues = ["all", "student", "teacher", "admin"];
+  const allowedVisibleToValues = ["student", "teacher", "admin"];
 
   // Validate visibleTo field
-  if (visibleTo && !allowedVisibleToValues.includes(visibleTo)) {
-    return next(new ApiError(`Invalid visibleTo value: ${visibleTo}`, 400));
+  if (visibleTo && !Array.isArray(visibleTo)) {
+    return next(new ApiError(`Invalid visibleTo value, it should be an array`, 400));
   }
 
-  let postVisibleTo = "all"; //Default value
+  if (visibleTo && !visibleTo.every(v => allowedVisibleToValues.includes(v))) {
+    return next(new ApiError(`Invalid visibleTo values`, 400));
+  }
+
+  // Default to all roles if visibleTo is not provided
+  let postVisibleTo = ["student", "teacher", "admin"]; //Default value
+
+  if (visibleTo && visibleTo.length > 0) {
+    postVisibleTo = visibleTo;
+  }
+
   if (
-    (req.user.role === "admin" &&
-      req.user.enabledControls.includes("timeline")) ||
-    req.user.role === "superAdmin"
+    !(req.user.role === "admin" &&
+      req.user.enabledControls.includes("timeline"))
   ) {
-    postVisibleTo = visibleTo || "all";
-  } else {
     return next(new ApiError(`This admin doesn't have access to the timeline`, 403));
 
   }
