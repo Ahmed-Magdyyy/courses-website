@@ -494,6 +494,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
             zoom_client_id: "$userDetails.zoom_client_id",
             zoom_client_Secret: "$userDetails.zoom_client_Secret",
             zoom_credentials: "$userDetails.zoom_credentials",
+            timezone: "$userDetails.timezone",
             image: {
               $cond: {
                 if: { $ne: ["$userDetails.image", null] },
