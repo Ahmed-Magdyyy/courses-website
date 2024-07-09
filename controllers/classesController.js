@@ -1909,7 +1909,7 @@ exports.classCheckIn = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No class found for this id:${classId}`, 404));
   }
 
-  if (cls.teacher._id !== req.user._id) {
+  if (cls.teacher._id.toString() !== req.user._id.toString()) {
     return next(new ApiError(`you are not the teacher of this class`, 404));
   }
 
@@ -1952,7 +1952,7 @@ exports.classCheckOut = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No class found for this id:${classId}`, 404));
   }
 
-  if (cls.teacher._id !== req.user._id) {
+  if (cls.teacher._id.toString() !== req.user._id.toString()) {
     return next(new ApiError(`you are not the teacher of this class`, 404));
   }
 
