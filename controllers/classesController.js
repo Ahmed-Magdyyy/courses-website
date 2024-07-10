@@ -1985,8 +1985,8 @@ exports.classCheckOut = asyncHandler(async (req, res, next) => {
     );
 
     const ckin= moment(checkout.checkIn)
-    const ck0ut= moment(checkout.checkOut)
-    const duration = moment.duration(ck0ut.diff(ckin));
+    const ckOut= moment(checkout.checkOut)
+    const duration = moment.duration(ckOut.diff(ckin));
     const hours = duration.hours()
     const minutes = duration.minutes()
     const seconds = duration.seconds()
