@@ -1958,18 +1958,18 @@ exports.classCheckOut = asyncHandler(async (req, res, next) => {
 
   const checkInExists = await checkInOutModel.findOne({ class: classId });
 
-  if (checkInExists && checkInExists.checkOut) {
-    return next(
-      new ApiError(`there is a check out record for this class`, 404)
-    );
-  }
-
   if (!checkInExists && !checkInExists.checkIn) {
     return next(
       new ApiError(
         `Can't set the check out record untill you check in first`,
         500
       )
+    );
+  }
+
+  if (checkInExists && checkInExists.checkOut) {
+    return next(
+      new ApiError(`there is a check out record for this class`, 404)
     );
   }
 
