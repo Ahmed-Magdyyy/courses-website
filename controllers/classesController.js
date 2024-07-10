@@ -1984,6 +1984,16 @@ exports.classCheckOut = asyncHandler(async (req, res, next) => {
       { new: true }
     );
 
+    const ckin= moment(checkout.checkIn)
+    const ck0ut= moment(checkout.checkOut)
+    const duration = moment.duration(ck0ut.diff(ckin));
+    const hours = duration.hours()
+    const minutes = duration.minutes()
+    const seconds = duration.seconds()
+
+    checkout.duration = `${hours} hours ${minutes} minutes ${seconds} seconds`
+    await checkout.save()
+
     res.status(200).json(checkout);
   } catch (error) {
     console.error("Error adding check out record:", error);

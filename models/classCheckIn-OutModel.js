@@ -11,6 +11,7 @@ const checkInOutSchema = new mongoose.Schema({
   },
   checkIn: { type: Date, required: true },
   checkOut: { type: Date },
+  duration: String
 });
 
 const checkInOut = mongoose.model("checkInOut", checkInOutSchema);

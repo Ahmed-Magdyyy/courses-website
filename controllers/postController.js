@@ -138,14 +138,6 @@ exports.createPost = asyncHandler(async (req, res, next) => {
     postVisibleTo = visibleTo;
   }
 
-  if (
-    !(req.user.role === "admin" &&
-      req.user.enabledControls.includes("timeline")||req.user.role === "superAdmin" )
-  ) {
-    return next(new ApiError(`This admin doesn't have access to the timeline`, 403));
-
-  }
-
   try {
     const post = await postsModel.create({
       author: req.user._id,
