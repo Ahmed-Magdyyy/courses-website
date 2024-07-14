@@ -662,6 +662,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
           email,
           phone,
           role,
+          timezone
         },
         {
           new: true,
