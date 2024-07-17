@@ -12,6 +12,7 @@ const {
   managePackageSubscription,
   getPackageSubscriptions,
   getAllPaidInvoices,
+  getStudentInvoice,
 } = require("../controllers/packagesController");
 
 const {
@@ -22,6 +23,8 @@ const {
 
 // applied on all routes
 Router.use(protect);
+
+Router.route("/invoices/student").get(allowedTo("superAdmin","student"), getStudentInvoice);
 
 Router.route("/").post(allowedTo("superAdmin"), createPackage).get(getPackages);
 
@@ -63,5 +66,6 @@ Router.route("/:packageId")
     getSpeceficPackage
   )
   .put(allowedTo("superAdmin"), updatePackage);
+
 
 module.exports = Router;

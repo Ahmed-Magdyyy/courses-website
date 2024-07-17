@@ -526,3 +526,34 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Error fetching invoices", error });
   }
 });
+
+exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
+  if (req.user.subscription.stripeCustomerId !== null) {
+    const invoices = await stripe.invoices.list({
+      customer: req.user.subscription.stripeCustomerId,
+    });
+
+    if (invoices) {
+      const studentInvoices = invoices.data.map((invoice) => ({
+        invoiceId: invoice.id,
+        status: invoice.status,
+        invoice_number: invoice.number,
+        customer_name: invoice.customer_name || "N/A", // Fallback if customer_name is not available
+        customer_email: invoice.customer_email,
+        package_name: invoice.lines.data[0].description.split("× ")[1],
+        amount_paid: invoice.amount_paid / 100,
+        currency: invoice.currency.toUpperCase(),
+        subscription_start: new Date(invoice.lines.data[0].period.start * 1000),
+        subscription_end: new Date(invoice.lines.data[0].period.end * 1000),
+        invoice_url: invoice.hosted_invoice_url,
+        invoice_pdf: invoice.invoice_pdf,
+        created_at: new Date(invoice.created * 1000),
+      }));
+
+      res.status(200).json(studentInvoices);
+    }
+  }else {
+    res.status(200).json({message: "No invoices"});
+
+  }
+});
