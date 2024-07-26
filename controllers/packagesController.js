@@ -510,16 +510,16 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
       created_at: new Date(invoice.created * 1000),
     }));
 
-    const hasNextPage = invoices.has_more; // Check for next page based on Stripe response
-    const nextStartingAfter = invoices.data[invoices.data.length - 1].id; // Get next page cursor (starting_after)
+    // const hasNextPage = invoices.has_more; // Check for next page based on Stripe response
+    // const nextStartingAfter = invoices.data[invoices.data.length - 1].id; // Get next page cursor (starting_after)
 
     res.status(200).json({
       message: "Success",
       data: paidInvoices,
-      pagination: {
-        hasNextPage,
-        nextStartingAfter, // Include next page cursor for client-side pagination
-      },
+      // pagination: {
+      //   hasNextPage,
+      //   nextStartingAfter, // Include next page cursor for client-side pagination
+      // },
     });
   } catch (error) {
     console.error("Error fetching invoices:", error);

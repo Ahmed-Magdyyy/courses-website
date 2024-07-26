@@ -49,20 +49,20 @@ Router.route("/:packageId/reactivate").put(
 
 Router.route("/subscriptions").get(
   allowedTo("superAdmin", "admin"),
-  enabledControls("subscription"),
+  enabledControls("subscriptions"),
   getPackageSubscriptions
 );
 
 Router.route("/invoices").get(
   allowedTo("superAdmin", "admin"),
-  enabledControls("subscription"),
+  enabledControls("subscriptions"),
   getAllPaidInvoices
 );
 
 Router.route("/:packageId")
   .get(
     allowedTo("superAdmin", "admin"),
-    enabledControls("subscription"),
+    enabledControls("subscriptions"),
     getSpeceficPackage
   )
   .put(allowedTo("superAdmin"), updatePackage);
