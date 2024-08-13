@@ -24,9 +24,18 @@ const {
 // applied on all routes
 Router.use(protect);
 
-Router.route("/invoices/student").get(allowedTo("superAdmin","student"), getStudentInvoice);
+Router.route("/invoices/student").get(
+  allowedTo("superAdmin", "student"),
+  getStudentInvoice
+);
 
-Router.route("/").post(allowedTo("superAdmin"), createPackage).get(getPackages);
+Router.route("/")
+  .post(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("subscriptions"),
+    createPackage
+  )
+  .get(getPackages);
 
 Router.route("/chackout-session/:packageId").post(
   allowedTo("student"),
@@ -66,6 +75,5 @@ Router.route("/:packageId")
     getSpeceficPackage
   )
   .put(allowedTo("superAdmin"), updatePackage);
-
 
 module.exports = Router;

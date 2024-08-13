@@ -47,11 +47,10 @@ exports.createPackage = asyncHandler(async (req, res, next) => {
 });
 
 exports.getPackages = asyncHandler(async (req, res, next) => {
-  if (req.user.role === "superAdmin") {
-    const packages = await Package.find({}).populate(
-      "visibleTo",
-      "_id name email"
-    );
+  if (req.user.role === "superAdmin" || req.user.role === "admin") {
+    const packages = await Package.find({})
+      .sort({ createdAt: -1 })
+      .populate("visibleTo", "_id name email");
     res.status(200).json({ message: "Success", data: packages });
   } else {
     const packages = await Package.find({
@@ -60,7 +59,9 @@ exports.getPackages = asyncHandler(async (req, res, next) => {
         { visibleTo: { $size: 0 } },
         { visibleTo: { $in: [req.user._id] } },
       ],
-    }).populate("visibleTo", "_id name email");
+    })
+      .sort({ createdAt: -1 })
+      .populate("visibleTo", "_id name email");
 
     res.status(200).json({ message: "Success", data: packages });
   }
@@ -552,8 +553,7 @@ exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
 
       res.status(200).json(studentInvoices);
     }
-  }else {
-    res.status(200).json({message: "No invoices"});
-
+  } else {
+    res.status(200).json({ message: "No invoices" });
   }
 });
