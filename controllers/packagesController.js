@@ -223,7 +223,8 @@ const handleSubscriptionCreated = async (session, subscription) => {
   const user = await User.findById(userId);
 
   if (user) {
-    if (user.role === "student")
+    if (user.role === "student" || user.role === "guest")
+      if (user.role === "guest")  user.role = "student" 
       user.remainingClasses =
         parseInt(user.remainingClasses, 10) +
         parseInt(session.metadata.classesNum, 10);

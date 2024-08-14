@@ -15,7 +15,9 @@ const {
   getClassesGroupedByMonthAndStatus,
   classCheckIn,
   classCheckOut,
-  getClassCheckInOut
+  getClassCheckInOut,
+  createMultipleClasses,
+  createTrailClass
 } = require("../controllers/classesController");
 
 const {
@@ -103,5 +105,19 @@ Router.route("/checkInOut/:classId").get(
   enabledControls("classes"),
   getClassCheckInOut
 );
+
+Router.route("/multipleClasses")
+  .post(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("classes"),
+    createMultipleClasses
+  )
+
+Router.route("/trial")
+  .post(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("classes"),
+    createTrailClass
+  )
 
 module.exports = Router;

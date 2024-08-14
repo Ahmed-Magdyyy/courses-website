@@ -53,6 +53,152 @@ const classNotify = async (array, message, classId) => {
   }
 };
 
+exports.createMultipleClasses = asyncHandler(async (req, res, next) => {
+  try {
+    req.body;
+    const { teacher, students, classes } = req.body;
+
+    // Check if the teacher exists
+    const teacherExists = await userModel.findOne({ _id: teacher });
+    if (!teacherExists) {
+      return res.status(400).json({ message: "Teacher not found" });
+    }
+
+    const teacherTimezone = teacherExists.timezone;
+
+    let decryptedZoomAccountId;
+    let decryptedZoomClientId;
+    let decryptedZoomClientSecret;
+
+    // Decrypt Zoom credentials
+    if (
+      teacherExists.zoom_account_id !== "" &&
+      teacherExists.zoom_account_id !== null &&
+      teacherExists.zoom_account_id !== undefined
+    ) {
+      decryptedZoomAccountId = decryptField(teacherExists.zoom_account_id);
+    } else {
+      return next(
+        new ApiError(`No zoom_account_id provided for this teacher`, 400)
+      );
+    }
+
+    if (
+      teacherExists.zoom_client_id !== "" &&
+      teacherExists.zoom_client_id !== null &&
+      teacherExists.zoom_client_id !== undefined
+    ) {
+      decryptedZoomClientId = decryptField(teacherExists.zoom_client_id);
+    } else {
+      return next(
+        new ApiError(`No zoom_client_id provided for this teacher`, 400)
+      );
+    }
+
+    if (
+      teacherExists.zoom_client_Secret !== "" &&
+      teacherExists.zoom_client_Secret !== null &&
+      teacherExists.zoom_client_Secret !== undefined
+    ) {
+      decryptedZoomClientSecret = decryptField(
+        teacherExists.zoom_client_Secret
+      );
+    } else {
+      return next(
+        new ApiError(`No zoom_client_Secret provided for this teacher`, 400)
+      );
+    }
+
+    // Check if all students exist and have remaining classes greater than 0
+    const invalidStudents = [];
+
+    for (const studentId of students) {
+      const studentExists = await userModel.exists({
+        _id: studentId,
+        remainingClasses: { $gt: 0 },
+      });
+
+      if (!studentExists) {
+        invalidStudents.push(studentId);
+      }
+    }
+
+    if (invalidStudents.length > 0) {
+      return res.status(400).json({
+        message: "Some students do not exist or do not have remaining classes",
+        invalidStudents,
+      });
+    }
+
+    const convertToUTC = (dateTimeString, teacherTimezone) => {
+      const userLocalTime = moment.tz(
+        dateTimeString,
+        "DD-MM-YYYY h:mm A",
+        teacherTimezone
+      );
+
+      // Convert the user's local time to UTC
+      const utcTime = userLocalTime.utc().format("YYYY-MM-DDTHH:mm:ss[Z]");
+
+      return utcTime;
+    };
+
+    const createdClasses = [];
+
+    for (const classData of classes) {
+      const { name, duration, start_date, start_time } = classData;
+
+      const datetimeString = `${start_date} ${start_time}`;
+
+      // Convert the user's local time to UTC
+      const utcTime = convertToUTC(datetimeString, teacherTimezone);
+
+      // Create a Zoom meeting
+      const meeting = await createMeeting(
+        name,
+        duration,
+        new Date(utcTime),
+        decryptedZoomAccountId,
+        decryptedZoomClientId,
+        decryptedZoomClientSecret
+      );
+
+      const formattedTime = moment(meeting.meetingTime).utc().format("hh:mm A");
+      const formattedDate = moment(meeting.meetingTime)
+        .utc()
+        .format("DD/MM/YYYY");
+
+      // Create a new class document
+      const classInfo = await classModel.create({
+        name,
+        start_date: formattedDate,
+        start_time: formattedTime,
+        meeting_time: meeting.meetingTime,
+        duration,
+        zoomMeetingId: meeting.meetingId,
+        classZoomLink: meeting.meeting_url,
+        meetingPassword: meeting.password,
+        teacher,
+        studentsEnrolled: students,
+        attendance: students.map((studentId) => ({
+          student: studentId,
+          attended: false,
+        })),
+      });
+
+      createdClasses.push(classInfo);
+    }
+
+    res.status(200).json({
+      message: "Success",
+      classes: createdClasses,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 exports.createClass = asyncHandler(async (req, res, next) => {
   try {
     const { name, duration, start_date, start_time, teacher, students } =
@@ -411,173 +557,173 @@ exports.createClass = asyncHandler(async (req, res, next) => {
           "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
 
         let emailTamplate = `<!DOCTYPE html>
-            <html lang="en-US">
-              <head>
-                <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-                <title>You have been added to class</title>
-                <meta name="description" content="You have been added to class" />
-                <style type="text/css">
-                  a:hover {
-                    text-decoration: underline !important;
-                  }
-                </style>
-              </head>
-            
-              <body
-                marginheight="0"
-                topmargin="0"
-                marginwidth="0"
-                style="margin: 0px; background-color: #f2f3f8"
-                leftmargin="0"
+          <html lang="en-US">
+            <head>
+              <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+              <title>You have been added to class</title>
+              <meta name="description" content="You have been added to class" />
+              <style type="text/css">
+                a:hover {
+                  text-decoration: underline !important;
+                }
+              </style>
+            </head>
+          
+            <body
+              marginheight="0"
+              topmargin="0"
+              marginwidth="0"
+              style="margin: 0px; background-color: #f2f3f8"
+              leftmargin="0"
+            >
+              <!--100% body table-->
+              <table
+                cellspacing="0"
+                border="0"
+                cellpadding="0"
+                width="100%"
+                bgcolor="#f2f3f8"
+                style="
+                  @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
+                  font-family: 'Open Sans', sans-serif;
+                "
               >
-                <!--100% body table-->
-                <table
-                  cellspacing="0"
-                  border="0"
-                  cellpadding="0"
-                  width="100%"
-                  bgcolor="#f2f3f8"
-                  style="
-                    @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
-                    font-family: 'Open Sans', sans-serif;
-                  "
-                >
-                  <tr>
-                    <td>
-                      <table
-                        style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
-                        width="100%"
-                        border="0"
-                        align="center"
-                        cellpadding="0"
-                        cellspacing="0"
-                      >
-                        <tr>
-                          <td style="height: 80px">&nbsp;</td>
-                        </tr>
-                        <tr>
-                          <td style="text-align: center">
-                            <a
-                              href="https://learning.jawwid.com"
-                              title="logo"
-                              target="_blank"
-                            >
-                              <img width="250" src="${img}" title="logo" alt="logo" />
-                            </a>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="height: 20px">&nbsp;</td>
-                        </tr>
-                        <tr>
-                          <td>
-                            <table
-                              width="95%"
-                              border="0"
-                              align="center"
-                              cellpadding="0"
-                              cellspacing="0"
-                              style="
-                                max-width: 670px;
-                                background: #fff;
-                                border-radius: 3px;
-                                text-align: center;
-                                -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
-                                -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
-                                box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
-                              "
-                            >
-                              <tr>
-                                <td style="height: 40px">&nbsp;</td>
-                              </tr>
-                              <tr>
-                                <td style="padding: 0 35px">
-                                  <span
-                                    style="
-                                      display: inline-block;
-                                      vertical-align: middle;
-                                      margin: 29px 0 26px;
-                                      border-bottom: 1px solid #cecece;
-                                      width: 200px;
-                                    "
-                                  ></span>
-                                  <p
-                                    style="
-                                      color: #455056;
-                                      font-size: 17px;
-                                      line-height: 24px;
-                                      text-align: left;
-                                    "
-                                  >
-                                    Hello ${capitalizeFirstLetterOfName},
-                                  </p>
-                                  <p
-                                    style="
-                                      color: #455056;
-                                      font-size: 17px;
-                                      line-height: 24px;
-                                      text-align: left;
-                                    "
-                                  >
-                                  We hope you are enjoying your time on Jawwid.<br>
-                                  You have been added to class: ${classInfo.name}<br>
-                                  Class will start on ${classInfo.start_date} at ${classInfo.start_time} (as UTC time)<br>
-                                  and on ${studentFormattedDate} at ${studentFormattedTime} (as ${studentTimezone} time)<br>
-                                  Meeting link: ${classInfo.classZoomLink}<br>
-                                  Meeting password: ${classInfo.meetingPassword}
-                                  <br>
-                                  Please make sure to join the meeting on time.
-                            </p>
-                                  
-            
-                                  <br>
-                                  <p
-                                    style="
-                                      margin-top: 3px;
-                                      color: #455056;
-                                      font-size: 17px;
-                                      line-height: 2px;
-                                      text-align: left;
-                                    "
-                                  >
-                                    The Jawwid Team.
-                                  </p>
-                                </td>
-                              </tr>
-                              <tr>
-                                <td style="height: 40px">&nbsp;</td>
-                              </tr>
-                            </table>
-                          </td>
-                        </tr>
-            
-                        <tr>
-                          <td style="height: 20px">&nbsp;</td>
-                        </tr>
-                        <tr>
-                          <td style="text-align: center">
-                            <p
-                              style="
-                                font-size: 14px;
-                                color: rgba(69, 80, 86, 0.7411764705882353);
-                                line-height: 18px;
-                                margin: 0 0 0;
-                              "
-                            >
-                              &copy; <strong>https://learning.jawwid.com</strong>
-                            </p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="height: 80px">&nbsp;</td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-                </table>
-                <!--/100% body table-->
-              </body>
-            </html>`;
+                <tr>
+                  <td>
+                    <table
+                      style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
+                      width="100%"
+                      border="0"
+                      align="center"
+                      cellpadding="0"
+                      cellspacing="0"
+                    >
+                      <tr>
+                        <td style="height: 80px">&nbsp;</td>
+                      </tr>
+                      <tr>
+                        <td style="text-align: center">
+                          <a
+                            href="https://learning.jawwid.com"
+                            title="logo"
+                            target="_blank"
+                          >
+                            <img width="250" src="${img}" title="logo" alt="logo" />
+                          </a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="height: 20px">&nbsp;</td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <table
+                            width="95%"
+                            border="0"
+                            align="center"
+                            cellpadding="0"
+                            cellspacing="0"
+                            style="
+                              max-width: 670px;
+                              background: #fff;
+                              border-radius: 3px;
+                              text-align: center;
+                              -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                              -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                              box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
+                            "
+                          >
+                            <tr>
+                              <td style="height: 40px">&nbsp;</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 0 35px">
+                                <span
+                                  style="
+                                    display: inline-block;
+                                    vertical-align: middle;
+                                    margin: 29px 0 26px;
+                                    border-bottom: 1px solid #cecece;
+                                    width: 200px;
+                                  "
+                                ></span>
+                                <p
+                                  style="
+                                    color: #455056;
+                                    font-size: 17px;
+                                    line-height: 24px;
+                                    text-align: left;
+                                  "
+                                >
+                                  Hello ${capitalizeFirstLetterOfName},
+                                </p>
+                                <p
+                                  style="
+                                    color: #455056;
+                                    font-size: 17px;
+                                    line-height: 24px;
+                                    text-align: left;
+                                  "
+                                >
+                                We hope you are enjoying your time on Jawwid.<br>
+                                You have been added to class: ${classInfo.name}<br>
+                                Class will start on ${classInfo.start_date} at ${classInfo.start_time} (as UTC time)<br>
+                                and on ${studentFormattedDate} at ${studentFormattedTime} (as ${studentTimezone} time)<br>
+                                Meeting link: ${classInfo.classZoomLink}<br>
+                                Meeting password: ${classInfo.meetingPassword}
+                                <br>
+                                Please make sure to join the meeting on time.
+                          </p>
+                                
+          
+                                <br>
+                                <p
+                                  style="
+                                    margin-top: 3px;
+                                    color: #455056;
+                                    font-size: 17px;
+                                    line-height: 2px;
+                                    text-align: left;
+                                  "
+                                >
+                                  The Jawwid Team.
+                                </p>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="height: 40px">&nbsp;</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+          
+                      <tr>
+                        <td style="height: 20px">&nbsp;</td>
+                      </tr>
+                      <tr>
+                        <td style="text-align: center">
+                          <p
+                            style="
+                              font-size: 14px;
+                              color: rgba(69, 80, 86, 0.7411764705882353);
+                              line-height: 18px;
+                              margin: 0 0 0;
+                            "
+                          >
+                            &copy; <strong>https://learning.jawwid.com</strong>
+                          </p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="height: 80px">&nbsp;</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <!--/100% body table-->
+            </body>
+          </html>`;
 
         try {
           await sendEmail({
@@ -653,6 +799,144 @@ exports.createClass = asyncHandler(async (req, res, next) => {
         }
       });
     }
+
+    res.status(200).json({
+      message: "Success",
+      class: classInfo,
+      meetingInfo: meeting,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+exports.createTrailClass = asyncHandler(async (req, res, next) => {
+  try {
+    const { name, duration, start_date, start_time, teacher, students } =
+      req.body;
+
+    // Check if the teacher exists
+    const teacherExists = await userModel.findOne({ _id: teacher });
+    if (!teacherExists) {
+      return res.status(400).json({ message: "Teacher not found" });
+    }
+
+    const teacherTimezone = teacherExists.timezone;
+
+    let decryptedZoomAccountId;
+    let decryptedZoomClientId;
+    let decryptedZoomClientSecret;
+
+    // Decrypt Zoom credentials
+    if (
+      teacherExists.zoom_account_id !== "" &&
+      teacherExists.zoom_account_id !== null &&
+      teacherExists.zoom_account_id !== undefined
+    ) {
+      decryptedZoomAccountId = decryptField(teacherExists.zoom_account_id);
+    } else {
+      return next(
+        new ApiError(`No zoom_account_id provided for this teacher`, 400)
+      );
+    }
+
+    if (
+      teacherExists.zoom_client_id !== "" &&
+      teacherExists.zoom_client_id !== null &&
+      teacherExists.zoom_client_id !== undefined
+    ) {
+      decryptedZoomClientId = decryptField(teacherExists.zoom_client_id);
+    } else {
+      return next(
+        new ApiError(`No zoom_client_id provided for this teacher`, 400)
+      );
+    }
+
+    if (
+      teacherExists.zoom_client_Secret !== "" &&
+      teacherExists.zoom_client_Secret !== null &&
+      teacherExists.zoom_client_Secret !== undefined
+    ) {
+      decryptedZoomClientSecret = decryptField(
+        teacherExists.zoom_client_Secret
+      );
+    } else {
+      return next(
+        new ApiError(`No zoom_client_Secret provided for this teacher`, 400)
+      );
+    }
+
+    // Filter and validate guest students
+    const validStudents = [];
+    const invalidStudents = [];
+    for (const studentId of students) {
+      const studentExists = await userModel.findOne({
+        _id: studentId,
+        role: "guest",
+      });
+      if (studentExists) {
+        validStudents.push(studentId);
+      } else {
+        invalidStudents.push(studentId);
+      }
+    }
+
+    if (invalidStudents.length > 0) {
+      return res.status(400).json({
+        message: "Some students are not guests or do not exist",
+        invalidStudents,
+      });
+    }
+
+    // Combine start_date and start_time to form a datetime string
+    const datetimeString = `${start_date} ${start_time}`;
+
+    // Parse the datetime string using moment-timezone and user's timezone
+    const userLocalTime = moment.tz(
+      datetimeString,
+      "DD-MM-YYYY h:mm A",
+      teacherTimezone
+    );
+
+    // Convert the user's local time to UTC
+    const utcTime = userLocalTime.utc().format("YYYY-MM-DDTHH:mm:ss[Z]");
+
+    // Create a Zoom meeting
+    const meeting = await createMeeting(
+      name,
+      duration,
+      new Date(utcTime),
+      decryptedZoomAccountId,
+      decryptedZoomClientId,
+      decryptedZoomClientSecret
+    );
+
+    const formattedTime = moment(meeting.meetingTime).utc().format("hh:mm A");
+
+    const formattedDate = moment(meeting.meetingTime)
+      .utc()
+      .format("DD/MM/YYYY");
+
+    // Create a new class document
+    const classInfo = await classModel.create({
+      name,
+      start_date: formattedDate,
+      start_time: formattedTime,
+      meeting_time: meeting.meetingTime,
+      duration,
+      zoomMeetingId: meeting.meetingId,
+      classZoomLink: meeting.meeting_url,
+      meetingPassword: meeting.password,
+      teacher,
+      studentsEnrolled: students,
+      // Automatically generate attendance for enrolled students
+      attendance: students.map((studentId) => ({
+        student: studentId,
+        attended: false,
+      })),
+      status: "trial",
+    });
 
     res.status(200).json({
       message: "Success",
@@ -1062,7 +1346,9 @@ exports.classReport = asyncHandler(async (req, res, next) => {
   }
 
   cls.comment = classComment;
-  cls.status = "ended";
+  if (cls.status !== "trial") {
+    cls.status = "ended";
+  }
 
   // Update attendance based on the request body
   for (const attendanceEntry of attendance) {
@@ -1085,11 +1371,19 @@ exports.classReport = asyncHandler(async (req, res, next) => {
       // If the student attended, deduct 1 from remainingClasses using the middleware
       if (attended) {
         const student = await userModel.findById(studentId);
-        if (student.remainingClasses > 0) {
-          const deductionSuccessful = student.deductClassCredit();
-          if (deductionSuccessful) {
-            // If deduction was successful, save the updated user
-            await student.save();
+        if (cls.status !== "tiral") {
+          if (student.remainingClasses > 0) {
+            const deductionSuccessful = student.deductClassCredit();
+            if (deductionSuccessful) {
+              // If deduction was successful, save the updated user
+              await student.save();
+            } else {
+              return next(
+                new ApiError(
+                  `No remaining class credits for student ${studentId}`
+                )
+              );
+            }
           } else {
             return next(
               new ApiError(
@@ -1097,10 +1391,6 @@ exports.classReport = asyncHandler(async (req, res, next) => {
               )
             );
           }
-        } else {
-          return next(
-            new ApiError(`No remaining class credits for student ${studentId}`)
-          );
         }
       }
     } else {
@@ -1913,16 +2203,21 @@ exports.classCheckIn = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`you are not the teacher of this class`, 404));
   }
 
-  if (cls.status !== "scheduled") {
+  if (cls.status !== "scheduled" || cls.status !== "trial") {
     return next(
-      new ApiError(`check in only available for scheduled classes`, 400)
+      new ApiError(
+        `check in only available for scheduled or trial classes`,
+        400
+      )
     );
   }
 
   const checkInExists = await checkInOutModel.findOne({ class: classId });
 
   if (checkInExists) {
-    return next(new ApiError(`there is already a check in record for this class`, 500));
+    return next(
+      new ApiError(`there is already a check in record for this class`, 500)
+    );
   }
 
   try {
@@ -1984,15 +2279,15 @@ exports.classCheckOut = asyncHandler(async (req, res, next) => {
       { new: true }
     );
 
-    const ckin= moment(checkout.checkIn)
-    const ckOut= moment(checkout.checkOut)
+    const ckin = moment(checkout.checkIn);
+    const ckOut = moment(checkout.checkOut);
     const duration = moment.duration(ckOut.diff(ckin));
-    const hours = duration.hours()
-    const minutes = duration.minutes()
-    const seconds = duration.seconds()
+    const hours = duration.hours();
+    const minutes = duration.minutes();
+    const seconds = duration.seconds();
 
-    checkout.duration = `${hours} hours ${minutes} minutes ${seconds} seconds`
-    await checkout.save()
+    checkout.duration = `${hours} hours ${minutes} minutes ${seconds} seconds`;
+    await checkout.save();
 
     res.status(200).json(checkout);
   } catch (error) {
@@ -2012,12 +2307,15 @@ exports.getClassCheckInOut = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No class found for this id:${classId}`, 404));
   }
 
-  const classCheckInOut = await checkInOutModel.findOne({class: classId}).populate("class", "_id name start_date start_time meeting_time")
+  const classCheckInOut = await checkInOutModel
+    .findOne({ class: classId })
+    .populate("class", "_id name start_date start_time meeting_time");
 
   if (!classCheckInOut) {
-    return next(new ApiError(`No check in and out records for this class`, 404));
+    return next(
+      new ApiError(`No check in and out records for this class`, 404)
+    );
   }
 
-  res.status(200).json(classCheckInOut)
-
-})
+  res.status(200).json(classCheckInOut);
+});

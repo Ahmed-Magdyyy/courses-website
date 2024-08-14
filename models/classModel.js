@@ -32,7 +32,7 @@ const classSchema = new mongoose.Schema(
     studentsEnrolled: [{ type: mongoose.Schema.Types.ObjectId, ref: "user" }],
     status: {
       type: String,
-      enum: ["scheduled", "ended", "cancelled"],
+      enum: ["scheduled", "ended", "cancelled","trial"],
       default: "scheduled",
     },
     comment: {

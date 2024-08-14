@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema(
     passwordResetCodeVerified: Boolean,
     role: {
       type: String,
-      enum: ["superAdmin", "admin", "student", "teacher"],
+      enum: ["superAdmin", "admin", "student", "teacher", "guest"],
       default: "student",
     },
     enabledControls: { type: [String] },

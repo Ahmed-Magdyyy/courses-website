@@ -38,7 +38,7 @@ Router.route("/")
   .get(getPackages);
 
 Router.route("/chackout-session/:packageId").post(
-  allowedTo("student"),
+  allowedTo("student", "guest"),
   createCheckoutSession
 );
 

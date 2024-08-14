@@ -428,7 +428,7 @@ exports.getUser = asyncHandler(async (req, res, next) => {
               $filter: {
                 input: {
                   $map: {
-                    input: ["ended", "scheduled", "cancelled"],
+                    input: ["ended", "scheduled", "cancelled", "trial"], // Include "trial"
                     as: "status",
                     in: {
                       $arrayElemAt: [
@@ -563,6 +563,230 @@ exports.getUser = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
+
+
+// exports.getUser = asyncHandler(async (req, res, next) => {
+//   const { id } = req.params;
+
+//   try {
+//     const user = await usersModel.findById(id).lean();
+
+//     if (!user) {
+//       return next(new ApiError(`No user found for this id: ${id}`, 404));
+//     }
+
+//     if (user.role === "teacher") {
+//       const userData = await usersModel.aggregate([
+//         { $match: { _id: new mongoose.Types.ObjectId(id) } },
+//         {
+//           $lookup: {
+//             from: "classes",
+//             localField: "classes",
+//             foreignField: "_id",
+//             as: "classes",
+//           },
+//         },
+//         {
+//           $addFields: {
+//             monthYear: {
+//               $map: {
+//                 input: "$classes",
+//                 as: "class",
+//                 in: {
+//                   month: {
+//                     $month: {
+//                       $dateFromString: {
+//                         dateString: "$$class.start_date",
+//                         format: "%d/%m/%Y",
+//                       },
+//                     },
+//                   },
+//                   year: {
+//                     $year: {
+//                       $dateFromString: {
+//                         dateString: "$$class.start_date",
+//                         format: "%d/%m/%Y",
+//                       },
+//                     },
+//                   },
+//                   status: "$$class.status",
+//                   classId: "$$class._id", // Add class ID
+//                 },
+//               },
+//             },
+//           },
+//         },
+//         { $unwind: { path: "$monthYear", preserveNullAndEmptyArrays: true } },
+//         {
+//           $group: {
+//             _id: {
+//               userId: "$_id",
+//               month: "$monthYear.month",
+//               year: "$monthYear.year",
+//               status: "$monthYear.status",
+//             },
+//             count: { $sum: 1 },
+//             classesId: { $push: "$monthYear.classId" }, // Collect class IDs
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: {
+//               userId: "$_id.userId",
+//               month: "$_id.month",
+//               year: "$_id.year",
+//             },
+//             classesByStatus: {
+//               $push: {
+//                 status: "$_id.status",
+//                 count: "$count",
+//                 classesId: "$classesId", // Include class IDs
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $addFields: {
+//             classesByStatus: {
+//               $filter: {
+//                 input: {
+//                   $map: {
+//                     input: ["ended", "scheduled", "cancelled"],
+//                     as: "status",
+//                     in: {
+//                       $arrayElemAt: [
+//                         {
+//                           $filter: {
+//                             input: "$classesByStatus",
+//                             as: "classStatus",
+//                             cond: { $eq: ["$$classStatus.status", "$$status"] },
+//                           },
+//                         },
+//                         0,
+//                       ],
+//                     },
+//                   },
+//                 },
+//                 as: "classStatus",
+//                 cond: { $ne: ["$$classStatus", null] }, // Filter out null values
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: "$_id.userId",
+//             classes: {
+//               $push: {
+//                 month: "$_id.month",
+//                 year: "$_id.year",
+//                 classesByStatus: "$classesByStatus",
+//               },
+//             },
+//           },
+//         },
+//         {
+//           $lookup: {
+//             from: "users",
+//             localField: "_id",
+//             foreignField: "_id",
+//             as: "userDetails",
+//           },
+//         },
+//         { $unwind: "$userDetails" },
+//         {
+//           $addFields: {
+//             name: "$userDetails.name",
+//             email: "$userDetails.email",
+//             phone: "$userDetails.phone",
+//             role: "$userDetails.role",
+//             password: "$userDetails.password",
+//             passwordChangedAT: "$userDetails.passwordChangedAT",
+//             passwordResetCode: "$userDetails.passwordResetCode",
+//             passwordResetCodeExpire: "$userDetails.passwordResetCodeExpire",
+//             passwordResetCodeVerified: "$userDetails.passwordResetCodeVerified",
+//             enabledControls: "$userDetails.enabledControls",
+//             account_status: "$userDetails.account_status",
+//             active: "$userDetails.active",
+//             courses: "$userDetails.courses",
+//             products: "$userDetails.products",
+//             remainingClasses: "$userDetails.remainingClasses",
+//             createdAt: "$userDetails.createdAt",
+//             updatedAt: "$userDetails.updatedAt",
+//             zoom_account_id: "$userDetails.zoom_account_id",
+//             zoom_client_id: "$userDetails.zoom_client_id",
+//             zoom_client_Secret: "$userDetails.zoom_client_Secret",
+//             zoom_credentials: "$userDetails.zoom_credentials",
+//             timezone: "$userDetails.timezone",
+//             image: {
+//               $cond: {
+//                 if: { $ne: ["$userDetails.image", null] },
+//                 then: {
+//                   $concat: [
+//                     `${process.env.BASE_URL}/users/`,
+//                     "$userDetails.image",
+//                   ],
+//                 },
+//                 else: null,
+//               },
+//             },
+//           },
+//         },
+//         { $project: { userDetails: 0, monthYear: 0 } },
+//       ]);
+
+//       if (userData.length === 0) {
+//         return res
+//           .status(404)
+//           .json({ message: "No user data found in aggregation" });
+//       }
+
+//       const userResult = userData[0];
+
+//       // Additional check to ensure classes is an empty array if no classes found
+//       const teacherClasses = await classModel.find({ teacher: id });
+//       if (teacherClasses.length < 1) {
+//         userResult.classes = [];
+//       }
+
+//       // Decrypt the specified fields
+//       if (
+//         userResult.zoom_account_id !== "" &&
+//         userResult.zoom_account_id !== null &&
+//         userResult.zoom_account_id !== undefined
+//       ) {
+//         userResult.zoom_account_id = decryptField(userResult.zoom_account_id);
+//       }
+//       if (
+//         userResult.zoom_client_id !== "" &&
+//         userResult.zoom_client_id !== null &&
+//         userResult.zoom_client_id !== undefined
+//       ) {
+//         userResult.zoom_client_id = decryptField(userResult.zoom_client_id);
+//       }
+//       if (
+//         userResult.zoom_client_Secret !== "" &&
+//         userResult.zoom_client_Secret !== null &&
+//         userResult.zoom_client_Secret !== undefined
+//       ) {
+//         userResult.zoom_client_Secret = decryptField(
+//           userResult.zoom_client_Secret
+//         );
+//       }
+
+//       res.status(200).json({ data: userResult });
+//     } else {
+//       if (user.image) {
+//         user.image = `${process.env.BASE_URL}/users/${user.image}`;
+//       }
+//       res.status(200).json({ data: user });
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
 
 exports.createUser = asyncHandler(async (req, res, next) => {
   if (req.body.role === "superAdmin") {
