@@ -181,8 +181,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   console.log("====================================");
   console.log("webhook hitted");
   console.log("====================================");
-
-  const sig = req.headers['Stripe-Signature'];
+  const sig = req.headers["stripe-signature"];
 
   let event;
 
