@@ -27,14 +27,14 @@ Router.route("/")
     createMaterial
   )
   .get(
-    allowedTo("superAdmin", "admin", "teacher", "student"),
+    allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
     enabledControls("materials"),
     getAllMaterials
   );
 
 Router.route("/:id")
   .get(
-    allowedTo("superAdmin", "admin", "teacher", "student"),
+    allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
     enabledControls("materials"),
     getMaterial
   )

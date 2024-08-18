@@ -24,37 +24,37 @@ Router.use(protect);
 
 Router.route("/")
   .post(
-    allowedTo("superAdmin", "admin", "teacher", "student"),
+    allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
     enabledControls("timeline"),
     uploadPostMedia,
     createPost
   )
   .get(
-    allowedTo("superAdmin", "admin", "teacher", "student"),
+    allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
     enabledControls("timeline"),
     getAllPosts
   );
 
 Router.route("/:id")
   .get(
-    allowedTo("superAdmin", "admin", "teacher", "student"),
+    allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
     enabledControls("timeline"),
     getPost
   )
   .put(
-    allowedTo("superAdmin", "admin", "teacher", "student"),
+    allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
     enabledControls("timeline"),
     uploadPostMedia,
     editPost
   )
   .delete(
-    allowedTo("superAdmin", "admin", "teacher", "student"),
+    allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
     enabledControls("timeline"),
     deletePost
   );
 
 Router.route("/:id/like").put(
-  allowedTo("superAdmin", "admin", "teacher", "student"),
+  allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
   enabledControls("timeline"),
   toggleLike
 );

@@ -21,7 +21,7 @@ const {
     enabledControls("classes"),
     createReport
   ).get(
-    allowedTo("superAdmin", "admin", "teacher","student"),
+    allowedTo("superAdmin", "admin", "teacher","student", "guest"),
     enabledControls("classes"),
     getReport
   )

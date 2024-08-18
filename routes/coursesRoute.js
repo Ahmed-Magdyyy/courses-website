@@ -30,14 +30,14 @@ Router.route("/")
     createCourse
   )
   .get(
-    allowedTo("superAdmin", "admin", "student"),
+    allowedTo("superAdmin", "admin", "student", "guest"),
     enabledControls("courses"),
     getAllCourses
   );
 
 Router.route("/:id")
   .get(
-    allowedTo("superAdmin", "admin", "student"),
+    allowedTo("superAdmin", "admin", "student", "guest"),
     enabledControls("courses"),
     getCourse
   )

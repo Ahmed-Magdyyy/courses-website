@@ -20,7 +20,7 @@ const {
 // applied on all routes
 Router.use(protect);
 Router.use(
-  allowedTo("superAdmin", "admin", "teacher", "student"),
+  allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
   enabledControls("timeline")
 );
 

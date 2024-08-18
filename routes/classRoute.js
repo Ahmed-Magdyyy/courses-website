@@ -36,19 +36,19 @@ Router.route("/")
     createClass
   )
   .get(
-    allowedTo("superAdmin", "admin", "teacher", "student"),
+    allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
     enabledControls("classes"),
     getAllClasses
   );
 
   Router.route("/classesByMonth").get(
-    allowedTo("superAdmin", "admin", "teacher", "student"),
+    allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
     enabledControls("classes"),
     getClassesGroupedByMonthAndStatus
   );
 
 Router.route("/month-year").get(
-  allowedTo("superAdmin", "admin", "teacher", "student"),
+  allowedTo("superAdmin", "admin", "teacher", "student", "guest"),
   enabledControls("classes"),
   getAllClassesByMonthYear
 );

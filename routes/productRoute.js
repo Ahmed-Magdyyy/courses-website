@@ -30,14 +30,14 @@ Router.route("/")
     createProduct
   )
   .get(
-    allowedTo("superAdmin", "admin", "student"),
+    allowedTo("superAdmin", "admin", "student", "guest"),
     enabledControls("products"),
     getAllProducts
   );
 
 Router.route("/:id")
   .get(
-    allowedTo("superAdmin", "admin", "student"),
+    allowedTo("superAdmin", "admin", "student", "guest"),
     enabledControls("products"),
     getProduct
   )
