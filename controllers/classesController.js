@@ -966,7 +966,7 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
     }
   });
 
-  if (req.user.role === "student") {
+  if (req.user.role === "student" || req.user.role === "guest") {
     const totalClassesCount = await classModel.countDocuments({
       studentsEnrolled: { $in: [req.user._id] },
       ...filter,
