@@ -634,8 +634,8 @@ exports.getBankTransferConfirmations = asyncHandler(async (req,res,next)=>{
     }
   });
 
-  const totalMaterialsCount = await materialModel.countDocuments(filter);
-  const totalPages = Math.ceil(totalMaterialsCount / limitNum);
+  const totalBankTransfersCount = await bankTransfereModel.countDocuments(filter);
+  const totalPages = Math.ceil(totalBankTransfersCount / limitNum);
 
   const documents = bankTransfereModel
   .find(filter)
