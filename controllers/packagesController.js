@@ -608,5 +608,7 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
     subscription_end,
   });
 
-  res.status(200).json({message: 'Success', bankTransferConfirmation})
+  const populatedBankTransferConfirmation= (await bankTransferConfirmation.populate("student", "name email")).populate("package", "name")
+
+  res.status(200).json({message: 'Success', populatedBankTransferConfirmation})
 });

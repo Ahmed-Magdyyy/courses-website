@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const bankTransferSchema = new mongoose.Schema(
   {
+    referenceNum: String,
     student: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
