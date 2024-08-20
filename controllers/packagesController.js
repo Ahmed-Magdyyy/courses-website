@@ -185,10 +185,6 @@ exports.webhook = asyncHandler(async (req, res, next) => {
 
   let event;
 
-  console.log("====================================");
-  console.log("event", event);
-  console.log("====================================");
-
   try {
     event = stripe.webhooks.constructEvent(
       req.body,
@@ -199,6 +195,10 @@ exports.webhook = asyncHandler(async (req, res, next) => {
     console.error(`Webhook Error: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  console.log("====================================");
+  console.log("event", event);
+  console.log("====================================");
 
   switch (event.type) {
     case "checkout.session.completed":
@@ -581,5 +581,5 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
 
 
 
-
+  
 })
