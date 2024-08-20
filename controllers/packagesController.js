@@ -4,7 +4,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const ApiError = require("../utils/ApiError");
 const User = require("../models/userModel");
 const Package = require("../models/packagesModel");
-const bankTransfereModel = require("../models/bankTransfereModel");
+const bankTransferModel = require("../models/bankTransfereModel");
 
 exports.createPackage = asyncHandler(async (req, res, next) => {
   const { title, prices, classesNum, visibleTo } = req.body;
@@ -599,7 +599,7 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
 
   await user.save();
 
-  const bankTransferConfirmation = await bankTransfereModel.create({
+  const bankTransferConfirmation = await bankTransferModel.create({
     referenceNum,
     student,
     amountReceived,
@@ -609,7 +609,7 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
     subscription_end,
   });
 
-const populatedBankTransferConfirmation = await bankTransfereModel
+const populatedBankTransferConfirmation = await bankTransferModel
 .findById(bankTransferConfirmation._id)
 .populate("student", "name email")
 .populate("packageId", "title");
@@ -634,10 +634,10 @@ exports.getBankTransferConfirmations = asyncHandler(async (req, res, next)=>{
     }
   });
 
-  const totalBankTransfersCount = await bankTransfereModel.countDocuments(filter);
+  const totalBankTransfersCount = await bankTransferModel.countDocuments(filter);
   const totalPages = Math.ceil(totalBankTransfersCount / limitNum);
 
-  const documents = bankTransfereModel
+  const documents = bankTransferModel
   .find(filter)
   .sort({ createdAt: -1 })
   .skip(skipNum)
