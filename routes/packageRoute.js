@@ -14,7 +14,7 @@ const {
   getAllPaidInvoices,
   getStudentInvoice,
   confirmBankTransferPayment,
-  getBankTransferConfirmations,
+  getBankTransfer,
 } = require("../controllers/packagesController");
 
 const {
@@ -86,6 +86,6 @@ Router.route("/bank-transfer")
   ).get(
     allowedTo("superAdmin", "admin"),
     enabledControls("subscriptions"),
-    getBankTransferConfirmations
+    getBankTransfer
   );
 module.exports = Router;

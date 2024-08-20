@@ -617,7 +617,7 @@ const populatedBankTransferConfirmation = await bankTransferModel
   res.status(200).json({message: 'Success', populatedBankTransferConfirmation})
 });
 
-exports.getBankTransferConfirmations = asyncHandler(async (req, res, next)=>{
+exports.getBankTransfer = asyncHandler(async (req, res, next)=>{
   let filter = {};
   const { page, limit, ...query } = req.query;
 
