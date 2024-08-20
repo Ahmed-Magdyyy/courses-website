@@ -600,6 +600,7 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
   await user.save();
 
   const bankTransferConfirmation = await bankTransfereModel.create({
+    referenceNum,
     student,
     amountReceived,
     currency,
@@ -607,10 +608,6 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
     subscription_start,
     subscription_end,
   });
-
-console.log('====================================');
-console.log("bankTransferConfirmation", bankTransferConfirmation);
-console.log('====================================');
 
 const populatedBankTransferConfirmation = await bankTransfereModel
 .findById(bankTransferConfirmation._id)
