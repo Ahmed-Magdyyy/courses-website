@@ -185,6 +185,10 @@ exports.webhook = asyncHandler(async (req, res, next) => {
 
   let event;
 
+  console.log("====================================");
+  console.log("event", event);
+  console.log("====================================");
+
   try {
     event = stripe.webhooks.constructEvent(
       req.body,
@@ -230,6 +234,7 @@ const handleSubscriptionCreated = async (session, subscription) => {
         parseInt(session.metadata.classesNum, 10);
     user.subscriptionStatus = "active";
     user.subscription = {
+      paymentType: "visa",
       package: session.metadata.packageId,
       packageStripeId: session.metadata.stripePackageId,
       stripeSubscriptionId: subscription.id,
@@ -558,3 +563,23 @@ exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
     res.status(200).json({ message: "No invoices" });
   }
 });
+
+exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
+  const {student, amountReceived, currency, package} = req.body;
+  
+  const user = await User.findById(student);
+
+  if (!user) {
+    return next(new ApiError(`No user found`, 400));
+  }
+
+  const selectedPackage = await Package.findById(packageId);
+
+  if (!selectedPackage) {
+    return next(new ApiError(`No package found`, 400));
+  }
+
+
+
+
+})

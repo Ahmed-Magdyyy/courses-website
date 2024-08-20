@@ -91,6 +91,10 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     subscription: {
+      paymentType: {
+        type: String,
+        enum: ["visa", "bank transfer"]
+      },
       package: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Package",
