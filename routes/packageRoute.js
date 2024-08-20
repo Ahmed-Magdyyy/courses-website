@@ -78,7 +78,7 @@ Router.route("/:packageId")
   )
   .put(allowedTo("superAdmin"), updatePackage);
 
-Router.route("/bankTransfer")
+Router.route("/bank-transfer")
   .post(
     allowedTo("superAdmin", "admin"),
     enabledControls("subscriptions"),
