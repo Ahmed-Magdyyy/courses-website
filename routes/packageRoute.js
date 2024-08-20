@@ -13,6 +13,7 @@ const {
   getPackageSubscriptions,
   getAllPaidInvoices,
   getStudentInvoice,
+  confirmBankTransferPayment,
 } = require("../controllers/packagesController");
 
 const {
@@ -76,4 +77,9 @@ Router.route("/:packageId")
   )
   .put(allowedTo("superAdmin"), updatePackage);
 
+Router.route("/confirmBankTransfer").post(
+  allowedTo("superAdmin", "admin"),
+  enabledControls("subscriptions"),
+  confirmBankTransferPayment
+);
 module.exports = Router;

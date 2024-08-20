@@ -4,6 +4,8 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const ApiError = require("../utils/ApiError");
 const User = require("../models/userModel");
 const Package = require("../models/packagesModel");
+const bankTransfer = require("../models/bankTransfer");
+const bankTransfereModel = require("../models/bankTransfereModel");
 
 exports.createPackage = asyncHandler(async (req, res, next) => {
   const { title, prices, classesNum, visibleTo } = req.body;
@@ -196,14 +198,6 @@ exports.webhook = asyncHandler(async (req, res, next) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log("====================================");
-  console.log("event data event", event.data);
-  console.log("event start", event.data.object.current_period_start);
-  console.log("event end", event.data.object.current_period_end);
-  console.log("start",new Date( event.data.object.current_period_start * 1000));
-  console.log("end",new Date( event.data.object.current_period_end * 1000));
-  console.log("====================================");
-
   switch (event.type) {
     case "checkout.session.completed":
       if (event.data.object.mode === "subscription") {
@@ -229,13 +223,15 @@ exports.webhook = asyncHandler(async (req, res, next) => {
 const handleSubscriptionCreated = async (session, subscription) => {
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
+  const subscription_start = new Date(session.current_period_start * 1000);
+  const subscription_end = new Date(session.current_period_end * 1000);
 
   if (user) {
     if (user.role === "student" || user.role === "guest")
-      if (user.role === "guest")  user.role = "student" 
-      user.remainingClasses =
-        parseInt(user.remainingClasses, 10) +
-        parseInt(session.metadata.classesNum, 10);
+      if (user.role === "guest") user.role = "student";
+    user.remainingClasses =
+      parseInt(user.remainingClasses, 10) +
+      parseInt(session.metadata.classesNum, 10);
     user.subscriptionStatus = "active";
     user.subscription = {
       paymentType: "visa",
@@ -243,6 +239,8 @@ const handleSubscriptionCreated = async (session, subscription) => {
       packageStripeId: session.metadata.stripePackageId,
       stripeSubscriptionId: subscription.id,
       stripeCustomerId: session.customer,
+      subscription_start: subscription_start.split("T")[0],
+      subscription_end: subscription_end.split("T")[0],
     };
     await user.save();
     console.log(`Subscription started for user: ${user.email}`);
@@ -569,8 +567,15 @@ exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
 });
 
 exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
-  const {student, amountReceived, currency, package} = req.body;
-  
+  const {
+    student,
+    amountReceived,
+    currency,
+    packageId,
+    subscription_start,
+    subscription_end,
+  } = req.body;
+
   const user = await User.findById(student);
 
   if (!user) {
@@ -583,7 +588,25 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No package found`, 400));
   }
 
+  user.subscriptionStatus = "active";
+  user.subscription.paymentType = "bank transfer";
+  user.subscription.package = selectedPackage._id;
+  user.subscription.subscription_start = subscription_start;
+  user.subscription.subscription_end = subscription_end;
+  user.remainingClasses =
+    parseInt(user.remainingClasses, 10) +
+    parseInt(selectedPackage.classesNum, 10);
 
+  await user.save();
 
-  
-})
+  const bankTransferConfirmation = await bankTransfereModel.create({
+    student,
+    amountReceived,
+    currency,
+    selectedPackage: selectedPackage._id,
+    subscription_start,
+    subscription_end,
+  });
+
+  res.status(200).json({message: 'Success', bankTransferConfirmation})
+});

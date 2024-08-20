@@ -115,7 +115,9 @@ const userSchema = new mongoose.Schema(
       stripeInvoiceId:{
         type: String,
         default: null,
-      }
+      },
+      subscription_start: String,
+      subscription_end: String,
     },
     timezone: {
       type: String,
