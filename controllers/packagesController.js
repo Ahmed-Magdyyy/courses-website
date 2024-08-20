@@ -612,12 +612,7 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
     subscription_end,
   });
 
-const populatedBankTransferConfirmation = await bankTransferModel
-.findById(bankTransferConfirmation._id)
-.populate("student", "name email")
-.populate("packageId", "title");
-
-  res.status(200).json({message: 'Success', populatedBankTransferConfirmation})
+  res.status(200).json({message: 'Success', bankTransferConfirmation})
 });
 
 exports.getBankTransfer = asyncHandler(async (req, res, next)=>{
