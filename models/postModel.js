@@ -37,7 +37,7 @@ const postSchema = new mongoose.Schema(
     },
     visibleTo: {
       type: [String],
-      enum: ["student", "teacher", "admin"],
+      enum: ["student", "teacher", "admin", "guest"],
       default: "all",
     },
   },
