@@ -567,6 +567,7 @@ exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
 
 exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
   const {
+    referenceNum,
     student,
     amountReceived,
     currency,
@@ -602,12 +603,54 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
     student,
     amountReceived,
     currency,
-    selectedPackage: selectedPackage._id,
+    packageId: selectedPackage._id,
     subscription_start,
     subscription_end,
   });
 
-  const populatedBankTransferConfirmation= await bankTransferConfirmation.populate("student", "name email").populate("package", "name")
+console.log('====================================');
+console.log("bankTransferConfirmation", bankTransferConfirmation);
+console.log('====================================');
+
+const populatedBankTransferConfirmation = await bankTransfereModel
+.findById(bankTransferConfirmation._id)
+.populate("student", "name email")
+.populate("packageId", "title");
 
   res.status(200).json({message: 'Success', populatedBankTransferConfirmation})
 });
+
+exports.getBankTransferConfirmations = asyncHandler(async (req,res,next)=>{
+  let filter = {};
+  const { page, limit, ...query } = req.query;
+
+  const pageNum = page * 1 || 1;
+  const limitNum = limit * 1 || 5;
+  const skipNum = (pageNum - 1) * limit;
+
+  // Modify the filter to support partial matches for string fields
+  Object.keys(query).forEach((key) => {
+    if (typeof query[key] === "string") {
+      filter[key] = { $regex: query[key], $options: "i" }; // Case-insensitive partial match
+    } else {
+      filter[key] = query[key];
+    }
+  });
+
+  const totalMaterialsCount = await materialModel.countDocuments(filter);
+  const totalPages = Math.ceil(totalMaterialsCount / limitNum);
+
+  const documents = bankTransfereModel
+  .find(filter)
+  .sort({ createdAt: -1 })
+  .skip(skipNum)
+  .limit(limitNum);
+
+  res.status(200).json({
+    totalPages,
+    page: pageNum,
+    results: documents.length,
+    data: documents,
+  });
+
+})
