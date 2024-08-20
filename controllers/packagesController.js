@@ -637,15 +637,11 @@ exports.getBankTransferConfirmations = asyncHandler(async (req, res, next)=>{
   const count = await bankTransferModel.countDocuments(filter);
   const totalPages = Math.ceil(count / limitNum);
 
-  const documents = bankTransferModel
+  const documents =await bankTransferModel
   .find(filter)
   .sort({ createdAt: -1 })
   .skip(skipNum)
   .limit(limitNum);
-
-
-  console.log("documents", documents);
-  
 
   res.status(200).json({
     totalPages,
