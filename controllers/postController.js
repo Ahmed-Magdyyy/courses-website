@@ -120,7 +120,7 @@ exports.createPost = asyncHandler(async (req, res, next) => {
   const { content, url, visibleTo } = req.body;
   const media = req.body.media || [];
 
-  const allowedVisibleToValues = ["student", "teacher", "admin"];
+  const allowedVisibleToValues = ["student", "teacher", "admin", "guest"];
 
   // Validate visibleTo field
   if (visibleTo && !Array.isArray(visibleTo)) {
@@ -132,7 +132,7 @@ exports.createPost = asyncHandler(async (req, res, next) => {
   }
 
   // Default to all roles if visibleTo is not provided
-  let postVisibleTo = ["student", "teacher", "admin"]; //Default value
+  let postVisibleTo = ["student", "teacher", "admin", "guest"]; //Default value
 
   if (visibleTo && visibleTo.length > 0) {
     postVisibleTo = visibleTo;
@@ -761,7 +761,7 @@ exports.changePostVisibleTo = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { visibleTo } = req.body;
 
-  const allowedVisibleToValues = ["student", "teacher", "admin"];
+  const allowedVisibleToValues = ["student", "teacher", "admin", "guest"];
   if (
     !Array.isArray(visibleTo) ||
     visibleTo.some((role) => !allowedVisibleToValues.includes(role))
