@@ -4,7 +4,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const ApiError = require("../utils/ApiError");
 const User = require("../models/userModel");
 const Package = require("../models/packagesModel");
-const bankTransferModel = require("../models/bankTransfereModel");
+const bankTransferModel = require("../models/bankTransferModel");
 
 exports.createPackage = asyncHandler(async (req, res, next) => {
   const { title, prices, classesNum, visibleTo } = req.body;
