@@ -4,7 +4,6 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const ApiError = require("../utils/ApiError");
 const User = require("../models/userModel");
 const Package = require("../models/packagesModel");
-const bankTransfer = require("../models/bankTransfer");
 const bankTransfereModel = require("../models/bankTransfereModel");
 
 exports.createPackage = asyncHandler(async (req, res, next) => {
