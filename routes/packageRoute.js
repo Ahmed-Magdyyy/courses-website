@@ -26,6 +26,17 @@ const {
 // applied on all routes
 Router.use(protect);
 
+Router.route("/bank-transfer")
+  .post(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("subscriptions"),
+    confirmBankTransferPayment
+  ).get(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("subscriptions"),
+    getBankTransfer
+  );
+
 Router.route("/invoices/student").get(
   allowedTo("superAdmin", "student"),
   getStudentInvoice
@@ -78,14 +89,6 @@ Router.route("/:packageId")
   )
   .put(allowedTo("superAdmin"), updatePackage);
 
-Router.route("/bank-transfer")
-  .post(
-    allowedTo("superAdmin", "admin"),
-    enabledControls("subscriptions"),
-    confirmBankTransferPayment
-  ).get(
-    allowedTo("superAdmin", "admin"),
-    enabledControls("subscriptions"),
-    getBankTransfer
-  );
+
+
 module.exports = Router;
