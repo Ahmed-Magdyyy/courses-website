@@ -197,8 +197,10 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   }
 
   console.log("====================================");
-  console.log("event",new Date( event.data.objectcurrent_period_start * 1000));
-  console.log("event",new Date( event.data.objectcurrent_period_end * 1000));
+  console.log("event start", event.data.object.current_period_start);
+  console.log("event end", event.data.object.current_period_end);
+  console.log("start",new Date( event.data.object.current_period_start * 1000));
+  console.log("end",new Date( event.data.object.current_period_end * 1000));
   console.log("====================================");
 
   switch (event.type) {
