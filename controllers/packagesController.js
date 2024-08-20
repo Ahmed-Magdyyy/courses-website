@@ -602,9 +602,12 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
   const bankTransferConfirmation = await bankTransferModel.create({
     referenceNum,
     student,
+    studentName:user.name,
+    studentEmail:user.email,
     amountReceived,
     currency,
     packageId: selectedPackage._id,
+    psckageName: selectedPackage.title,
     subscription_start,
     subscription_end,
   });
