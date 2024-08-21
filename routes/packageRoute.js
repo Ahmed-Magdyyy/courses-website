@@ -31,7 +31,8 @@ Router.route("/bank-transfer")
     allowedTo("superAdmin", "admin"),
     enabledControls("subscriptions"),
     confirmBankTransferPayment
-  ).get(
+  )
+  .get(
     allowedTo("superAdmin", "admin"),
     enabledControls("subscriptions"),
     getBankTransfer
@@ -61,11 +62,13 @@ Router.route("/manage-subscription").get(
 );
 
 Router.route("/:packageId/deactivate").put(
-  allowedTo("superAdmin"),
+  allowedTo("superAdmin", "admin"),
+  enabledControls("subscriptions"),
   deactivatePackage
 );
 Router.route("/:packageId/reactivate").put(
-  allowedTo("superAdmin"),
+  allowedTo("superAdmin", "admin"),
+  enabledControls("subscriptions"),
   reactivatePackage
 );
 
@@ -87,8 +90,10 @@ Router.route("/:packageId")
     enabledControls("subscriptions"),
     getSpeceficPackage
   )
-  .put(allowedTo("superAdmin"), updatePackage);
-
-
+  .put(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("subscriptions"),
+    updatePackage
+  );
 
 module.exports = Router;
