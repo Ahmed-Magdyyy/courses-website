@@ -87,6 +87,7 @@ const userSchema = new mongoose.Schema(
     },
     subscription: {
       type: {
+        type: String,
         enum: ["oneTime", "monthly", null],
         default: null,
       },
