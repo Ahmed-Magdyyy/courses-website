@@ -24,7 +24,7 @@ exports.createPackage = asyncHandler(async (req, res, next) => {
 
     for (const price of prices) {
       // Create a subscription price in Stripe
-      const stripePrice = await stripe.prices.create({
+      const stripeSubscriptionPrice = await stripe.prices.create({
         unit_amount: price.amount * 100,
         currency: price.currency,
         recurring: { interval: "month" },
