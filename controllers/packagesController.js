@@ -392,9 +392,8 @@ const handleSubscriptionCreated = async (session, subscription) => {
   console.log("subscription_end", subscription_end);
   console.log("type start", typeof subscription_end);
   console.log("type end", typeof subscription_end);
-  console.log("subscription_start date", subscription_start.toString().split("T")[0]);
-  console.log("subscription_start type",typeof `${subscription_start.toString().split("T")[0]}`);
-  console.log("subscription_end date", subscription_start.toString().split("T")[0]);
+  console.log("subscription_start date", `${subscription_start}`.split("T")[0]);
+  console.log("subscription_end date", `${subscription_start}`.split("T")[0]);
   console.log('====================================');
 
   if (user) {
@@ -411,8 +410,8 @@ const handleSubscriptionCreated = async (session, subscription) => {
       Status: "active",
       stripeSubscriptionId: subscription.id,
       stripeCustomerId: session.customer,
-      subscription_start: subscription_start.toString().split("T")[0],
-      subscription_end: subscription_end.toString().split("T")[0],
+      subscription_start: `${subscription_start}`.split("T")[0],
+      subscription_end: `${subscription_end}`.split("T")[0],
     };
     await user.save();
     console.log(`Subscription started for user: ${user.email}`);
