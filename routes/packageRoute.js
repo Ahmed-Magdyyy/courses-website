@@ -6,6 +6,7 @@ const {
   getPackages,
   getSpeceficPackage,
   createCheckoutSession,
+  createOneTimePaymentSession,
   updatePackage,
   deactivatePackage,
   reactivatePackage,
@@ -54,6 +55,11 @@ Router.route("/")
 Router.route("/chackout-session/:packageId").post(
   allowedTo("student", "guest"),
   createCheckoutSession
+);
+
+Router.route("/oneTime-chackout-session/:packageId").post(
+  allowedTo("student", "guest"),
+  createOneTimePaymentSession
 );
 
 Router.route("/manage-subscription").get(

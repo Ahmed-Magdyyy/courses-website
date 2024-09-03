@@ -178,6 +178,79 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
   // res.status(200).redirect(session.url);
 });
 
+
+exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
+  const { packageId } = req.params;
+  const { currency } = req.query;
+
+  // Find the user based on the request
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return next(new ApiError(`No user found`, 400));
+  }
+
+  // Find the package based on the package ID
+  const selectedPackage = await Package.findById(packageId);
+  if (!selectedPackage) {
+    return next(new ApiError(`No package found`, 400));
+  }
+
+  // Find the price based on the provided currency
+  const selectedPrice = selectedPackage.prices.find(
+    (price) => price.currency.toLowerCase() === currency.toLowerCase()
+  );
+
+  if (!selectedPrice) {
+    return next(
+      new ApiError(`No price found for the currency you entered`, 400)
+    );
+  }
+
+  const priceId = selectedPrice.stripePriceId;
+
+  // Check if the user already exists in Stripe, if not create a new Stripe customer
+  let stripeCustomer;
+  const customers = await stripe.customers.list({ email: user.email });
+  if (customers.data.length > 0) {
+    stripeCustomer = customers.data[0];
+  } else {
+    stripeCustomer = await stripe.customers.create({
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+    });
+
+    // Update the user in your database with the stripeCustomerId
+    user.subscription.stripeCustomerId = stripeCustomer.id;
+    await user.save();
+  }
+
+  // Create a new one-time payment session
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ],
+    success_url: `https://learning.jawwid.com/subscriptions/packages`,
+    cancel_url: `https://learning.jawwid.com/subscriptions/packages`,
+    customer: stripeCustomer.id,
+    client_reference_id: selectedPackage._id.toString(),
+    metadata: {
+      userId: user._id.toString(),
+      packageId: selectedPackage._id.toString(),
+      stripePackageId: selectedPackage.packageStripeId,
+      classesNum: selectedPackage.classesNum,
+    },
+  });
+
+  res.status(200).json({ message: "One-time payment session created successfully", url: session.url });
+});
+
+
 exports.webhook = asyncHandler(async (req, res, next) => {
   console.log("====================================");
   console.log("webhook hitted");
