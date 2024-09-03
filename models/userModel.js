@@ -85,15 +85,14 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    subscriptionStatus: {
-      type: String,
-      enum: ["active", "cancelled",null],
-      default: null,
-    },
     subscription: {
+      type: {
+        enum: ["oneTime", "monthly", null]
+      },
       paymentType: {
         type: String,
-        enum: ["visa", "bank transfer"]
+        enum: ["visa", "bank transfer"],
+      default: null,
       },
       package: {
         type: mongoose.Schema.Types.ObjectId,
@@ -102,6 +101,11 @@ const userSchema = new mongoose.Schema(
       },
       packageStripeId: {
         type: String,
+        default: null,
+      },
+      Status: {
+        type: String,
+        enum: ["active", "cancelled",null],
         default: null,
       },
       stripeSubscriptionId: {

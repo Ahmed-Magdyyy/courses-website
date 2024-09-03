@@ -264,19 +264,21 @@ exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
   if (!selectedPackage) {
     return next(new ApiError(`No package found`, 400));
   }
-console.log(selectedPackage)
-  console.log('====================================');
-  console.log(selectedPackage.prices.find(
-    (price) => price.currency.toLowerCase() === currency.toLowerCase()
-  ));
-  console.log('====================================');
+  console.log(selectedPackage);
+  console.log("====================================");
+  console.log(
+    selectedPackage.prices.find(
+      (price) => price.currency.toLowerCase() === currency.toLowerCase()
+    )
+  );
+  console.log("====================================");
   // Find the price based on the provided currency
   const selectedPrice = selectedPackage.prices.find(
     (price) => price.currency.toLowerCase() === currency.toLowerCase()
   );
-  console.log('====================================');
+  console.log("====================================");
   console.log(selectedPrice);
-  console.log('====================================');
+  console.log("====================================");
 
   if (!selectedPrice || !selectedPrice.stripePriceId.oneTime) {
     return next(
@@ -325,12 +327,10 @@ console.log(selectedPackage)
     },
   });
 
-  res
-    .status(200)
-    .json({
-      message: "One-time payment session created successfully",
-      url: session.url,
-    });
+  res.status(200).json({
+    message: "One-time payment session created successfully",
+    url: session.url,
+  });
 });
 
 exports.webhook = asyncHandler(async (req, res, next) => {
@@ -351,8 +351,6 @@ exports.webhook = asyncHandler(async (req, res, next) => {
     console.error(`Webhook Error: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-console.log(event.data.object.mode)
-console.log(event.data.object)
   switch (event.type) {
     case "checkout.session.completed":
       if (event.data.object.mode === "subscription") {
@@ -361,6 +359,11 @@ console.log(event.data.object)
         );
 
         await handleSubscriptionCreated(event.data.object, subscription);
+      } else if (event.data.object.mode === "payment") {
+        const paymentIntentId = event.data.object.payment_intent;
+        const paymentIntent = await stripe.paymentIntents.retrieve(
+          paymentIntentId
+        );
       }
       break;
 
@@ -387,11 +390,12 @@ const handleSubscriptionCreated = async (session, subscription) => {
     user.remainingClasses =
       parseInt(user.remainingClasses, 10) +
       parseInt(session.metadata.classesNum, 10);
-    user.subscriptionStatus = "active";
     user.subscription = {
+      type: "monthly",
       paymentType: "visa",
       package: session.metadata.packageId,
       packageStripeId: session.metadata.stripePackageId,
+      Status: "active",
       stripeSubscriptionId: subscription.id,
       stripeCustomerId: session.customer,
       subscription_start: subscription_start.split("T")[0],
@@ -417,6 +421,22 @@ const handleSubscriptionUpdated = async (subscription) => {
 
     // Handle other statuses if needed
     await user.save();
+  }
+};
+
+const handleOneTimePaymentCreated = async (payment) => {
+  const userId = session.metadata.userId;
+  const user = await User.findById(userId);
+
+  if (user) {
+    if (user.role === "student" || user.role === "guest") {
+      user.role = "student";
+      user.remainingClasses =
+        parseInt(user.remainingClasses, 10) +
+        parseInt(session.metadata.classesNum, 10);
+    }
+  } else {
+    console.log(`User not found for ID: ${userId}`);
   }
 };
 
