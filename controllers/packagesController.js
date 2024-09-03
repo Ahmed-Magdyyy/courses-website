@@ -384,6 +384,13 @@ const handleSubscriptionCreated = async (session, subscription) => {
   const subscription_start = new Date(session.current_period_start * 1000);
   const subscription_end = new Date(session.current_period_end * 1000);
 
+  console.log('====================================');
+  console.log("subscription_start" ,subscription_start);
+  console.log("subscription_end", subscription_end);
+  console.log("subscription_start date", subscription_start.split("T")[0]);
+  console.log("subscription_end date", subscription_end.split("T")[0]);
+  console.log('====================================');
+
   if (user) {
     if (user.role === "student" || user.role === "guest")
       if (user.role === "guest") user.role = "student";
