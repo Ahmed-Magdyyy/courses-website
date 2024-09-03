@@ -352,6 +352,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 console.log(event.data.object.mode)
+console.log(event.data.object)
   switch (event.type) {
     case "checkout.session.completed":
       if (event.data.object.mode === "subscription") {
