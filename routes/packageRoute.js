@@ -3,6 +3,7 @@ const Router = express.Router();
 
 const {
   createPackage,
+  createPackage2,
   getPackages,
   getSpeceficPackage,
   createCheckoutSession,
@@ -45,6 +46,14 @@ Router.route("/invoices/student").get(
 );
 
 Router.route("/")
+  .post(
+    allowedTo("superAdmin", "admin"),
+    enabledControls("subscriptions"),
+    createPackage
+  )
+  .get(getPackages);
+
+  Router.route("/create2")
   .post(
     allowedTo("superAdmin", "admin"),
     enabledControls("subscriptions"),
