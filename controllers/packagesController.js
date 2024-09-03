@@ -265,10 +265,18 @@ exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No package found`, 400));
   }
 
+  console.log('====================================');
+  console.log(selectedPackage.prices.find(
+    (price) => price.currency.toLowerCase() === currency.toLowerCase()
+  ));
+  console.log('====================================');
   // Find the price based on the provided currency
   const selectedPrice = selectedPackage.prices.find(
     (price) => price.currency.toLowerCase() === currency.toLowerCase()
   );
+  console.log('====================================');
+  console.log(selectedPrice);
+  console.log('====================================');
 
   if (!selectedPrice || !selectedPrice.stripePriceId.oneTime) {
     return next(
