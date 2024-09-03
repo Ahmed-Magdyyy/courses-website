@@ -53,14 +53,6 @@ Router.route("/")
   )
   .get(getPackages);
 
-  Router.route("/create2")
-  .post(
-    allowedTo("superAdmin", "admin"),
-    enabledControls("subscriptions"),
-    createPackage
-  )
-  .get(getPackages);
-
 Router.route("/chackout-session/:packageId").post(
   allowedTo("student", "guest"),
   createCheckoutSession

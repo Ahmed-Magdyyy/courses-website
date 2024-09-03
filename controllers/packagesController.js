@@ -23,6 +23,7 @@ exports.createPackage = asyncHandler(async (req, res, next) => {
     };
 
     for (const price of prices) {
+      // Create a subscription price in Stripe
       const stripePrice = await stripe.prices.create({
         unit_amount: price.amount * 100,
         currency: price.currency,
@@ -30,10 +31,20 @@ exports.createPackage = asyncHandler(async (req, res, next) => {
         product: product.id,
       });
 
+      // Create a one-time payment price in Stripe
+      const stripeOneTimePrice = await stripe.prices.create({
+        unit_amount: price.amount * 100,
+        currency: price.currency,
+        product: product.id,
+      });
+
       packageData.prices.push({
         currency: price.currency,
         amount: price.amount,
-        stripePriceId: stripePrice.id,
+        stripePriceId: {
+          subscription: stripeSubscriptionPrice.id,
+          oneTime: stripeOneTimePrice.id,
+        },
       });
     }
 
@@ -47,67 +58,66 @@ exports.createPackage = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.createPackage2 = asyncHandler(async (req, res, next) => {
-  const { title, prices, classesNum, visibleTo } = req.body;
+// exports.createPackage2 = asyncHandler(async (req, res, next) => {
+//   const { title, prices, classesNum, visibleTo } = req.body;
 
-  try {
-    // Create a product on Stripe
-    const product = await stripe.products.create({
-      name: title,
-    });
+//   try {
+//     // Create a product on Stripe
+//     const product = await stripe.products.create({
+//       name: title,
+//     });
 
-    // Initialize package data
-    const packageData = {
-      title,
-      prices: [],
-      classesNum,
-      visibleTo: visibleTo || [],
-      packageStripeId: product.id,
-    };
+//     // Initialize package data
+//     const packageData = {
+//       title,
+//       prices: [],
+//       classesNum,
+//       visibleTo: visibleTo || [],
+//       packageStripeId: product.id,
+//     };
 
-    for (const price of prices) {
-      let stripePrice;
+//     for (const price of prices) {
+//       let stripePrice;
 
-      // Validate the payment type
-      if (!["one-time", "subscription"].includes(price.type)) {
-        return next(new ApiError(`Invalid price type: ${price.type}`, 400));
-      }
+//       // Validate the payment type
+//       if (!["one-time", "subscription"].includes(price.type)) {
+//         return next(new ApiError(`Invalid price type: ${price.type}`, 400));
+//       }
 
-      // Create the price based on the payment type
-      if (price.type === "subscription") {
-        stripePrice = await stripe.prices.create({
-          unit_amount: price.amount * 100,
-          currency: price.currency,
-          recurring: { interval: "month" },
-          product: product.id,
-        });
-      } else if (price.type === "one-time") {
-        stripePrice = await stripe.prices.create({
-          unit_amount: price.amount * 100,
-          currency: price.currency,
-          product: product.id,
-        });
-      }
+//       // Create the price based on the payment type
+//       if (price.type === "subscription") {
+//         stripePrice = await stripe.prices.create({
+//           unit_amount: price.amount * 100,
+//           currency: price.currency,
+//           recurring: { interval: "month" },
+//           product: product.id,
+//         });
+//       } else if (price.type === "one-time") {
+//         stripePrice = await stripe.prices.create({
+//           unit_amount: price.amount * 100,
+//           currency: price.currency,
+//           product: product.id,
+//         });
+//       }
 
-      // Add the price to the package data
-      packageData.prices.push({
-        type: price.type,
-        currency: price.currency,
-        amount: price.amount,
-        stripePriceId: stripePrice.id,
-      });
-    }
+//       // Add the price to the package data
+//       packageData.prices.push({
+//         type: price.type,
+//         currency: price.currency,
+//         amount: price.amount,
+//         stripePriceId: stripePrice.id,
+//       });
+//     }
 
-    // Create the package in the database
-    const package = await Package.create(packageData);
+//     // Create the package in the database
+//     const package = await Package.create(packageData);
 
-    res.status(201).json({ message: "Success", data: package });
-  } catch (error) {
-    console.error("Error creating package:", error);
-    next(error);
-  }
-});
-
+//     res.status(201).json({ message: "Success", data: package });
+//   } catch (error) {
+//     console.error("Error creating package:", error);
+//     next(error);
+//   }
+// });
 
 exports.getPackages = asyncHandler(async (req, res, next) => {
   if (req.user.role === "superAdmin" || req.user.role === "admin") {
@@ -165,13 +175,13 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
     (price) => price.currency.toLowerCase() === currency.toLowerCase()
   );
 
-  if (!selectedPrice) {
+  if (!selectedPrice || !selectedPrice.stripePriceId.subscription) {
     return next(
       new ApiError(`No price found for the currency you entered`, 400)
     );
   }
 
-  const priceId = selectedPrice.stripePriceId;
+  const priceId = selectedPrice.stripePriceId.subscription;
 
   // Check if the user already exists in Stripe
   let stripeCustomer;
@@ -237,9 +247,7 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
   res
     .status(200)
     .json({ message: "session created successfully", url: session.url });
-  // res.status(200).redirect(session.url);
 });
-
 
 exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
   const { packageId } = req.params;
@@ -262,13 +270,13 @@ exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
     (price) => price.currency.toLowerCase() === currency.toLowerCase()
   );
 
-  if (!selectedPrice) {
+  if (!selectedPrice || !selectedPrice.stripePriceId.oneTime) {
     return next(
       new ApiError(`No price found for the currency you entered`, 400)
     );
   }
 
-  const priceId = selectedPrice.stripePriceId;
+  const priceId = selectedPrice.stripePriceId.oneTime;
 
   // Check if the user already exists in Stripe, if not create a new Stripe customer
   let stripeCustomer;
@@ -309,9 +317,13 @@ exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
     },
   });
 
-  res.status(200).json({ message: "One-time payment session created successfully", url: session.url });
+  res
+    .status(200)
+    .json({
+      message: "One-time payment session created successfully",
+      url: session.url,
+    });
 });
-
 
 exports.webhook = asyncHandler(async (req, res, next) => {
   console.log("====================================");
@@ -737,8 +749,8 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
   const bankTransferConfirmation = await bankTransferModel.create({
     referenceNum,
     student,
-    studentName:user.name,
-    studentEmail:user.email,
+    studentName: user.name,
+    studentEmail: user.email,
     amountReceived,
     currency,
     packageId: selectedPackage._id,
@@ -747,10 +759,10 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
     subscription_end,
   });
 
-  res.status(200).json({message: 'Success', bankTransferConfirmation})
+  res.status(200).json({ message: "Success", bankTransferConfirmation });
 });
 
-exports.getBankTransfer = asyncHandler(async (req, res, next)=>{
+exports.getBankTransfer = asyncHandler(async (req, res, next) => {
   let filter = {};
   const { page, limit, ...query } = req.query;
 
@@ -770,11 +782,11 @@ exports.getBankTransfer = asyncHandler(async (req, res, next)=>{
   const count = await bankTransferModel.countDocuments(filter);
   const totalPages = Math.ceil(count / limitNum);
 
-  const documents =await bankTransferModel
-  .find(filter)
-  .sort({ createdAt: -1 })
-  .skip(skipNum)
-  .limit(limitNum);
+  const documents = await bankTransferModel
+    .find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skipNum)
+    .limit(limitNum);
 
   res.status(200).json({
     totalPages,
@@ -782,5 +794,4 @@ exports.getBankTransfer = asyncHandler(async (req, res, next)=>{
     results: documents.length,
     data: documents,
   });
-
-})
+});

@@ -18,11 +18,6 @@ const packageSchema = new mongoose.Schema(
     prices: [
       {
         _id: false,
-        type: {
-          type: String,
-          enum: ["one-time", "subscription"],
-          required: true,
-        },
         currency: {
           type: String,
           required: true,
