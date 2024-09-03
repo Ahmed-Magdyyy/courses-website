@@ -381,13 +381,15 @@ exports.webhook = asyncHandler(async (req, res, next) => {
 const handleSubscriptionCreated = async (session, subscription) => {
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
-  const subscription_start = (new Date(subscription.current_period_start * 1000)).toString();
-  const subscription_end = (new Date(subscription.current_period_end * 1000)).toString();
+  const subscription_start = new Date(subscription.current_period_start * 1000);
+  const subscription_end = new Date(subscription.current_period_end * 1000);
 
   console.log('====================================');
 
   console.log("subscription_start" ,subscription_start);
   console.log("subscription_end", subscription_end);
+  console.log("subscription_start",typeof subscription_end);
+  console.log("subscription_end",typeof subscription_end);
   console.log('====================================');
 
   if (user) {
