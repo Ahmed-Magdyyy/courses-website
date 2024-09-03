@@ -88,12 +88,12 @@ const userSchema = new mongoose.Schema(
     subscription: {
       type: {
         enum: ["oneTime", "monthly", null],
-        default: null
+        default: null,
       },
       paymentType: {
         type: String,
         enum: ["visa", "bank transfer"],
-      default: null,
+        default: null,
       },
       package: {
         type: mongoose.Schema.Types.ObjectId,
@@ -106,7 +106,7 @@ const userSchema = new mongoose.Schema(
       },
       Status: {
         type: String,
-        enum: ["active", "cancelled",null],
+        enum: ["active", "cancelled", null],
         default: null,
       },
       stripeSubscriptionId: {
@@ -117,7 +117,7 @@ const userSchema = new mongoose.Schema(
         type: String,
         default: null,
       },
-      stripeInvoiceId:{
+      stripeInvoiceId: {
         type: String,
         default: null,
       },
@@ -127,8 +127,8 @@ const userSchema = new mongoose.Schema(
     timezone: {
       type: String,
       required: true,
-      default: 'UTC'
-    }
+      default: "UTC",
+    },
   },
   {
     timestamps: {
