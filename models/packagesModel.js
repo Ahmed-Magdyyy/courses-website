@@ -5,10 +5,6 @@ const packageSchema = new mongoose.Schema(
     packageStripeId: {
       type: String,
     },
-    stripePriceIds: {
-      usd: { type: String },
-      aed: { type: String },
-    },
     title: {
       type: String,
       required: [true, "Package title is required"],
@@ -26,7 +22,10 @@ const packageSchema = new mongoose.Schema(
           type: Number,
           required: true,
         },
-        stripePriceId: String,
+        stripePriceId: {
+          subscription: { type: String, required: true },
+          oneTime: { type: String, required: true },
+        },
       },
     ],
     classesNum: {
@@ -42,10 +41,10 @@ const packageSchema = new mongoose.Schema(
       ],
       default: [],
     },
-    active:{
+    active: {
       type: Boolean,
-      default: true
-    }
+      default: true,
+    },
   },
   {
     timestamps: {
