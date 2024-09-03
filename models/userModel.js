@@ -87,7 +87,8 @@ const userSchema = new mongoose.Schema(
     },
     subscription: {
       type: {
-        enum: ["oneTime", "monthly", null]
+        enum: ["oneTime", "monthly", null],
+        default: null
       },
       paymentType: {
         type: String,

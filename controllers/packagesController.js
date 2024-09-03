@@ -390,8 +390,11 @@ const handleSubscriptionCreated = async (session, subscription) => {
   console.log("end" ,subscription.current_period_end * 1000);
   console.log("subscription_start" ,subscription_start);
   console.log("subscription_end", subscription_end);
-  console.log("subscription_start date", subscription_start.toString().split("T")[0]);
-  console.log("subscription_end date", subscription_end.toString().split("T")[0]);
+  console.log("type start", typeof subscription_end);
+  console.log("type end", typeof subscription_end);
+  console.log("subscription_start date", `${subscription_start.toString().split("T")[0]}`);
+  console.log("subscription_start type",typeof `${subscription_start.toString().split("T")[0]}`);
+  console.log("subscription_end date", `${subscription_start.toString().split("T")[0]}`);
   console.log('====================================');
 
   if (user) {
