@@ -41,10 +41,7 @@ exports.createPackage = asyncHandler(async (req, res, next) => {
       packageData.prices.push({
         currency: price.currency,
         amount: price.amount,
-        stripePriceId: {
-          subscription: stripeSubscriptionPrice.id,
-          oneTime: stripeOneTimePrice.id,
-        },
+        stripePriceId: stripeSubscriptionPrice.id,
       });
     }
 
