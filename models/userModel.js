@@ -105,7 +105,7 @@ const userSchema = new mongoose.Schema(
         type: String,
         default: null,
       },
-      Status: {
+      status: {
         type: String,
         enum: ["active", "cancelled", null],
         default: null,
