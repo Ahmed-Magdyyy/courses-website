@@ -385,6 +385,8 @@ const handleSubscriptionCreated = async (session, subscription) => {
   const subscription_end = new Date(session.current_period_end * 1000);
 
   console.log('====================================');
+  console.log("start" ,session.current_period_start * 1000);
+  console.log("end" ,session.current_period_end * 1000);
   console.log("subscription_start" ,subscription_start);
   console.log("subscription_end", subscription_end);
   console.log("subscription_start date", subscription_start.split("T")[0]);
