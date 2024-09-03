@@ -264,7 +264,7 @@ exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
   if (!selectedPackage) {
     return next(new ApiError(`No package found`, 400));
   }
-
+console.log(selectedPackage)
   console.log('====================================');
   console.log(selectedPackage.prices.find(
     (price) => price.currency.toLowerCase() === currency.toLowerCase()
@@ -351,7 +351,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
     console.error(`Webhook Error: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-
+console.log(event.data.object.mode)
   switch (event.type) {
     case "checkout.session.completed":
       if (event.data.object.mode === "subscription") {
