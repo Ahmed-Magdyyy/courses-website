@@ -888,7 +888,7 @@ exports.getBankTransfer = asyncHandler(async (req, res, next) => {
 //   }
 // });
 
-exports.getAllPaidCharges = asyncHandler(async (req, res, next) => {
+exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   try {
     // Fetch all paid charges (one-time payments)
     const charges = await stripe.charges.list({
