@@ -888,44 +888,37 @@ exports.getBankTransfer = asyncHandler(async (req, res, next) => {
 //   }
 // });
 
-exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
+exports.getAllPaidCharges = asyncHandler(async (req, res, next) => {
   try {
-    // Fetch all paid invoices
-    const invoices = await stripe.invoices.list({
-      status: "paid",
-      limit: 100, // Set a high limit to ensure fetching as many invoices as possible in one call
+    // Fetch all paid charges (one-time payments)
+    const charges = await stripe.charges.list({
+      limit: 100, // Set a limit to ensure we get enough data in one call
+      paid: true, // Only include charges that have been successfully paid
     });
 
-    // Filter invoices that are NOT associated with subscriptions
-    const oneTimeInvoices = invoices.data.filter(invoice => {
-      // No subscription ID means it could be a one-time payment
-      return !invoice.subscription && invoice.lines.data.some(line => !line.subscription);
-    });
+    console.log(charges)
 
-    const paidInvoices = oneTimeInvoices.map((invoice) => ({
-      invoiceId: invoice.id,
-      invoice_number: invoice.number,
-      customer_name: invoice.customer_name || "N/A",
-      customer_email: invoice.customer_email,
-      package_name: invoice.lines.data[0].description || "One-time payment",
-      amount_paid: invoice.amount_paid / 100,
-      currency: invoice.currency.toUpperCase(),
-      subscription_start: null, // No subscription, so start and end dates are null
-      subscription_end: null,
-      invoice_url: invoice.hosted_invoice_url,
-      invoice_pdf: invoice.invoice_pdf,
-      created_at: new Date(invoice.created * 1000),
+    const paidCharges = charges.data.map((charge) => ({
+      chargeId: charge.id,
+      customer_name: charge.billing_details.name || "N/A",
+      customer_email: charge.billing_details.email || "N/A",
+      description: charge.description || "One-time payment",
+      amount_paid: charge.amount / 100,
+      currency: charge.currency.toUpperCase(),
+      created_at: new Date(charge.created * 1000),
+      receipt_url: charge.receipt_url,
     }));
 
     res.status(200).json({
       message: "Success",
-      data: paidInvoices,
+      data: paidCharges,
     });
   } catch (error) {
-    console.error("Error fetching invoices:", error);
-    res.status(500).json({ message: "Error fetching invoices", error });
+    console.error("Error fetching charges:", error);
+    res.status(500).json({ message: "Error fetching charges", error });
   }
 });
+
 
 
 
