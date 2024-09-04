@@ -384,31 +384,32 @@ const handleSubscriptionCreated = async (session, subscription) => {
   const subscription_start = new Date(subscription.current_period_start * 1000);
   const subscription_end = new Date(subscription.current_period_end * 1000);
 
-  console.log('====================================');
+  console.log("====================================");
 
-  console.log("subscription_start" ,subscription_start);
+  console.log("subscription_start", subscription_start);
   console.log("subscription_end", subscription_end);
-  console.log("subscription_start",typeof subscription_end);
-  console.log("subscription_end",typeof subscription_end);
-  console.log('====================================');
+  console.log("subscription_start", typeof subscription_end);
+  console.log("subscription_end", typeof subscription_end);
+  console.log("====================================");
 
   if (user) {
-    if (user.role === "student" || user.role === "guest")
+    if (user.role === "student" || user.role === "guest") {
       if (user.role === "guest") user.role = "student";
-    user.remainingClasses =
-      parseInt(user.remainingClasses, 10) +
-      parseInt(session.metadata.classesNum, 10);
-    user.subscription = {
-      type: "monthly",
-      paymentType: "visa",
-      package: session.metadata.packageId,
-      packageStripeId: session.metadata.stripePackageId,
-      Status: "active",
-      stripeSubscriptionId: subscription.id,
-      stripeCustomerId: session.customer,
-      subscription_start: subscription_start.toISOString().split("T")[0],
-      subscription_end: subscription_end.toISOString().split("T")[0],
-    };
+      user.remainingClasses =
+        parseInt(user.remainingClasses, 10) +
+        parseInt(session.metadata.classesNum, 10);
+      user.subscription = {
+        type: "monthly",
+        paymentType: "visa",
+        package: session.metadata.packageId,
+        packageStripeId: session.metadata.stripePackageId,
+        Status: "active",
+        stripeSubscriptionId: subscription.id,
+        stripeCustomerId: session.customer,
+        subscription_start: subscription_start.toISOString().split("T")[0],
+        subscription_end: subscription_end.toISOString().split("T")[0],
+      };
+    }
     await user.save();
     console.log(`Subscription started for user: ${user.email}`);
   } else {
