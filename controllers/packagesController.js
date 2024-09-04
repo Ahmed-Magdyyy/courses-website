@@ -847,31 +847,11 @@ exports.getBankTransfer = asyncHandler(async (req, res, next) => {
 
 exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
-
-    // Validate page and limit parameters (optional, for extra security)
-    if (page < 1 || limit < 1 || limit > 100) {
-      return res
-        .status(400)
-        .json({ message: "Invalid page or limit parameters" });
-    }
-
-    const startingAfter = req.query.starting_after; // Optional cursor for pagination
-    const endingBefore = req.query.ending_before; // Optional cursor for pagination (mutually exclusive with startingAfter)
-
-    const stripeParams = {
-      status: "paid",
-      limit: Math.min(limit, 100), // Enforce maximum limit of 100 for security
-    };
-
-    if (startingAfter) {
-      stripeParams.starting_after = startingAfter;
-    } else if (endingBefore) {
-      stripeParams.ending_before = endingBefore;
-    }
-
     // Fetch all paid invoices (both subscription and one-time payment)
-    const invoices = await stripe.invoices.list(stripeParams);
+    const invoices = await stripe.invoices.list({
+      status: "paid",
+      limit: 100, // Set a high limit to ensure fetching as many invoices as possible in one call
+    });
 
     const paidInvoices = invoices.data.map((invoice) => {
       const isSubscription = !!invoice.subscription; // Check if it's a subscription invoice
@@ -908,11 +888,13 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   }
 });
 
+
 exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
   try {
     if (req.user.subscription.stripeCustomerId !== null) {
       const invoices = await stripe.invoices.list({
         customer: req.user.subscription.stripeCustomerId,
+        limit: 100, // Set a high limit to ensure fetching as many invoices as possible in one call
       });
 
       const studentInvoices = invoices.data.map((invoice) => {
@@ -950,3 +932,4 @@ exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Error fetching student invoices", error });
   }
 });
+
