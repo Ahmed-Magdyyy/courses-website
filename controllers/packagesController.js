@@ -845,6 +845,49 @@ exports.getBankTransfer = asyncHandler(async (req, res, next) => {
   });
 });
 
+// exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
+//   try {
+//     // Fetch all paid invoices (both subscription and one-time payment)
+//     const invoices = await stripe.invoices.list({
+//       status: "paid",
+//       limit: 100, // Set a high limit to ensure fetching as many invoices as possible in one call
+//     });
+
+//     const paidInvoices = invoices.data.map((invoice) => {
+//       const isSubscription = !!invoice.subscription; // Check if it's a subscription invoice
+
+//       return {
+//         invoiceId: invoice.id,
+//         invoice_number: invoice.number,
+//         customer_name: invoice.customer_name || "N/A",
+//         customer_email: invoice.customer_email,
+//         package_name: isSubscription
+//           ? invoice.lines.data[0].description.split("× ")[1]
+//           : invoice.lines.data[0].description,
+//         amount_paid: invoice.amount_paid / 100,
+//         currency: invoice.currency.toUpperCase(),
+//         subscription_start: isSubscription
+//           ? new Date(invoice.lines.data[0].period.start * 1000)
+//           : null,
+//         subscription_end: isSubscription
+//           ? new Date(invoice.lines.data[0].period.end * 1000)
+//           : null,
+//         invoice_url: invoice.hosted_invoice_url,
+//         invoice_pdf: invoice.invoice_pdf,
+//         created_at: new Date(invoice.created * 1000),
+//       };
+//     });
+
+//     res.status(200).json({
+//       message: "Success",
+//       data: paidInvoices,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching invoices:", error);
+//     res.status(500).json({ message: "Error fetching invoices", error });
+//   }
+// });
+
 exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   try {
     // Fetch all paid invoices (both subscription and one-time payment)
@@ -853,30 +896,23 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
       limit: 100, // Set a high limit to ensure fetching as many invoices as possible in one call
     });
 
-    const paidInvoices = invoices.data.map((invoice) => {
-      const isSubscription = !!invoice.subscription; // Check if it's a subscription invoice
+    // Filter to only include one-time payment invoices (non-subscription invoices)
+    const oneTimeInvoices = invoices.data.filter(invoice => !invoice.subscription);
 
-      return {
-        invoiceId: invoice.id,
-        invoice_number: invoice.number,
-        customer_name: invoice.customer_name || "N/A",
-        customer_email: invoice.customer_email,
-        package_name: isSubscription
-          ? invoice.lines.data[0].description.split("× ")[1]
-          : invoice.lines.data[0].description,
-        amount_paid: invoice.amount_paid / 100,
-        currency: invoice.currency.toUpperCase(),
-        subscription_start: isSubscription
-          ? new Date(invoice.lines.data[0].period.start * 1000)
-          : null,
-        subscription_end: isSubscription
-          ? new Date(invoice.lines.data[0].period.end * 1000)
-          : null,
-        invoice_url: invoice.hosted_invoice_url,
-        invoice_pdf: invoice.invoice_pdf,
-        created_at: new Date(invoice.created * 1000),
-      };
-    });
+    const paidInvoices = oneTimeInvoices.map((invoice) => ({
+      invoiceId: invoice.id,
+      invoice_number: invoice.number,
+      customer_name: invoice.customer_name || "N/A",
+      customer_email: invoice.customer_email,
+      package_name: invoice.lines.data[0].description,
+      amount_paid: invoice.amount_paid / 100,
+      currency: invoice.currency.toUpperCase(),
+      subscription_start: null, // No subscription, so start and end dates are null
+      subscription_end: null,
+      invoice_url: invoice.hosted_invoice_url,
+      invoice_pdf: invoice.invoice_pdf,
+      created_at: new Date(invoice.created * 1000),
+    }));
 
     res.status(200).json({
       message: "Success",
