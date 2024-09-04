@@ -406,8 +406,8 @@ const handleSubscriptionCreated = async (session, subscription) => {
       Status: "active",
       stripeSubscriptionId: subscription.id,
       stripeCustomerId: session.customer,
-      subscription_start: subscription_start.split("T")[0],
-      subscription_end: subscription_end.split("T")[0],
+      subscription_start: subscription_start.toISOString().split("T")[0],
+      subscription_end: subscription_end.toISOString().split("T")[0],
     };
     await user.save();
     console.log(`Subscription started for user: ${user.email}`);
