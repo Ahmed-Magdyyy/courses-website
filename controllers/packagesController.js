@@ -890,21 +890,24 @@ exports.getBankTransfer = asyncHandler(async (req, res, next) => {
 
 exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   try {
-    // Fetch all paid invoices (both subscription and one-time payment)
+    // Fetch all paid invoices
     const invoices = await stripe.invoices.list({
       status: "paid",
       limit: 100, // Set a high limit to ensure fetching as many invoices as possible in one call
     });
 
-    // Filter to only include one-time payment invoices (non-subscription invoices)
-    const oneTimeInvoices = invoices.data.filter(invoice => !invoice.subscription);
+    // Filter invoices that are NOT associated with subscriptions
+    const oneTimeInvoices = invoices.data.filter(invoice => {
+      // No subscription ID means it could be a one-time payment
+      return !invoice.subscription && invoice.lines.data.some(line => !line.subscription);
+    });
 
     const paidInvoices = oneTimeInvoices.map((invoice) => ({
       invoiceId: invoice.id,
       invoice_number: invoice.number,
       customer_name: invoice.customer_name || "N/A",
       customer_email: invoice.customer_email,
-      package_name: invoice.lines.data[0].description,
+      package_name: invoice.lines.data[0].description || "One-time payment",
       amount_paid: invoice.amount_paid / 100,
       currency: invoice.currency.toUpperCase(),
       subscription_start: null, // No subscription, so start and end dates are null
@@ -923,6 +926,7 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "Error fetching invoices", error });
   }
 });
+
 
 
 exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
