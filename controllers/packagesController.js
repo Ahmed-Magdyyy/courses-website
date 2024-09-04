@@ -364,6 +364,8 @@ exports.webhook = asyncHandler(async (req, res, next) => {
         const paymentIntent = await stripe.paymentIntents.retrieve(
           paymentIntentId
         );
+
+        await handleOneTimePaymentCreated(event.data.object, paymentIntent)
       }
       break;
 
@@ -384,14 +386,6 @@ const handleSubscriptionCreated = async (session, subscription) => {
   const subscription_start = new Date(subscription.current_period_start * 1000);
   const subscription_end = new Date(subscription.current_period_end * 1000);
 
-  console.log("====================================");
-
-  console.log("subscription_start", subscription_start);
-  console.log("subscription_end", subscription_end);
-  console.log("subscription_start", typeof subscription_end);
-  console.log("subscription_end", typeof subscription_end);
-  console.log("====================================");
-
   if (user) {
     if (user.role === "student" || user.role === "guest") {
       if (user.role === "guest") user.role = "student";
@@ -403,7 +397,7 @@ const handleSubscriptionCreated = async (session, subscription) => {
         paymentType: "visa",
         package: session.metadata.packageId,
         packageStripeId: session.metadata.stripePackageId,
-        Status: "active",
+        status: "active",
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: session.customer,
         subscription_start: subscription_start.toISOString().split("T")[0],
@@ -433,9 +427,13 @@ const handleSubscriptionUpdated = async (subscription) => {
   }
 };
 
-const handleOneTimePaymentCreated = async (payment) => {
+const handleOneTimePaymentCreated = async (session, payment) => {
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
+
+  console.log('====================================');
+  console.log("payment:::::", payment);
+  console.log('====================================');
 
   if (user) {
     if (user.role === "student" || user.role === "guest") {
@@ -443,7 +441,20 @@ const handleOneTimePaymentCreated = async (payment) => {
       user.remainingClasses =
         parseInt(user.remainingClasses, 10) +
         parseInt(session.metadata.classesNum, 10);
+      user.subscription = {
+        type: "oneTime",
+        paymentType: "visa",
+        package: session.metadata.packageId,
+        packageStripeId: session.metadata.stripePackageId,
+        status: null,
+        stripeSubscriptionId: null,
+        stripeCustomerId: session.customer,
+        subscription_start: "",
+        subscription_end: "",
+      };
     }
+    await user.save();
+    console.log(`user: ${user.email} made a successful payment`);
   } else {
     console.log(`User not found for ID: ${userId}`);
   }

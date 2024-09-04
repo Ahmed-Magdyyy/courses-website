@@ -118,10 +118,6 @@ const userSchema = new mongoose.Schema(
         type: String,
         default: null,
       },
-      stripeInvoiceId: {
-        type: String,
-        default: null,
-      },
       subscription_start: String,
       subscription_end: String,
     },
