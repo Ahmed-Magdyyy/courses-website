@@ -58,67 +58,6 @@ exports.createPackage = asyncHandler(async (req, res, next) => {
   }
 });
 
-// exports.createPackage2 = asyncHandler(async (req, res, next) => {
-//   const { title, prices, classesNum, visibleTo } = req.body;
-
-//   try {
-//     // Create a product on Stripe
-//     const product = await stripe.products.create({
-//       name: title,
-//     });
-
-//     // Initialize package data
-//     const packageData = {
-//       title,
-//       prices: [],
-//       classesNum,
-//       visibleTo: visibleTo || [],
-//       packageStripeId: product.id,
-//     };
-
-//     for (const price of prices) {
-//       let stripePrice;
-
-//       // Validate the payment type
-//       if (!["one-time", "subscription"].includes(price.type)) {
-//         return next(new ApiError(`Invalid price type: ${price.type}`, 400));
-//       }
-
-//       // Create the price based on the payment type
-//       if (price.type === "subscription") {
-//         stripePrice = await stripe.prices.create({
-//           unit_amount: price.amount * 100,
-//           currency: price.currency,
-//           recurring: { interval: "month" },
-//           product: product.id,
-//         });
-//       } else if (price.type === "one-time") {
-//         stripePrice = await stripe.prices.create({
-//           unit_amount: price.amount * 100,
-//           currency: price.currency,
-//           product: product.id,
-//         });
-//       }
-
-//       // Add the price to the package data
-//       packageData.prices.push({
-//         type: price.type,
-//         currency: price.currency,
-//         amount: price.amount,
-//         stripePriceId: stripePrice.id,
-//       });
-//     }
-
-//     // Create the package in the database
-//     const package = await Package.create(packageData);
-
-//     res.status(201).json({ message: "Success", data: package });
-//   } catch (error) {
-//     console.error("Error creating package:", error);
-//     next(error);
-//   }
-// });
-
 exports.getPackages = asyncHandler(async (req, res, next) => {
   if (req.user.role === "superAdmin" || req.user.role === "admin") {
     const packages = await Package.find({})
@@ -348,12 +287,6 @@ exports.webhook = asyncHandler(async (req, res, next) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  
-  console.log(event.data.object.metadata)
-  console.log(event.data.object.invoice)
-  console.log(typeof event.data.object.invoice)
-
-
   switch (event.type) {
     case "checkout.session.completed":
       if (event.data.object.mode === "subscription") {
@@ -378,10 +311,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
       break;
 
     case "invoice.payment_succeeded":
-      await handleInvoicePaymentSucceeded(
-        event.data.object.invoice,
-        event.data.object.metadata
-      );
+      await handleInvoicePaymentSucceeded(event.data.object);
       break;
 
     default:
@@ -396,6 +326,11 @@ const handleSubscriptionCreated = async (session, subscription) => {
   const user = await User.findById(userId);
   const subscription_start = new Date(subscription.current_period_start * 1000);
   const subscription_end = new Date(subscription.current_period_end * 1000);
+
+  console.log("====================================");
+  console.log("metadata", session.metadata);
+  console.log("invoice", session.invoice);
+  console.log("====================================");
 
   if (user) {
     if (user.role === "student" || user.role === "guest") {
@@ -416,6 +351,12 @@ const handleSubscriptionCreated = async (session, subscription) => {
       };
     }
     await user.save();
+
+    // Update the invoice with metadata
+    await stripe.invoices.update(invoice, {
+      metadata,
+    });
+
     console.log(`Subscription started for user: ${user.email}`);
   } else {
     console.log(`User not found for ID: ${userId}`);
@@ -472,16 +413,19 @@ const handleOneTimePaymentCreated = async (session, payment) => {
   }
 };
 
-const handleInvoicePaymentSucceeded = async (invoice, metadata) => {
-
-  console.log('====================================');
-  console.log("invoice", invoice);
-  console.log("metadata", metadata);
-  console.log('====================================');
+const handleInvoicePaymentSucceeded = async (session) => {
+  console.log("====================================");
+  console.log("====================================");
+  console.log("====================================");
+  console.log("invoice", session.invoice);
+  console.log("metadata", session.metadata);
+  console.log("====================================");
+  console.log("====================================");
+  console.log("====================================");
 
   // Update the invoice with metadata
-  await stripe.invoices.update(invoice, {
-    metadata
+  await stripe.invoices.update(session.invoice, {
+    metadata: session.metadata,
   });
 };
 
