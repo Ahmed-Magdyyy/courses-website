@@ -290,7 +290,6 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   switch (event.type) {
     case "checkout.session.completed":
       if (event.data.object.mode === "subscription") {
-        checkoutSessionId = event.data.object.id;
         const subscription = await stripe.subscriptions.retrieve(
           event.data.object.subscription
         );
@@ -314,8 +313,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
     case "invoice.payment_succeeded":
       // Retrieve the invoice object
       const invoice = await stripe.invoices.retrieve(event.data.object.id);
-
-      checkoutSessionId = invoice.metadata.checkout_session_id;
+      const checkoutSessionId = invoice.metadata.checkout_session_id;
 
       await handleInvoicePaymentSucceeded(
         event.data.object.id,
@@ -394,11 +392,6 @@ const handleOneTimePaymentCreated = async (session, payment) => {
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
 
-  console.log("====================================");
-  console.log("Session Metadata:", session.metadata);
-  console.log("Payment Intent Metadata:", payment.metadata);
-  console.log("====================================");
-
   if (user) {
     if (user.role === "student" || user.role === "guest") {
       user.role = "student";
@@ -426,9 +419,6 @@ const handleOneTimePaymentCreated = async (session, payment) => {
 
 const handleInvoicePaymentSucceeded = async (invoiceId, checkoutSessionId) => {
   try {
-    // Retrieve the invoice object
-    const invoice = await stripe.invoices.retrieve(invoiceId);
-
     if (!checkoutSessionId) {
       console.error(`No checkout session ID passed`);
       return;
@@ -438,7 +428,7 @@ const handleInvoicePaymentSucceeded = async (invoiceId, checkoutSessionId) => {
     const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
 
     // Update the invoice with metadata from the checkout session
-    const updatedInvoice = await stripe.invoices.update(invoiceId, {
+    await stripe.invoices.update(invoiceId, {
       metadata: {
         system: session.metadata.system,
         userId: session.metadata.userId,
@@ -571,7 +561,7 @@ exports.getPackageSubscriptions = asyncHandler(async (req, res, next) => {
   // Retrieve subscriptions from the database
   const users = await User.find(filter)
     .populate("subscription.package", "title")
-    .select("name email phone subscription subscriptionStatus");
+    .select("name email phone subscription");
 
   if (!users.length) {
     return next(new ApiError("No users subscribed to this package", 404));
@@ -622,7 +612,7 @@ exports.getPackageSubscriptions = asyncHandler(async (req, res, next) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        subscriptionStatus: user.subscriptionStatus,
+        subscriptionStatus: user.subscription.status,
         package: user.subscription.package,
         stripeSubscription: stripeSubscriptionDetails,
       };
@@ -707,16 +697,9 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
       created_at: new Date(invoice.created * 1000),
     }));
 
-    // const hasNextPage = invoices.has_more; // Check for next page based on Stripe response
-    // const nextStartingAfter = invoices.data[invoices.data.length - 1].id; // Get next page cursor (starting_after)
-
     res.status(200).json({
       message: "Success",
       data: paidInvoices,
-      // pagination: {
-      //   hasNextPage,
-      //   nextStartingAfter, // Include next page cursor for client-side pagination
-      // },
     });
   } catch (error) {
     console.error("Error fetching invoices:", error);
@@ -798,10 +781,6 @@ exports.getStudentInvoicesAndPayments = asyncHandler(async (req, res, next) => {
         paid: true,
       });
 
-      console.log('====================================');
-      console.log("charges", charges);
-      console.log('====================================');
-
       // Filter charges that are one-time payments (not associated with an invoice)
       const oneTimePayments = charges.data.filter(
         (charge) => charge.metadata.system === "jawwid" && !charge.invoice
@@ -813,7 +792,7 @@ exports.getStudentInvoicesAndPayments = asyncHandler(async (req, res, next) => {
         customer_name: charge.billing_details.name || "N/A",
         customer_email: charge.billing_details.email || "N/A",
         description: charge.description || "One-time payment",
-        amount_paid: charge.amount / 100, // Convert from cents to currency
+        amount_paid: charge.amount / 100,
         currency: charge.currency.toUpperCase(),
         created_at: new Date(charge.created * 1000),
         receipt_url: charge.receipt_url,
@@ -859,7 +838,7 @@ exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No package found`, 400));
   }
 
-  user.subscriptionStatus = "active";
+  user.subscription.status = "active";
   user.subscription.paymentType = "bank transfer";
   user.subscription.package = selectedPackage._id;
   user.subscription.subscription_start = subscription_start;
