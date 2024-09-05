@@ -684,6 +684,7 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
     const stripeParams = {
       status: "paid",
       limit: Math.min(limit, 100), // Enforce maximum limit of 100 for security
+      expand: ["data.invoice"]
     };
 
     // Use startingAfter or endingBefore for pagination if provided
@@ -695,8 +696,17 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
 
     const invoices = await stripe.invoices.list(stripeParams);
 
+    console.log(invoices)
+
+    // Filter to include only invoices related to your new system
+    const filteredInvoices = invoices.data.filter((invoice) => {
+      return invoice.metadata.system === "jawwid"
+    });
+
+
+
     // Transform invoices to desired format
-    const paidInvoices = invoices.data.map((invoice) => ({
+    const paidInvoices = filteredInvoices.map((invoice) => ({
       invoiceId: invoice.id,
       invoice_number: invoice.number,
       customer_name: invoice.customer_name || "N/A", // Fallback if customer_name is not available
