@@ -967,7 +967,7 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
 
     // Filter to include only one-time payments related to your new system
     const oneTimePayments = charges.data.filter((charge) => {
-      return charge.metadata.system === "newSystem" && !charge.invoice;
+      return charge.metadata.system === "jawwid" && !charge.invoice;
     });
 
     const formattedCharges = oneTimePayments.map((charge) => ({
