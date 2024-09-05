@@ -405,16 +405,29 @@ const handleOneTimePaymentCreated = async (session, payment) => {
 
 const handleInvoicePaymentSucceeded = async (invoiceId) => {
   try {
+
+    console.log('====================================');
+    console.log("invoiceId", invoiceId);
+    console.log('====================================');
+    
     // Retrieve the invoice object
     const invoice = await stripe.invoices.retrieve(invoiceId);
+
+    console.log('====================================');
+    console.log("invoice", invoice);
+    console.log('====================================');
 
     // Retrieve the associated checkout session
     const session = await stripe.checkout.sessions.retrieve(
       invoice.payment_intent
     );
 
+    console.log('====================================');
+    console.log("session", session);
+    console.log('====================================');
+
     // Update the invoice with metadata from the checkout session
-    await stripe.invoices.update(invoiceId, {
+    const updatedInvoice = await stripe.invoices.update(invoiceId, {
       metadata: {
         system: session.metadata.system,
         userId: session.metadata.userId,
@@ -423,6 +436,10 @@ const handleInvoicePaymentSucceeded = async (invoiceId) => {
         classesNum: session.metadata.classesNum,
       },
     });
+
+    console.log('====================================');
+    console.log("updatedInvoice", updatedInvoice);
+    console.log('====================================');
 
     console.log(`Invoice updated with metadata for invoice ID: ${invoiceId}`);
   } catch (error) {
