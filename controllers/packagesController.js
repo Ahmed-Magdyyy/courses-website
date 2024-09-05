@@ -471,6 +471,12 @@ const handleOneTimePaymentCreated = async (session, payment) => {
 };
 
 const handleInvoicePaymentSucceeded = async (invoice, metadata) => {
+
+  console.log('====================================');
+  console.log("invoice", invoice);
+  console.log("metadata", metadata);
+  console.log('====================================');
+
   // Update the invoice with metadata
   await stripe.invoices.update(invoice, {
     metadata
