@@ -275,7 +275,6 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   const sig = req.headers["stripe-signature"];
 
   let event;
-  let checkoutSessionId;
 
   try {
     event = stripe.webhooks.constructEvent(
@@ -313,6 +312,11 @@ exports.webhook = asyncHandler(async (req, res, next) => {
       break;
 
     case "invoice.payment_succeeded":
+      // Retrieve the invoice object
+      const invoice = await stripe.invoices.retrieve(event.data.object.id);
+
+      checkoutSessionId = invoice.metadata.checkout_session_id;
+
       await handleInvoicePaymentSucceeded(
         event.data.object.id,
         checkoutSessionId
@@ -351,6 +355,18 @@ const handleSubscriptionCreated = async (session, subscription) => {
       };
     }
     await user.save();
+
+    const invoices = await stripe.invoices.list({
+      subscription: subscription.id,
+    });
+    if (invoices.data.length > 0) {
+      const firstInvoice = invoices.data[0];
+      await stripe.invoices.update(firstInvoice.id, {
+        metadata: {
+          checkout_session_id: session.id, // Store the session ID in invoice metadata
+        },
+      });
+    }
 
     console.log(`Subscription started for user: ${user.email}`);
   } else {
