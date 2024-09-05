@@ -742,23 +742,27 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
-  if (req.user.subscription.stripeCustomerId !== null) {
-    const invoices = await stripe.invoices.list({
-      customer: req.user.subscription.stripeCustomerId,
-    });
+exports.getStudentInvoicesAndPayments = asyncHandler(async (req, res, next) => {
+  try {
+    const stripeCustomerId = req.user.subscription.stripeCustomerId;
 
-    if (invoices) {
+    if (stripeCustomerId !== null) {
+      // Fetch all invoices for the customer
+      const invoices = await stripe.invoices.list({
+        customer: stripeCustomerId,
+      });
 
+      // Filter invoices with metadata.system set to "jawwid"
       const filteredInvoices = invoices.data.filter(
         (invoice) => invoice.metadata.system === "jawwid"
       );
 
+      // Map filtered invoices to desired format
       const studentInvoices = filteredInvoices.map((invoice) => ({
         invoiceId: invoice.id,
         status: invoice.status,
         invoice_number: invoice.number,
-        customer_name: invoice.customer_name || "N/A", // Fallback if customer_name is not available
+        customer_name: invoice.customer_name || "N/A",
         customer_email: invoice.customer_email,
         package_name: invoice.lines.data[0].description.split("× ")[1],
         amount_paid: invoice.amount_paid / 100,
@@ -770,12 +774,45 @@ exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
         created_at: new Date(invoice.created * 1000),
       }));
 
-      res.status(200).json(studentInvoices);
+      // Fetch all paid charges (one-time payments) for the customer
+      const charges = await stripe.charges.list({
+        customer: stripeCustomerId,
+        limit: 100,
+        paid: true,
+      });
+
+      // Filter charges that are one-time payments (not associated with an invoice)
+      const oneTimePayments = charges.data.filter(
+        (charge) => charge.metadata.system === "jawwid" && !charge.invoice
+      );
+
+      // Map filtered charges to desired format
+      const formattedCharges = oneTimePayments.map((charge) => ({
+        chargeId: charge.id,
+        customer_name: charge.billing_details.name || "N/A",
+        customer_email: charge.billing_details.email || "N/A",
+        description: charge.description || "One-time payment",
+        amount_paid: charge.amount / 100, // Convert from cents to currency
+        currency: charge.currency.toUpperCase(),
+        created_at: new Date(charge.created * 1000),
+        receipt_url: charge.receipt_url,
+      }));
+
+      // Combine both invoices and one-time payments into a single response
+      res.status(200).json({
+        message: "Success",
+        invoices: studentInvoices,
+        oneTimePayments: formattedCharges,
+      });
+    } else {
+      res.status(200).json({ message: "No invoices or payments found" });
     }
-  } else {
-    res.status(200).json({ message: "No invoices" });
+  } catch (error) {
+    console.error("Error fetching invoices and payments:", error);
+    res.status(500).json({ message: "Error fetching invoices and payments", error });
   }
 });
+
 
 exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
   const {
