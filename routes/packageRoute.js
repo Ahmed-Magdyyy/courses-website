@@ -14,7 +14,8 @@ const {
   managePackageSubscription,
   getPackageSubscriptions,
   getAllPaidInvoices,
-  getStudentInvoice,
+  getAllOneTimePayments,
+  getStudentInvoicesAndPayments,
   confirmBankTransferPayment,
   getBankTransfer,
 } = require("../controllers/packagesController");
@@ -42,7 +43,7 @@ Router.route("/bank-transfer")
 
 Router.route("/invoices/student").get(
   allowedTo("superAdmin", "student"),
-  getStudentInvoice
+  getStudentInvoicesAndPayments
 );
 
 Router.route("/")
@@ -89,6 +90,12 @@ Router.route("/invoices").get(
   allowedTo("superAdmin", "admin"),
   enabledControls("subscriptions"),
   getAllPaidInvoices
+);
+
+Router.route("/oneTimePayments").get(
+  allowedTo("superAdmin", "admin"),
+  enabledControls("subscriptions"),
+  getAllOneTimePayments
 );
 
 Router.route("/:packageId")

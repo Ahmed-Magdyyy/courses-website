@@ -426,7 +426,6 @@ const handleOneTimePaymentCreated = async (session, payment) => {
 
 const handleInvoicePaymentSucceeded = async (invoiceId, checkoutSessionId) => {
   try {
-
     // Retrieve the invoice object
     const invoice = await stripe.invoices.retrieve(invoiceId);
 
@@ -636,7 +635,6 @@ exports.getPackageSubscriptions = asyncHandler(async (req, res, next) => {
   });
 });
 
-// allow student to manage their own subscription
 exports.managePackageSubscription = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
 
@@ -726,6 +724,41 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   }
 });
 
+exports.getAllOneTimePayments = asyncHandler(async (req, res, next) => {
+  try {
+    // Fetch all paid charges
+    const charges = await stripe.charges.list({
+      limit: 100, // Adjust the limit as necessary
+      paid: true, // Only include charges that have been successfully paid
+      expand: ["data.invoice"],
+    });
+
+    // Filter to include only one-time payments related to your new system
+    const oneTimePayments = charges.data.filter((charge) => {
+      return charge.metadata.system === "jawwid" && !charge.invoice;
+    });
+
+    const formattedCharges = oneTimePayments.map((charge) => ({
+      chargeId: charge.id,
+      customer_name: charge.billing_details.name || "N/A",
+      customer_email: charge.billing_details.email || "N/A",
+      description: charge.description || "One-time payment",
+      amount_paid: charge.amount / 100, // Convert from cents to currency
+      currency: charge.currency.toUpperCase(),
+      created_at: new Date(charge.created * 1000),
+      receipt_url: charge.receipt_url,
+    }));
+
+    res.status(200).json({
+      message: "Success",
+      data: formattedCharges,
+    });
+  } catch (error) {
+    console.error("Error fetching charges:", error);
+    res.status(500).json({ message: "Error fetching payments", error });
+  }
+});
+
 exports.getStudentInvoicesAndPayments = asyncHandler(async (req, res, next) => {
   try {
     const stripeCustomerId = req.user.subscription.stripeCustomerId;
@@ -793,10 +826,11 @@ exports.getStudentInvoicesAndPayments = asyncHandler(async (req, res, next) => {
     }
   } catch (error) {
     console.error("Error fetching invoices and payments:", error);
-    res.status(500).json({ message: "Error fetching invoices and payments", error });
+    res
+      .status(500)
+      .json({ message: "Error fetching invoices and payments", error });
   }
 });
-
 
 exports.confirmBankTransferPayment = asyncHandler(async (req, res, next) => {
   const {
@@ -881,38 +915,3 @@ exports.getBankTransfer = asyncHandler(async (req, res, next) => {
     data: documents,
   });
 });
-
-// exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
-//   try {
-//     // Fetch all paid charges
-//     const charges = await stripe.charges.list({
-//       limit: 100, // Adjust the limit as necessary
-//       paid: true, // Only include charges that have been successfully paid
-//       expand: ["data.invoice"],
-//     });
-
-//     // Filter to include only one-time payments related to your new system
-//     const oneTimePayments = charges.data.filter((charge) => {
-//       return charge.metadata.system === "jawwid" && !charge.invoice;
-//     });
-
-//     const formattedCharges = oneTimePayments.map((charge) => ({
-//       chargeId: charge.id,
-//       customer_name: charge.billing_details.name || "N/A",
-//       customer_email: charge.billing_details.email || "N/A",
-//       description: charge.description || "One-time payment",
-//       amount_paid: charge.amount / 100, // Convert from cents to currency
-//       currency: charge.currency.toUpperCase(),
-//       created_at: new Date(charge.created * 1000),
-//       receipt_url: charge.receipt_url,
-//     }));
-
-//     res.status(200).json({
-//       message: "Success",
-//       data: formattedCharges,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching charges:", error);
-//     res.status(500).json({ message: "Error fetching payments", error });
-//   }
-// });
