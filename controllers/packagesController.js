@@ -369,6 +369,14 @@ exports.webhook = asyncHandler(async (req, res, next) => {
       console.log("customer cancelled subscription");
       await handleSubscriptionUpdated(event.data.object);
       break;
+
+    case "invoice.payment_succeeded":
+      await handleInvoicePaymentSucceeded(
+        event.data.object.invoice,
+        event.data.object.metadata
+      );
+      break;
+
     default:
       console.log(`Unhandled event type ${event.type}`);
   }
@@ -455,6 +463,13 @@ const handleOneTimePaymentCreated = async (session, payment) => {
   } else {
     console.log(`User not found for ID: ${userId}`);
   }
+};
+
+const handleInvoicePaymentSucceeded = async (invoice, metadata) => {
+  // Update the invoice with metadata
+  await stripe.invoices.update(invoice.id, {
+    metadata
+  });
 };
 
 exports.updatePackage = asyncHandler(async (req, res, next) => {
@@ -684,7 +699,6 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
     const stripeParams = {
       status: "paid",
       limit: Math.min(limit, 100), // Enforce maximum limit of 100 for security
-      expand: ["data.invoice"]
     };
 
     // Use startingAfter or endingBefore for pagination if provided
@@ -696,17 +710,8 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
 
     const invoices = await stripe.invoices.list(stripeParams);
 
-    console.log(invoices)
-
-    // Filter to include only invoices related to your new system
-    const filteredInvoices = invoices.data.filter((invoice) => {
-      return invoice.metadata.system === "jawwid"
-    });
-
-
-
     // Transform invoices to desired format
-    const paidInvoices = filteredInvoices.map((invoice) => ({
+    const paidInvoices = invoices.data.map((invoice) => ({
       invoiceId: invoice.id,
       invoice_number: invoice.number,
       customer_name: invoice.customer_name || "N/A", // Fallback if customer_name is not available
