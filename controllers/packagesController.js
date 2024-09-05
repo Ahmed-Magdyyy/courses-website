@@ -275,6 +275,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   const sig = req.headers["stripe-signature"];
 
   let event;
+  let checkoutSessionId;
 
   try {
     event = stripe.webhooks.constructEvent(
@@ -290,6 +291,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   switch (event.type) {
     case "checkout.session.completed":
       if (event.data.object.mode === "subscription") {
+        checkoutSessionId = event.data.object.id;
         const subscription = await stripe.subscriptions.retrieve(
           event.data.object.subscription
         );
@@ -311,7 +313,10 @@ exports.webhook = asyncHandler(async (req, res, next) => {
       break;
 
     case "invoice.payment_succeeded":
-      await handleInvoicePaymentSucceeded(event.data.object.id);
+      await handleInvoicePaymentSucceeded(
+        event.data.object.id,
+        checkoutSessionId
+      );
       break;
 
     default:
@@ -403,28 +408,30 @@ const handleOneTimePaymentCreated = async (session, payment) => {
   }
 };
 
-const handleInvoicePaymentSucceeded = async (invoiceId) => {
+const handleInvoicePaymentSucceeded = async (invoiceId, checkoutSessionId) => {
   try {
-
-    console.log('====================================');
+    console.log("====================================");
     console.log("invoiceId", invoiceId);
-    console.log('====================================');
-    
+    console.log("====================================");
+
     // Retrieve the invoice object
     const invoice = await stripe.invoices.retrieve(invoiceId);
 
-    console.log('====================================');
+    console.log("====================================");
     console.log("invoice", invoice);
-    console.log('====================================');
+    console.log("====================================");
+
+    if (!checkoutSessionId) {
+      console.error(`No checkout session ID passed`);
+      return;
+    }
 
     // Retrieve the associated checkout session
-    const session = await stripe.checkout.sessions.retrieve(
-      invoice.payment_intent
-    );
+    const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
 
-    console.log('====================================');
+    console.log("====================================");
     console.log("session", session);
-    console.log('====================================');
+    console.log("====================================");
 
     // Update the invoice with metadata from the checkout session
     const updatedInvoice = await stripe.invoices.update(invoiceId, {
@@ -437,9 +444,9 @@ const handleInvoicePaymentSucceeded = async (invoiceId) => {
       },
     });
 
-    console.log('====================================');
+    console.log("====================================");
     console.log("updatedInvoice", updatedInvoice);
-    console.log('====================================');
+    console.log("====================================");
 
     console.log(`Invoice updated with metadata for invoice ID: ${invoiceId}`);
   } catch (error) {
