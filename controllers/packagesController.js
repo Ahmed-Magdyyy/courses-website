@@ -347,6 +347,11 @@ exports.webhook = asyncHandler(async (req, res, next) => {
     console.error(`Webhook Error: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  
+  console.log(event.data.object.invoice)
+
+
   switch (event.type) {
     case "checkout.session.completed":
       if (event.data.object.mode === "subscription") {
@@ -467,7 +472,7 @@ const handleOneTimePaymentCreated = async (session, payment) => {
 
 const handleInvoicePaymentSucceeded = async (invoice, metadata) => {
   // Update the invoice with metadata
-  await stripe.invoices.update(invoice.id, {
+  await stripe.invoices.update(invoice, {
     metadata
   });
 };
