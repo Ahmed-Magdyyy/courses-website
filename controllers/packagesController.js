@@ -798,6 +798,10 @@ exports.getStudentInvoicesAndPayments = asyncHandler(async (req, res, next) => {
         paid: true,
       });
 
+      console.log('====================================');
+      console.log("charges", charges);
+      console.log('====================================');
+
       // Filter charges that are one-time payments (not associated with an invoice)
       const oneTimePayments = charges.data.filter(
         (charge) => charge.metadata.system === "jawwid" && !charge.invoice
