@@ -749,7 +749,12 @@ exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
     });
 
     if (invoices) {
-      const studentInvoices = invoices.data.map((invoice) => ({
+
+      const filteredInvoices = invoices.data.filter(
+        (invoice) => invoice.metadata.system === "jawwid"
+      );
+
+      const studentInvoices = filteredInvoices.map((invoice) => ({
         invoiceId: invoice.id,
         status: invoice.status,
         invoice_number: invoice.number,
