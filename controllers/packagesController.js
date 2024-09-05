@@ -300,14 +300,6 @@ exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
     await user.save();
   }
 
-  const metadata = {
-    system: "jawwid",
-    userId: user._id.toString(),
-    packageId: selectedPackage._id.toString(),
-    stripePackageId: selectedPackage.packageStripeId,
-    classesNum: selectedPackage.classesNum,
-  };
-
   // Create a new one-time payment session
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -322,9 +314,12 @@ exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
     cancel_url: `https://learning.jawwid.com/subscriptions/packages`,
     customer: stripeCustomer.id,
     client_reference_id: selectedPackage._id.toString(),
-    metadata,
-    payment_intent_data: {
-      metadata,
+    metadata: {
+      system: "jawwid",
+      userId: user._id.toString(),
+      packageId: selectedPackage._id.toString(),
+      stripePackageId: selectedPackage.packageStripeId,
+      classesNum: selectedPackage.classesNum,
     },
   });
 
