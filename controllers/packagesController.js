@@ -349,7 +349,9 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   }
 
   
+  console.log(event.data.object.metadata)
   console.log(event.data.object.invoice)
+  console.log(typeof event.data.object.invoice)
 
 
   switch (event.type) {
