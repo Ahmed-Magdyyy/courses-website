@@ -369,9 +369,9 @@ const handleSubscriptionUpdated = async (subscription) => {
   });
   if (user) {
     if (subscription.cancel_at_period_end === true) {
-      user.subscriptionStatus = "cancelled";
+      user.subscription.status = "cancelled";
     } else if (subscription.cancel_at_period_end === false) {
-      user.subscriptionStatus = "active";
+      user.subscription.status = "active";
     }
 
     // Handle other statuses if needed
@@ -414,19 +414,20 @@ const handleOneTimePaymentCreated = async (session, payment) => {
 };
 
 const handleInvoicePaymentSucceeded = async (session) => {
-  console.log("====================================");
-  console.log("====================================");
-  console.log("====================================");
+  console.log("================invoice====================");
+  console.log("================invoice====================");
+  console.log("================invoice====================");
+  console.log("session", session);
   console.log("invoice", session.invoice);
   console.log("metadata", session.metadata);
-  console.log("====================================");
-  console.log("====================================");
-  console.log("====================================");
+  console.log("================invoice====================");
+  console.log("================invoice====================");
+  console.log("================invoice====================");
 
-  // Update the invoice with metadata
-  await stripe.invoices.update(session.invoice, {
-    metadata: session.metadata,
-  });
+  // // Update the invoice with metadata
+  // await stripe.invoices.update(session.invoice, {
+  //   metadata: session.metadata,
+  // });
 };
 
 exports.updatePackage = asyncHandler(async (req, res, next) => {
