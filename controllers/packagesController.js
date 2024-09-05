@@ -412,6 +412,7 @@ const handleInvoicePaymentSucceeded = async (invoiceId, checkoutSessionId) => {
   try {
     console.log("====================================");
     console.log("invoiceId", invoiceId);
+    console.log("checkoutSessionId", checkoutSessionId);
     console.log("====================================");
 
     // Retrieve the invoice object
