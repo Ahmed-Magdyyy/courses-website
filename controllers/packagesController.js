@@ -423,7 +423,8 @@ const handleOneTimePaymentCreated = async (session, payment) => {
   const user = await User.findById(userId);
 
   console.log("====================================");
-  console.log("payment:::::", payment);
+  console.log("Session Metadata:", session.metadata);
+  console.log("Payment Intent Metadata:", payment.metadata);
   console.log("====================================");
 
   if (user) {
