@@ -237,6 +237,7 @@ exports.createCheckoutSession = asyncHandler(async (req, res, next) => {
     customer: stripeCustomer.id,
     client_reference_id: selectedPackage._id.toString(),
     metadata: {
+      system: "jawwid",
       userId: user._id.toString(),
       packageId: selectedPackage._id.toString(),
       stripePackageId: selectedPackage.packageStripeId,
@@ -264,21 +265,10 @@ exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
   if (!selectedPackage) {
     return next(new ApiError(`No package found`, 400));
   }
-  console.log(selectedPackage);
-  console.log("====================================");
-  console.log(
-    selectedPackage.prices.find(
-      (price) => price.currency.toLowerCase() === currency.toLowerCase()
-    )
-  );
-  console.log("====================================");
   // Find the price based on the provided currency
   const selectedPrice = selectedPackage.prices.find(
     (price) => price.currency.toLowerCase() === currency.toLowerCase()
   );
-  console.log("====================================");
-  console.log(selectedPrice);
-  console.log("====================================");
 
   if (!selectedPrice || !selectedPrice.stripePriceId.oneTime) {
     return next(
@@ -320,6 +310,7 @@ exports.createOneTimePaymentSession = asyncHandler(async (req, res, next) => {
     customer: stripeCustomer.id,
     client_reference_id: selectedPackage._id.toString(),
     metadata: {
+      system: "jawwid",
       userId: user._id.toString(),
       packageId: selectedPackage._id.toString(),
       stripePackageId: selectedPackage.packageStripeId,
@@ -365,7 +356,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
           paymentIntentId
         );
 
-        await handleOneTimePaymentCreated(event.data.object, paymentIntent)
+        await handleOneTimePaymentCreated(event.data.object, paymentIntent);
       }
       break;
 
@@ -431,9 +422,9 @@ const handleOneTimePaymentCreated = async (session, payment) => {
   const userId = session.metadata.userId;
   const user = await User.findById(userId);
 
-  console.log('====================================');
+  console.log("====================================");
   console.log("payment:::::", payment);
-  console.log('====================================');
+  console.log("====================================");
 
   if (user) {
     if (user.role === "student" || user.role === "guest") {
@@ -919,9 +910,6 @@ exports.getBankTransfer = asyncHandler(async (req, res, next) => {
 //   }
 // });
 
-
-
-
 // exports.getStudentInvoice = asyncHandler(async (req, res, next) => {
 //   try {
 //     if (req.user.subscription.stripeCustomerId !== null) {
@@ -966,21 +954,23 @@ exports.getBankTransfer = asyncHandler(async (req, res, next) => {
 //   }
 // });
 
-
 exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
   try {
     // Fetch all paid charges
     const charges = await stripe.charges.list({
       limit: 100, // Adjust the limit as necessary
       paid: true, // Only include charges that have been successfully paid
+      expand: ["data.invoice"],
     });
 
-    console.log("charges:::::::::::", charges)
+    console.log("charges:::::::::::", charges);
 
-    // Filter out subscription-related charges
-    const oneTimeCharges = charges.data.filter((charge) => !charge.invoice);
+    // Filter to include only one-time payments related to your new system
+    const oneTimePayments = charges.data.filter((charge) => {
+      return charge.metadata.system === "newSystem" && !charge.invoice;
+    });
 
-    const formattedCharges = oneTimeCharges.map((charge) => ({
+    const formattedCharges = oneTimePayments.map((charge) => ({
       chargeId: charge.id,
       customer_name: charge.billing_details.name || "N/A",
       customer_email: charge.billing_details.email || "N/A",
@@ -997,6 +987,6 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
     });
   } catch (error) {
     console.error("Error fetching charges:", error);
-    res.status(500).json({ message: "Error fetching charges", error });
+    res.status(500).json({ message: "Error fetching payments", error });
   }
 });
