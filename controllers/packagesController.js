@@ -975,6 +975,8 @@ exports.getAllPaidInvoices = asyncHandler(async (req, res, next) => {
       paid: true, // Only include charges that have been successfully paid
     });
 
+    console.log("charges:::::::::::", charges)
+
     // Filter out subscription-related charges
     const oneTimeCharges = charges.data.filter((charge) => !charge.invoice);
 
