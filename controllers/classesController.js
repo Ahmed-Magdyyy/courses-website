@@ -1163,7 +1163,7 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
         studentsEnrolled: { $in: [req.user._id] },
         ...filter,
       })
-      .sort({ createdAt: -1 })
+      .sort({ meeting_time: -1 })
       .populate("studentsEnrolled", "_id name email phone")
       .populate("teacher", "_id name email phone")
       .populate("assignments", "-__v")
@@ -1255,7 +1255,7 @@ exports.getAllClassesByMonthYear = asyncHandler(async (req, res, next) => {
 
   const documents = await classModel
     .find({ ...baseFilter, ...filter })
-    .sort({ createdAt: -1 })
+    .sort({ meeting_time: -1 })
     .populate("studentsEnrolled", "_id name email phone")
     .populate("teacher", "_id name email phone")
     .populate("assignments", "-__v")

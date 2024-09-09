@@ -559,10 +559,13 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
   });
 
   // Adjust filter based on user's role
-  if (
-    req.user.role !== "superAdmin" 
-  ) {
-    filter.visibleTo = { $in: req.user.role };
+  if (req.user.role !== "superAdmin") {
+    if (req.user.role === "guest") {
+      // Treat guest users as students
+      filter.visibleTo = { $in: ["student"] };
+    } else {
+      filter.visibleTo = { $in: req.user.role };
+    }
   }
 
   const pageNum = page * 1 || 1;
