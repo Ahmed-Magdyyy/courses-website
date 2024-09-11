@@ -124,10 +124,15 @@ exports.createPost = asyncHandler(async (req, res, next) => {
 
   // Validate visibleTo field
   if (visibleTo && !Array.isArray(visibleTo)) {
-    return next(new ApiError(`Invalid visibleTo value, it should be an array`, 400));
+    return next(
+      new ApiError(`Invalid visibleTo value, it should be an array`, 400)
+    );
   }
 
-  if (visibleTo && !visibleTo.every(v => allowedVisibleToValues.includes(v))) {
+  if (
+    visibleTo &&
+    !visibleTo.every((v) => allowedVisibleToValues.includes(v))
+  ) {
     return next(new ApiError(`Invalid visibleTo values`, 400));
   }
 
@@ -582,24 +587,33 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
     .skip(skipNum)
     .limit(limitNum);
 
-  posts.forEach((post) => {
+    const validPosts = posts.filter(post => post.author !== null);
+
+
+    validPosts.forEach((post) => {
     if (post.media && post.media.length > 0) {
       post.media.forEach((mediaItem) => {
         mediaItem.url = `${process.env.BASE_URL}/posts/${mediaItem.url}`;
       });
     }
 
-    if (post.author.image !== null) {
-      const baseUrl = "https://api.jawwid.com/users/";
-      if (!post.author.image.startsWith(baseUrl)) {
-        post.author.image = `${baseUrl}${post.author.image}`;
+    console.log("====================================");
+    console.log("post.author", post);
+    console.log("====================================");
+
+    // if (post.author !== null) {
+      if (post.author.image !== null) {
+        const baseUrl = "https://api.jawwid.com/users/";
+        if (!post.author.image.startsWith(baseUrl)) {
+          post.author.image = `${baseUrl}${post.author.image}`;
+        }
       }
-    }
+    // }
   });
 
   res
     .status(200)
-    .json({ totalPages, page: pageNum, results: posts.length, data: posts });
+    .json({ totalPages, page: pageNum, results: validPosts.length, data: validPosts });
 });
 
 exports.getPost = asyncHandler(async (req, res, next) => {
@@ -608,9 +622,7 @@ exports.getPost = asyncHandler(async (req, res, next) => {
   let filter = { _id: id }; // Filter for approved posts by default
 
   // Adjust filter based on user's role
-  if (
-    req.user.role !== "superAdmin" 
-  ) {
+  if (req.user.role !== "superAdmin") {
     filter.visibleTo = { $in: req.user.role };
   }
 
@@ -647,7 +659,7 @@ exports.getPost = asyncHandler(async (req, res, next) => {
   }
 
   if (post.author.image !== null) {
-    const baseUrl = 'https://api.jawwid.com/users/';
+    const baseUrl = "https://api.jawwid.com/users/";
     if (!post.author.image.startsWith(baseUrl)) {
       post.author.image = `${baseUrl}${post.author.image}`;
     }

@@ -951,7 +951,7 @@ exports.createTrailClass = asyncHandler(async (req, res, next) => {
 
 exports.getAllClasses = asyncHandler(async (req, res, next) => {
   let filter = {};
-  const { page, limit, skip, ...query } = req.query;
+  const { page, limit, status, filter: timeFilter, ...query } = req.query;
 
   const pageNum = page * 1 || 1;
   const limitNum = limit * 1 || 5;
@@ -966,266 +966,81 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
     }
   });
 
+  // // Check if the status is "scheduled" and include "trial" classes as well
+  // if (status === "scheduled") {
+  //   filter.status = { $in: ["scheduled", "trial"] };
+  // } else if (status) {
+  //   filter.status = status;
+  // }
+
+  if (status) {
+    filter.status = status;
+  }
+
+  const currentTimeUTC = new Date();
+
+  if (timeFilter === "upcoming") {
+    filter.meeting_time = { $gte: currentTimeUTC };
+  } else if (timeFilter === "past") {
+    filter.meeting_time = { $lt: currentTimeUTC };
+  }
+
+  let totalClassesCount = 0;
+  let classes = [];
+
+  // Count total classes based on the applied filter
+  totalClassesCount = await classModel.countDocuments(filter);
+
+  // Fetch classes based on the applied filter
   if (req.user.role === "student" || req.user.role === "guest") {
-    const totalClassesCount = await classModel.countDocuments({
-      studentsEnrolled: { $in: [req.user._id] },
-      ...filter,
-    });
-    const totalPages = Math.ceil(totalClassesCount / limitNum);
-
-    if (req.user.remainingClasses <= 2) {
-      let capitalizeFirstLetterOfName =
-        req.user.name.split(" ")[0].charAt(0).toUpperCase() +
-        req.user.name.split(" ")[0].slice(1).toLocaleLowerCase();
-
-      let img =
-        "https://user.jawwid.com/resize/resized/200x60/uploads/company/picture/33387/JawwidLogo.png";
-
-      let emailTamplate = `<!DOCTYPE html>
-      <html lang="en-US">
-        <head>
-          <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-          <title>Your remaining classes credit is running out</title>
-          <meta name="description" content="Your remaining classes credit is running out" />
-          <style type="text/css">
-            a:hover {
-              text-decoration: underline !important;
-            }
-          </style>
-        </head>
-      
-        <body
-          marginheight="0"
-          topmargin="0"
-          marginwidth="0"
-          style="margin: 0px; background-color: #f2f3f8"
-          leftmargin="0"
-        >
-          <!--100% body table-->
-          <table
-            cellspacing="0"
-            border="0"
-            cellpadding="0"
-            width="100%"
-            bgcolor="#f2f3f8"
-            style="
-              @import url(https://fonts.googleapis.com/css?family=Rubik:300,400,500,700|Open+Sans:300,400,600,700);
-              font-family: 'Open Sans', sans-serif;
-            "
-          >
-            <tr>
-              <td>
-                <table
-                  style="background-color: #f2f3f8; max-width: 670px; margin: 0 auto"
-                  width="100%"
-                  border="0"
-                  align="center"
-                  cellpadding="0"
-                  cellspacing="0"
-                >
-                  <tr>
-                    <td style="height: 80px">&nbsp;</td>
-                  </tr>
-                  <tr>
-                    <td style="text-align: center">
-                      <a
-                        href="https://learning.jawwid.com"
-                        title="logo"
-                        target="_blank"
-                      >
-                        <img width="250" src="${img}" title="logo" alt="logo" />
-                      </a>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="height: 20px">&nbsp;</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <table
-                        width="95%"
-                        border="0"
-                        align="center"
-                        cellpadding="0"
-                        cellspacing="0"
-                        style="
-                          max-width: 670px;
-                          background: #fff;
-                          border-radius: 3px;
-                          text-align: center;
-                          -webkit-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
-                          -moz-box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
-                          box-shadow: 0 6px 18px 0 rgba(0, 0, 0, 0.06);
-                        "
-                      >
-                        <tr>
-                          <td style="height: 40px">&nbsp;</td>
-                        </tr>
-                        <tr>
-                          <td style="padding: 0 35px">
-                            <span
-                              style="
-                                display: inline-block;
-                                vertical-align: middle;
-                                margin: 29px 0 26px;
-                                border-bottom: 1px solid #cecece;
-                                width: 200px;
-                              "
-                            ></span>
-                            <p
-                              style="
-                                color: #455056;
-                                font-size: 17px;
-                                line-height: 24px;
-                                text-align: left;
-                              "
-                            >
-                              Hello ${capitalizeFirstLetterOfName},
-                            </p>
-                            <p
-                              style="
-                                color: #455056;
-                                font-size: 17px;
-                                line-height: 24px;
-                                text-align: left;
-                              "
-                            >
-                            We hope you are enjoying your time on Jawwid.<br>
-                            We want to remind you that your remaining classs credit is: <strong>${req.user.remainingClasses}</strong>. <br>Please make sure to renew your class package to continue enjoying our services and making progress towards your learning goals. <br>
-                            If you have any questions or need further assistance, feel free to reach out to our support team
-                            </p>
-                            
-      
-                            <br>
-                            <p
-                              style="
-                                margin-top: 3px;
-                                color: #455056;
-                                font-size: 17px;
-                                line-height: 2px;
-                                text-align: left;
-                              "
-                            >
-                              The Jawwid Team.
-                            </p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="height: 40px">&nbsp;</td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-      
-                  <tr>
-                    <td style="height: 20px">&nbsp;</td>
-                  </tr>
-                  <tr>
-                    <td style="text-align: center">
-                      <p
-                        style="
-                          font-size: 14px;
-                          color: rgba(69, 80, 86, 0.7411764705882353);
-                          line-height: 18px;
-                          margin: 0 0 0;
-                        "
-                      >
-                        &copy; <strong>https://learning.jawwid.com</strong>
-                      </p>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style="height: 80px">&nbsp;</td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-          <!--/100% body table-->
-        </body>
-      </html>
-      `;
-
-      try {
-        await sendEmail({
-          email: req.user.email,
-          subject: `${capitalizeFirstLetterOfName}, Your remaining classes credit is running out`,
-          message: emailTamplate,
-        });
-        console.log("Email sent");
-      } catch (error) {
-        console.log(error);
-      }
-    }
-
-    const documents = await classModel
+    classes = await classModel
       .find({
         studentsEnrolled: { $in: [req.user._id] },
         ...filter,
       })
-      .sort({ meeting_time: -1 })
+      .sort({ meeting_time: timeFilter === "past" ? -1 : 1 }) // Sort upcoming ascending, past descending
       .populate("studentsEnrolled", "_id name email phone")
       .populate("teacher", "_id name email phone")
       .populate("assignments", "-__v")
       .populate("attendance.student", "_id name email")
       .skip(skipNum)
       .limit(limitNum);
-
-    res.status(200).json({
-      totalPages,
-      page: pageNum,
-      results: documents.length,
-      data: documents,
-    });
   } else if (req.user.role === "teacher") {
-    const totalClassesCount = await classModel.countDocuments({
-      teacher: req.user._id,
-      ...filter,
-    });
-    const totalPages = Math.ceil(totalClassesCount / limitNum);
-
-    const documents = await classModel
+    classes = await classModel
       .find({ teacher: req.user._id, ...filter })
-      .sort({ createdAt: -1 })
+      .sort({ meeting_time: timeFilter === "past" ? -1 : 1 }) // Sort upcoming ascending, past descending
       .populate("studentsEnrolled", "_id name email phone")
       .populate("teacher", "_id name email phone")
       .populate("assignments", "-__v")
       .populate("attendance.student", "_id name email")
       .skip(skipNum)
       .limit(limitNum);
-
-    res.status(200).json({
-      totalPages,
-      page: pageNum,
-      results: documents.length,
-      data: documents,
-    });
   } else {
-    const totalClassesCount = await classModel.countDocuments(filter);
-    const totalPages = Math.ceil(totalClassesCount / limitNum);
-
-    const documents = await classModel
+    classes = await classModel
       .find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ meeting_time: timeFilter === "past" ? -1 : 1 }) // Sort upcoming ascending, past descending
       .populate("studentsEnrolled", "_id name email phone")
       .populate("teacher", "_id name email phone")
       .populate("assignments", "-__v")
       .populate("attendance.student", "_id name email")
       .skip(skipNum)
       .limit(limitNum);
-
-    res.status(200).json({
-      totalPages,
-      page: pageNum,
-      results: documents.length,
-      data: documents,
-    });
   }
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalClassesCount / limitNum);
+
+  res.status(200).json({
+    totalPages,
+    page: pageNum,
+    results: classes.length,
+    data: classes,
+  });
 });
 
 exports.getAllClassesByMonthYear = asyncHandler(async (req, res, next) => {
   let filter = {};
-  const { month, year, ...query } = req.query;
+  const { month, year, status, ...query } = req.query;
 
   // Modify the filter to support partial matches for string fields
   Object.keys(query).forEach((key) => {
@@ -1244,6 +1059,12 @@ exports.getAllClassesByMonthYear = asyncHandler(async (req, res, next) => {
     };
   }
 
+  if (status === "scheduled") {
+    filter.status = { $in: ["scheduled", "trial"] };
+  } else if (status) {
+    filter.status = status; // If any other status is provided, use it as-is
+  }
+
   const role = req.user.role;
   let baseFilter = {};
 
@@ -1255,7 +1076,7 @@ exports.getAllClassesByMonthYear = asyncHandler(async (req, res, next) => {
 
   const documents = await classModel
     .find({ ...baseFilter, ...filter })
-    .sort({ meeting_time: -1 })
+    .sort({ meeting_time: 1 })
     .populate("studentsEnrolled", "_id name email phone")
     .populate("teacher", "_id name email phone")
     .populate("assignments", "-__v")
