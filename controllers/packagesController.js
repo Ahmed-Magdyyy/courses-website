@@ -446,7 +446,7 @@ const handleInvoicePaymentSucceeded = async (invoiceId, checkoutSessionId) => {
 
 exports.updatePackage = asyncHandler(async (req, res, next) => {
   const { packageId } = req.params;
-  const { title, prices, discountedPrice, classesNum, visibleTo } = req.body;
+  const { title, prices, classesNum, visibleTo } = req.body;
 
   // Find the package in the database
   const existingPackage = await Package.findById(packageId);
@@ -457,47 +457,60 @@ exports.updatePackage = asyncHandler(async (req, res, next) => {
 
   try {
     // Update product in Stripe
-    const updatedProduct = await stripe.products.update(
-      existingPackage.packageStripeId,
-      {
-        name: title,
-      }
-    );
+    await stripe.products.update(existingPackage.packageStripeId, {
+      name: title,
+    });
 
-    // Deactivate old prices in Stripe
+    // Deactivate old prices in Stripe (both subscription and one-time prices)
     for (const oldPrice of existingPackage.prices) {
-      await stripe.prices.update(oldPrice.stripePriceId, { active: false });
+      await stripe.prices.update(oldPrice.stripePriceId.subscription, {
+        active: false,
+      });
+      await stripe.prices.update(oldPrice.stripePriceId.oneTime, {
+        active: false,
+      });
     }
 
     // Create new prices in Stripe
     const newPrices = [];
     for (const price of prices) {
-      const stripePrice = await stripe.prices.create({
+      // Create subscription price in Stripe
+      const stripeSubscriptionPrice = await stripe.prices.create({
         unit_amount: price.amount * 100,
         currency: price.currency,
         recurring: { interval: "month" },
         product: existingPackage.packageStripeId,
       });
 
+      // Create one-time price in Stripe
+      const stripeOneTimePrice = await stripe.prices.create({
+        unit_amount: price.amount * 100,
+        currency: price.currency,
+        product: existingPackage.packageStripeId,
+      });
+
       newPrices.push({
         currency: price.currency,
         amount: price.amount,
-        stripePriceId: stripePrice.id,
+        stripePriceId: {
+          subscription: stripeSubscriptionPrice.id,
+          oneTime: stripeOneTimePrice.id,
+        },
       });
     }
 
     // Update the package in the database
     existingPackage.title = title;
     existingPackage.prices = newPrices;
-    existingPackage.discountedPrice = discountedPrice || null;
     existingPackage.classesNum = classesNum;
     existingPackage.visibleTo = visibleTo || [];
 
     await existingPackage.save();
 
-    res
-      .status(200)
-      .json({ message: "Package updated successfully", data: existingPackage });
+    res.status(200).json({
+      message: "Package updated successfully",
+      data: existingPackage,
+    });
   } catch (error) {
     console.error("Error updating package:", error);
     next(new ApiError("Error updating package", 500));

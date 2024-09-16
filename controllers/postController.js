@@ -596,10 +596,6 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
       });
     }
 
-    console.log("====================================");
-    console.log("post.author", post);
-    console.log("====================================");
-
     // if (post.author !== null) {
       if (post.author.image !== null) {
         const baseUrl = "https://api.jawwid.com/users/";
