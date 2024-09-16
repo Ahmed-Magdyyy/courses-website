@@ -752,6 +752,9 @@ exports.getStudentInvoicesAndPayments = asyncHandler(async (req, res, next) => {
         customer: stripeCustomerId,
       });
 
+      console.log("invoices", invoices)
+      console.log("invoices Meta", invoices.metadata)
+
       // Filter invoices with metadata.system set to "jawwid"
       const filteredInvoices = invoices.data.filter(
         (invoice) => invoice.metadata.system === "jawwid"

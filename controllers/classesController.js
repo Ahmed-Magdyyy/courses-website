@@ -2219,8 +2219,8 @@ exports.classCheckIn = asyncHandler(async (req, res, next) => {
   if (cls.teacher._id.toString() !== req.user._id.toString()) {
     return next(new ApiError(`you are not the teacher of this class`, 404));
   }
-
-  if (cls.status !== "scheduled" || cls.status !== "trial") {
+console.log("classss", cls.status)
+  if (cls.status !== "scheduled" && cls.status !== "trial") {
     return next(
       new ApiError(
         `check in only available for scheduled or trial classes`,

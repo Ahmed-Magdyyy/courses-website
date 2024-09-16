@@ -539,13 +539,12 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
   let filter = { status: "approved" }; // Filter for approved posts by default
   const { page, limit, status, ...query } = req.query;
 
-  // Check if status is "pending" and adjust the filter based on the user's role
   if (status && status === "pending") {
-    if (req.user.role !== "superAdmin") {
-      // For non-superAdmin users, only allow viewing their own pending posts
+    if (req.user.role !== "superAdmin" && req.user.role !== "admin") {
+      // For non-superAdmin and non-admin users, only allow viewing their own pending posts
       filter = { status: "pending", author: req.user._id };
     } else {
-      // For superAdmin users, allow viewing all pending posts
+      // For superAdmin and admin, allow viewing all pending posts
       filter.status = "pending";
     }
   }
