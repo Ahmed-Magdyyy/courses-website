@@ -766,12 +766,15 @@ exports.getStudentInvoicesAndPayments = asyncHandler(async (req, res, next) => {
       });
 
       console.log("invoices", invoices)
-      console.log("invoices Meta", invoices.metadata)
+      // console.log("invoices Meta", invoices.data[0])
 
       // Filter invoices with metadata.system set to "jawwid"
       const filteredInvoices = invoices.data.filter(
         (invoice) => invoice.metadata.system === "jawwid"
       );
+
+      console.log("filteredInvoices", filteredInvoices)
+
 
       // Map filtered invoices to desired format
       const studentInvoices = filteredInvoices.map((invoice) => ({
