@@ -272,8 +272,8 @@ exports.webhook = asyncHandler(async (req, res, next) => {
   console.log("====================================");
   console.log("webhook hitted");
   console.log("====================================");
-  const sig = req.headers["stripe-signature"];
 
+  const sig = req.headers["stripe-signature"];
   let event;
 
   try {
@@ -287,42 +287,46 @@ exports.webhook = asyncHandler(async (req, res, next) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  switch (event.type) {
-    case "checkout.session.completed":
-      if (event.data.object.mode === "subscription") {
-        const subscription = await stripe.subscriptions.retrieve(
-          event.data.object.subscription
+  try {
+    switch (event.type) {
+      case "checkout.session.completed":
+        if (event.data.object.mode === "subscription") {
+          const subscription = await stripe.subscriptions.retrieve(
+            event.data.object.subscription
+          );
+
+          await handleSubscriptionCreated(event.data.object, subscription);
+        } else if (event.data.object.mode === "payment") {
+          const paymentIntentId = event.data.object.payment_intent;
+          const paymentIntent = await stripe.paymentIntents.retrieve(
+            paymentIntentId
+          );
+
+          await handleOneTimePaymentCreated(event.data.object, paymentIntent);
+        }
+        break;
+
+      case "customer.subscription.updated":
+        console.log("Subscription status updated");
+        await handleSubscriptionUpdated(event.data.object);
+        break;
+
+      case "invoice.payment_succeeded":
+        // Retrieve the invoice object
+        const invoice = await stripe.invoices.retrieve(event.data.object.id);
+        const checkoutSessionId = invoice.metadata.checkout_session_id;
+
+        await handleInvoicePaymentSucceeded(
+          event.data.object.id,
+          checkoutSessionId
         );
+        break;
 
-        await handleSubscriptionCreated(event.data.object, subscription);
-      } else if (event.data.object.mode === "payment") {
-        const paymentIntentId = event.data.object.payment_intent;
-        const paymentIntent = await stripe.paymentIntents.retrieve(
-          paymentIntentId
-        );
-
-        await handleOneTimePaymentCreated(event.data.object, paymentIntent);
-      }
-      break;
-
-    case "customer.subscription.updated":
-      console.log("customer cancelled subscription");
-      await handleSubscriptionUpdated(event.data.object);
-      break;
-
-    case "invoice.payment_succeeded":
-      // Retrieve the invoice object
-      const invoice = await stripe.invoices.retrieve(event.data.object.id);
-      const checkoutSessionId = invoice.metadata.checkout_session_id;
-
-      await handleInvoicePaymentSucceeded(
-        event.data.object.id,
-        checkoutSessionId
-      );
-      break;
-
-    default:
-      console.log(`Unhandled event type ${event.type}`);
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+  } catch (error) {
+    console.error(`Error processing ${event.type}: ${error.message}`);
   }
 
   res.json({ received: true });
@@ -419,6 +423,9 @@ const handleOneTimePaymentCreated = async (session, payment) => {
 
 const handleInvoicePaymentSucceeded = async (invoiceId, checkoutSessionId) => {
   try {
+    // Delay processing to allow time for session completion
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 seconds delay
+
     if (!checkoutSessionId) {
       console.error(`No checkout session ID passed`);
       return;
@@ -765,16 +772,10 @@ exports.getStudentInvoicesAndPayments = asyncHandler(async (req, res, next) => {
         customer: stripeCustomerId,
       });
 
-      console.log("invoices", invoices)
-      // console.log("invoices Meta", invoices.data[0])
-
       // Filter invoices with metadata.system set to "jawwid"
       const filteredInvoices = invoices.data.filter(
         (invoice) => invoice.metadata.system === "jawwid"
       );
-
-      console.log("filteredInvoices", filteredInvoices)
-
 
       // Map filtered invoices to desired format
       const studentInvoices = filteredInvoices.map((invoice) => ({
