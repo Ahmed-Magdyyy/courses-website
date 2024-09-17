@@ -296,6 +296,12 @@ exports.webhook = asyncHandler(async (req, res, next) => {
           );
 
           await handleSubscriptionCreated(event.data.object, subscription);
+
+          console.log('====================================');
+          console.log("event.data.object", event.data.object);
+          console.log('====================================');
+
+          
         } else if (event.data.object.mode === "payment") {
           const paymentIntentId = event.data.object.payment_intent;
           const paymentIntent = await stripe.paymentIntents.retrieve(
