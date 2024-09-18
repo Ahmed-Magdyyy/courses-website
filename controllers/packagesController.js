@@ -297,11 +297,6 @@ exports.webhook = asyncHandler(async (req, res, next) => {
 
           await handleSubscriptionCreated(event.data.object, subscription);
 
-          console.log('====================================');
-          console.log("event.data.object", event.data.object);
-          console.log('====================================');
-
-          
         } else if (event.data.object.mode === "payment") {
           const paymentIntentId = event.data.object.payment_intent;
           const paymentIntent = await stripe.paymentIntents.retrieve(
@@ -317,16 +312,16 @@ exports.webhook = asyncHandler(async (req, res, next) => {
         await handleSubscriptionUpdated(event.data.object);
         break;
 
-      case "invoice.payment_succeeded":
-        // Retrieve the invoice object
-        const invoice = await stripe.invoices.retrieve(event.data.object.id);
-        const checkoutSessionId = invoice.metadata.checkout_session_id;
+      // case "invoice.payment_succeeded":
+      //   // Retrieve the invoice object
+      //   const invoice = await stripe.invoices.retrieve(event.data.object.id);
+      //   const checkoutSessionId = invoice.metadata.checkout_session_id;
 
-        await handleInvoicePaymentSucceeded(
-          event.data.object.id,
-          checkoutSessionId
-        );
-        break;
+      //   await handleInvoicePaymentSucceeded(
+      //     event.data.object.id,
+      //     checkoutSessionId
+      //   );
+      //   break;
 
       default:
         console.log(`Unhandled event type ${event.type}`);
@@ -367,16 +362,15 @@ const handleSubscriptionCreated = async (session, subscription) => {
     const invoices = await stripe.invoices.list({
       subscription: subscription.id,
     });
+
     if (invoices.data.length > 0) {
       const firstInvoice = invoices.data[0];
       await stripe.invoices.update(firstInvoice.id, {
-        metadata: {
-          checkout_session_id: session.id, // Store the session ID in invoice metadata
-        },
+        metadata: session.metadata,
       });
     }
 
-    console.log(`Subscription started for user: ${user.email}`);
+    console.log(`Subscription started for user: ${user.email} and an invoice was issued` );
   } else {
     console.log(`User not found for ID: ${userId}`);
   }
@@ -427,35 +421,35 @@ const handleOneTimePaymentCreated = async (session, payment) => {
   }
 };
 
-const handleInvoicePaymentSucceeded = async (invoiceId, checkoutSessionId) => {
-  try {
-    // Delay processing to allow time for session completion
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 seconds delay
+// const handleInvoicePaymentSucceeded = async (invoiceId, checkoutSessionId) => {
+//   try {
+//     // Delay processing to allow time for session completion
+//     await new Promise((resolve) => setTimeout(resolve, 2000)); // 2 seconds delay
 
-    if (!checkoutSessionId) {
-      console.error(`No checkout session ID passed`);
-      return;
-    }
+//     if (!checkoutSessionId) {
+//       console.error(`No checkout session ID passed`);
+//       return;
+//     }
 
-    // Retrieve the associated checkout session
-    const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
+//     // Retrieve the associated checkout session
+//     const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
 
-    // Update the invoice with metadata from the checkout session
-    await stripe.invoices.update(invoiceId, {
-      metadata: {
-        system: session.metadata.system,
-        userId: session.metadata.userId,
-        packageId: session.metadata.packageId,
-        stripePackageId: session.metadata.stripePackageId,
-        classesNum: session.metadata.classesNum,
-      },
-    });
+//     // Update the invoice with metadata from the checkout session
+//     await stripe.invoices.update(invoiceId, {
+//       metadata: {
+//         system: session.metadata.system,
+//         userId: session.metadata.userId,
+//         packageId: session.metadata.packageId,
+//         stripePackageId: session.metadata.stripePackageId,
+//         classesNum: session.metadata.classesNum,
+//       },
+//     });
 
-    console.log(`Invoice updated with metadata for invoice ID: ${invoiceId}`);
-  } catch (error) {
-    console.error(`Failed to update invoice with metadata: ${error.message}`);
-  }
-};
+//     console.log(`Invoice updated with metadata for invoice ID: ${invoiceId}`);
+//   } catch (error) {
+//     console.error(`Failed to update invoice with metadata: ${error.message}`);
+//   }
+// };
 
 exports.updatePackage = asyncHandler(async (req, res, next) => {
   const { packageId } = req.params;
