@@ -338,7 +338,14 @@ exports.getUsers = asyncHandler(async (req, res, next) => {
       }
       return user;
     });
-    res.status(200).json({ results: users.length, data: users });
+
+    let guests = [];
+    if (query.role === "student") {
+      guests = await usersModel
+        .find({ role: "guest" })
+        .lean();
+    }
+    res.status(200).json({ results: users.length, data: users , guests});
   }
 });
 
