@@ -93,7 +93,7 @@ const userSchema = new mongoose.Schema(
       },
       paymentType: {
         type: String,
-        enum: ["visa", "bank transfer"],
+        enum: ["visa", "bank transfer", null],
         default: null,
       },
       package: {

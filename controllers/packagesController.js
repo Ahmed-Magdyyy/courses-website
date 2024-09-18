@@ -296,7 +296,6 @@ exports.webhook = asyncHandler(async (req, res, next) => {
           );
 
           await handleSubscriptionCreated(event.data.object, subscription);
-
         } else if (event.data.object.mode === "payment") {
           const paymentIntentId = event.data.object.payment_intent;
           const paymentIntent = await stripe.paymentIntents.retrieve(
@@ -310,6 +309,11 @@ exports.webhook = asyncHandler(async (req, res, next) => {
       case "customer.subscription.updated":
         console.log("Subscription status updated");
         await handleSubscriptionUpdated(event.data.object);
+        break;
+
+      case "customer.subscription.deleted":
+        console.log("Subscription canceled immediately");
+        await handleSubscriptionDeleted(event.data.object); // Add a new function for handling deletion
         break;
 
       // case "invoice.payment_succeeded":
@@ -370,9 +374,33 @@ const handleSubscriptionCreated = async (session, subscription) => {
       });
     }
 
-    console.log(`Subscription started for user: ${user.email} and an invoice was issued` );
+    console.log(
+      `Subscription started for user: ${user.email} and an invoice was issued`
+    );
   } else {
     console.log(`User not found for ID: ${userId}`);
+  }
+};
+
+const handleSubscriptionDeleted = async (subscription) => {
+  const user = await User.findOne({
+    "subscription.stripeSubscriptionId": subscription.id,
+  });
+
+  if (user) {
+    user.subscription.type = null;
+    user.subscription.paymentType = null;
+    user.subscription.package = null;
+    user.subscription.packageStripeId = null;
+    user.subscription.status = "cancelled";
+    user.subscription.stripeSubscriptionId = null;
+    user.subscription.subscription_start = "";
+    user.subscription.subscription_end = "";
+
+    await user.save();
+    console.log(`Subscription canceled immediately for user: ${user.email}`);
+  } else {
+    console.log(`User not found for subscription ID: ${subscription.id}`);
   }
 };
 
