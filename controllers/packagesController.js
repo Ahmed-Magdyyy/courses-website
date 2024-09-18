@@ -313,7 +313,7 @@ exports.webhook = asyncHandler(async (req, res, next) => {
 
       case "customer.subscription.deleted":
         console.log("Subscription canceled immediately");
-        await handleSubscriptionDeleted(event.data.object); // Add a new function for handling deletion
+        await handleSubscriptionDeleted(event.data.object);
         break;
 
       // case "invoice.payment_succeeded":
