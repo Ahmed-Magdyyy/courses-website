@@ -1351,6 +1351,78 @@ exports.deleteClass = asyncHandler(async (req, res, next) => {
   res.status(204).send("Class deleted successfully");
 });
 
+// exports.classReport = asyncHandler(async (req, res, next) => {
+//   const classId = req.params.id;
+//   const { attendance, classComment } = req.body;
+
+//   // Find the class by ID
+//   const cls = await classModel.findById(classId);
+
+//   if (!cls) {
+//     return next(new ApiError(`No class found for this id:${classId}`, 404));
+//   }
+
+//   cls.comment = classComment;
+//   if (cls.status !== "trial") {
+//     cls.status = "ended";
+//   }
+
+//   // Update attendance based on the request body
+//   for (const attendanceEntry of attendance) {
+//     const { studentId, attended, comment } = attendanceEntry;
+
+//     // Find the corresponding attendance entry in the class document
+//     const existingAttendanceIndex = cls.attendance.findIndex(
+//       (entry) => entry.student.toString() === studentId
+//     );
+
+//     if (existingAttendanceIndex !== -1) {
+//       // If the attendance entry exists, update it
+//       cls.attendance[existingAttendanceIndex].attended = attended;
+
+//       // Add comment based on attendance
+//       if (comment) {
+//         cls.attendance[existingAttendanceIndex].comment = comment;
+//       }
+
+//       // If the student attended, deduct 1 from remainingClasses using the middleware
+//       if (attended) {
+//         const student = await userModel.findById(studentId);
+//         if (cls.status !== "tiral") {
+//           if (student.remainingClasses > 0) {
+//             const deductionSuccessful = student.deductClassCredit();
+//             if (deductionSuccessful) {
+//               // If deduction was successful, save the updated user
+//               await student.save();
+//             } else {
+//               return next(
+//                 new ApiError(
+//                   `No remaining class credits for student ${studentId}`
+//                 )
+//               );
+//             }
+//           } else {
+//             return next(
+//               new ApiError(
+//                 `No remaining class credits for student ${studentId}`
+//               )
+//             );
+//           }
+//         }
+//       }
+//     } else {
+//       return next(
+//         new ApiError(`Attendance entry for student ${studentId} not found`)
+//       );
+//     }
+//   }
+
+//   // Save the updated class
+//   await cls.save();
+
+//   res.status(200).json({ message: "class report updated successfully" });
+// });
+
 exports.classReport = asyncHandler(async (req, res, next) => {
   const classId = req.params.id;
   const { attendance, classComment } = req.body;
@@ -1385,10 +1457,11 @@ exports.classReport = asyncHandler(async (req, res, next) => {
         cls.attendance[existingAttendanceIndex].comment = comment;
       }
 
-      // If the student attended, deduct 1 from remainingClasses using the middleware
-      if (attended) {
-        const student = await userModel.findById(studentId);
-        if (cls.status !== "tiral") {
+      // Check if the user is not a guest
+      const student = await userModel.findById(studentId);
+      if (attended && student.role !== 'guest') {
+        // Deduct 1 from remainingClasses if the student is not a guest and the class is not a trial
+        if (cls.status !== "trial") {
           if (student.remainingClasses > 0) {
             const deductionSuccessful = student.deductClassCredit();
             if (deductionSuccessful) {
@@ -1420,7 +1493,7 @@ exports.classReport = asyncHandler(async (req, res, next) => {
   // Save the updated class
   await cls.save();
 
-  res.status(200).json({ message: "class report updated successfully" });
+  res.status(200).json({ message: "Class report updated successfully" });
 });
 
 exports.cancelClass = asyncHandler(async (req, res, next) => {
