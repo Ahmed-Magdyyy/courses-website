@@ -753,8 +753,8 @@ exports.updatePostStatus = asyncHandler(async (req, res, next) => {
     }
 
     // Check if the user is authorized to update the status
-    if (req.user.role !== "superAdmin") {
-      return next(new ApiError(`Only superAdmin can update the status.`, 403));
+    if (req.user.role !== "superAdmin" && req.user.role !== "admin") {
+      return next(new ApiError(`Only superAdmin and admins can update the status.`, 403));
     }
 
     res.status(200).json({

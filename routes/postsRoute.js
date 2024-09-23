@@ -59,7 +59,7 @@ Router.route("/:id/like").put(
   toggleLike
 );
 
-Router.route("/:id/approve").put(allowedTo("superAdmin"), updatePostStatus);
+Router.route("/:id/approve").put(allowedTo("superAdmin", "admin"), updatePostStatus);
 
 Router.route("/:id/visibleTo").put(
   allowedTo("superAdmin", "admin"),
