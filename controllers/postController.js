@@ -563,7 +563,7 @@ exports.getAllPosts = asyncHandler(async (req, res, next) => {
   });
 
   // Adjust filter based on user's role
-  if (req.user.role !== "superAdmin") {
+  if (req.user.role !== "superAdmin" && req.user.role !== "admin") {
     if (req.user.role === "guest") {
       // Treat guest users as students
       filter.visibleTo = { $in: ["student"] };
