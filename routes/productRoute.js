@@ -25,49 +25,49 @@ Router.use(protect);
 Router.route("/")
   .post(
     allowedTo("superAdmin", "admin"),
-    enabledControls("products"),
+    enabledControls("lms"),
     uploadProductFiles,
     createProduct
   )
   .get(
     allowedTo("superAdmin", "admin", "student", "guest"),
-    enabledControls("products"),
+    enabledControls("lms"),
     getAllProducts
   );
 
 Router.route("/:id")
   .get(
     allowedTo("superAdmin", "admin", "student", "guest"),
-    enabledControls("products"),
+    enabledControls("lms"),
     getProduct
   )
   .put(
     allowedTo("superAdmin", "admin"),
-    enabledControls("products"),
+    enabledControls("lms"),
     uploadProductFiles,
     editProduct
   )
   .delete(
     allowedTo("superAdmin", "admin"),
-    enabledControls("products"),
+    enabledControls("lms"),
     deleteProduct
   );
 
 Router.route("/:id/addStudents").put(
   allowedTo("superAdmin", "admin"),
-  enabledControls("products"),
+  enabledControls("lms"),
   addStudentsToProduct
 );
 
 Router.route("/:id/removeStudents").put(
   allowedTo("superAdmin", "admin"),
-  enabledControls("products"),
+  enabledControls("lms"),
   removeStudentsFromProduct
 );
 
 Router.route("/productStudents/:productId").get(
   allowedTo("superAdmin", "admin"),
-  enabledControls("products"),
+  enabledControls("lms"),
   getStudentsOfProduct
 );
 

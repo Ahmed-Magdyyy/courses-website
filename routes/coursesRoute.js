@@ -25,49 +25,49 @@ Router.use(protect);
 Router.route("/")
   .post(
     allowedTo("superAdmin", "admin"),
-    enabledControls("courses"),
+    enabledControls("lms"),
     uploadCourseImage,
     createCourse
   )
   .get(
     allowedTo("superAdmin", "admin", "student", "guest"),
-    enabledControls("courses"),
+    enabledControls("lms"),
     getAllCourses
   );
 
 Router.route("/:id")
   .get(
     allowedTo("superAdmin", "admin", "student", "guest"),
-    enabledControls("courses"),
+    enabledControls("lms"),
     getCourse
   )
   .put(
     allowedTo("superAdmin", "admin"),
-    enabledControls("courses"),
+    enabledControls("lms"),
     uploadCourseImage,
     updateCourse
   )
   .delete(
     allowedTo("superAdmin", "admin"),
-    enabledControls("courses"),
+    enabledControls("lms"),
     deleteCourse
   );
 
 Router.route("/:id/addStudents").put(
   allowedTo("superAdmin", "admin"),
-  enabledControls("courses"),
+  enabledControls("lms"),
   addStudentsToCourse
 );
 
 Router.route("/:id/removeStudents").put(
   allowedTo("superAdmin", "admin"),
-  enabledControls("courses"),
+  enabledControls("lms"),
   removeStudentFromCourse
 );
 
 Router.route("/courseStudents/:courseId").get(
   allowedTo("superAdmin", "admin"),
-  enabledControls("courses"),
+  enabledControls("lms"),
   getStudentsOfCourse
 );
 
