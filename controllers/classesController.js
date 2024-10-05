@@ -974,16 +974,24 @@ exports.getAllClasses = asyncHandler(async (req, res, next) => {
   // Get the current time in the user's timezone and convert it to UTC for comparison
   const userTimezone = req.user.timezone || "UTC"; // Default to UTC if timezone is not found
   const currentTimeUTC = moment().tz(userTimezone).utc().toDate(); // Convert to UTC for MongoDB comparison
+  const classDuration = 45 * 60 * 1000; // 45 minutes in milliseconds
 
   // Apply time-based filters based on the `filter` query parameter
   let sortOrder = { meeting_time: 1 }; // Default sorting in ascending order
 
   if (timeFilter === "upcoming") {
     // For upcoming classes, meeting_time must be greater than or equal to current time (in UTC)
-    filter.meeting_time = { $gte: currentTimeUTC };
+    // filter.meeting_time = { $gte: currentTimeUTC };
+    filter.meeting_time = {
+      $gte: new Date(currentTimeUTC.getTime() - classDuration),
+    };
   } else if (timeFilter === "past") {
     // For past classes, meeting_time must be less than the current time (in UTC)
-    filter.meeting_time = { $lt: currentTimeUTC };
+    // filter.meeting_time = { $lt: currentTimeUTC };
+    filter.meeting_time = {
+      $lt: new Date(currentTimeUTC.getTime() - classDuration),
+    };
+
     sortOrder = { meeting_time: -1 }; // Sort past classes in descending order
   }
 
@@ -1459,7 +1467,7 @@ exports.classReport = asyncHandler(async (req, res, next) => {
 
       // Check if the user is not a guest
       const student = await userModel.findById(studentId);
-      if (attended && student.role !== 'guest') {
+      if (attended && student.role !== "guest") {
         // Deduct 1 from remainingClasses if the student is not a guest and the class is not a trial
         if (cls.status !== "trial") {
           if (student.remainingClasses > 0) {
@@ -2292,7 +2300,7 @@ exports.classCheckIn = asyncHandler(async (req, res, next) => {
   if (cls.teacher._id.toString() !== req.user._id.toString()) {
     return next(new ApiError(`you are not the teacher of this class`, 404));
   }
-console.log("classss", cls.status)
+  console.log("classss", cls.status);
   if (cls.status !== "scheduled" && cls.status !== "trial") {
     return next(
       new ApiError(

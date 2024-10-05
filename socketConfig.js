@@ -32,7 +32,9 @@ function initSocketServer(server) {
       console.log("users connected to socket", users);
     });
 
-    socket.on("sendMessage", ({ senderId, receiverId, text, sentAt }) => {
+    socket.on("sendMessage", ({ senderId, receiverId, text }) => {
+      console.log("receiverId:", receiverId)
+
       const user = getUser(receiverId);
       console.log("usrrrrr:", user)
       console.log(user? true : false)
@@ -42,8 +44,7 @@ function initSocketServer(server) {
         io.to(user.socketId).emit("getMessage", {
           senderId,
           receiverId,
-          text,
-          sentAt,
+          text
         });
       } else {
       console.log("usrrrrr:", "not connected to socket")
