@@ -52,6 +52,25 @@ const server = app.listen(process.env.PORT, () =>
 // Initialize Socket.IO
 socketConfig.initSocketServer(server);
 
+// Ping the server immediately after starting the server
+pingServer();
+
+// Ping the server every 14 minutes (14 * 60 * 1000 milliseconds)
+const pingInterval = 15 * 60 * 1000;
+setInterval(pingServer, pingInterval);
+
+// Function to ping the server by hitting the specified API route
+function pingServer() {
+  const pingEndpoint = 'https://courses-website-t4cr.onrender.com/api/v1/auth/login';
+
+  // Send a GET request to the ping endpoint
+  https.get(pingEndpoint, (res) => {
+    console.log(`Ping sent to server: ${res.statusCode}`);
+  }).on('error', (err) => {
+    console.error('Error while sending ping:', err);
+  });
+}
+
 // UnhandledRejections event handler (rejection outside express)
 process.on("unhandledRejection", (err) => {
   console.error(
